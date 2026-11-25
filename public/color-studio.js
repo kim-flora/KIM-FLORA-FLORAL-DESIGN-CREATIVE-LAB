@@ -36,9 +36,9 @@ export function setupColorStudio() {
     const percentages = allocate(weights, 100);
     const roles = palette.length === 2 ? [percentages[0], percentages[1]] :
       [percentages[0], percentages[1], percentages.slice(2).reduce((sum, value) => sum + value, 0)];
-    const ratio = roles.join(' – ');
+    const ratio = roles.map(value => value + '%').join(' · ');
     get('studio-ratio').textContent = 'Tỷ lệ chính · phụ' +
-      (roles.length === 3 ? ' · nhấn' : '') + ' ' + ratio + '%';
+      (roles.length === 3 ? ' · nhấn' : '') + ' ' + ratio;
     const { colors, contrast, harmony } = analyzePalette(palette);
     const rows = colors.map((color, index) => {
       const row = document.createElement('tr');
@@ -53,7 +53,14 @@ export function setupColorStudio() {
     get('studio-analysis').replaceChildren(...rows);
     get('studio-contrast').textContent = 'Tương phản sáng tối giữa cặp xa nhất ' + contrast.toFixed(2) + ':1.';
     get('studio-harmony').textContent = 'Hòa sắc theo vòng màu. ' + harmony;
-    drawBouquet(palette);
+    get('studio-ratio-bar').replaceChildren(...palette.flatMap(({ hex }, index) => {
+      if (!percentages[index]) return [];
+      const segment = document.createElement('span');
+      segment.style.width = percentages[index] + '%';
+      segment.style.backgroundColor = hex;
+      segment.title = hex + ' · ' + percentages[index] + '%';
+      return [segment];
+    }));
   }
 
   function render() {
@@ -191,22 +198,4 @@ export function setupColorStudio() {
   };
   render();
   return focusView;
-}
-
-function drawBouquet(palette) {
-  const bouquet = document.getElementById('studio-bouquet');
-  const counts = allocate(palette.map(item => item.weight), 100);
-  const flowers = palette.flatMap(({ hex }, index) =>
-    Array.from({ length: counts[index] }, () => hex));
-  bouquet.replaceChildren(...flowers.map((color, index) => {
-    const position = (index * 37) % flowers.length;
-    const radius = Math.sqrt((position + .5) / flowers.length);
-    const angle = position * 2.399963;
-    const bloom = document.createElement('span');
-    bloom.style.left = 50 + Math.cos(angle) * radius * 43 + '%';
-    bloom.style.top = 42 + Math.sin(angle) * radius * 35 + '%';
-    bloom.style.backgroundColor = color;
-    bloom.style.zIndex = String(position + 1);
-    return bloom;
-  }));
 }

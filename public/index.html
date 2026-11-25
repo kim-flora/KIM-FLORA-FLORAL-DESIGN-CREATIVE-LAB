@@ -75,10 +75,10 @@
     <section id="color-studio" class="studio" aria-labelledby="studio-title" hidden>
       <header class="studio-heading">
         <h1 id="studio-title" tabindex="-1">Floral Color Studio</h1>
-        <p>Phối màu hoa · Phân tích · Mô phỏng</p>
+        <p>Phối màu hoa</p>
       </header>
       <div class="studio-grid">
-        <section class="studio-panel" aria-labelledby="palette-title">
+        <section class="studio-panel studio-palette" aria-labelledby="palette-title">
           <h2 id="palette-title">Bảng phối</h2>
           <form id="generate-palette" class="studio-controls">
             <label>Màu gốc<input id="studio-base" type="color" value="#9a5064"></label>
@@ -88,13 +88,14 @@
             <button class="primary" type="submit">Tạo bảng phối</button>
           </form>
           <div id="studio-swatches" class="studio-swatches"></div>
-          <p id="studio-ratio"></p>
-          <button id="reset-ratio" class="secondary" type="button">Áp dụng 60–30–10</button>
-        </section>
-        <section class="studio-panel" aria-labelledby="simulation-title">
-          <h2 id="simulation-title">Mô phỏng bó hoa</h2>
-          <div id="studio-bouquet" class="studio-bouquet" aria-hidden="true"></div>
-          <p>Diện tích màu được mô phỏng theo số bông. Hình dáng, kích thước hoa và ánh sáng thực tế sẽ đổi cảm nhận tỷ lệ.</p>
+          <div class="ratio-panel">
+            <div class="ratio-heading">
+              <h3>Phân bổ màu</h3>
+              <button id="reset-ratio" class="secondary" type="button">Áp dụng 60–30–10</button>
+            </div>
+            <div id="studio-ratio-bar" class="ratio-bar" aria-hidden="true"></div>
+            <p id="studio-ratio"></p>
+          </div>
         </section>
         <section class="studio-panel studio-analysis" aria-labelledby="analysis-title">
           <h2 id="analysis-title">Phân tích bảng màu</h2>
@@ -102,7 +103,7 @@
           <p id="studio-contrast"></p>
           <p id="studio-harmony"></p>
         </section>
-        <section class="studio-panel" aria-labelledby="formula-title">
+        <section class="studio-panel studio-formulas" aria-labelledby="formula-title">
           <h2 id="formula-title">Công thức phối màu</h2>
           <form id="save-formula" class="studio-controls">
             <label>Tên công thức<input id="formula-name" maxlength="120" required></label>

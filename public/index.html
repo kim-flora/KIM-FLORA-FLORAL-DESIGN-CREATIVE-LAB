@@ -83,7 +83,7 @@
           <form id="generate-palette" class="studio-controls">
             <label>Màu gốc<input id="studio-base" type="color" value="#9a5064"></label>
             <label>Mã HEX<input id="studio-hex" value="#9A5064" pattern="#?[0-9A-Fa-f]{6}" required></label>
-            <label>Số màu<select id="studio-count"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
+            <label>Số màu<select id="studio-count"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
             <label>Kiểu phối<select id="studio-scheme"><option value="analogous">Tương đồng</option><option value="complementary">Bổ túc</option><option value="monochrome">Đơn sắc</option><option value="triadic">Bộ ba</option><option value="split">Bổ túc xen kẽ</option><option value="tetradic">Bộ bốn</option></select></label>
             <button class="primary" type="submit">Tạo biến thể</button>
           </form>
@@ -95,6 +95,10 @@
             <button id="palette-png" class="secondary" type="button">Xuất PNG</button>
           </div>
           <p id="palette-status" role="status"></p>
+          <figure id="palette-source" class="palette-source" hidden>
+            <img id="palette-photo" alt="Ảnh nguồn của bảng màu">
+            <figcaption id="palette-photo-name"></figcaption>
+          </figure>
           <div id="studio-swatches" class="studio-swatches"></div>
           <div class="ratio-panel">
             <div class="studio-controls">
@@ -104,7 +108,7 @@
                 <option value="#49583E,#849272,#DDDAC3,#A16B50">Olive và đất nung</option>
                 <option value="#342B48,#747498,#BBC1D4,#DDD1C8">Tím chạng vạng</option>
               </select></label>
-              <label>Lấy màu từ ảnh của bạn<input id="palette-image" type="file" accept="image/*"></label>
+              <label>Tải ảnh để tạo và lưu bảng màu<input id="palette-image" type="file" accept="image/*"></label>
             </div>
             <div class="ratio-heading">
               <h3>Phân bổ màu</h3>

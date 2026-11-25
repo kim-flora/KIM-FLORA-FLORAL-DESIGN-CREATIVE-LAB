@@ -120,23 +120,56 @@ export function contrastRatio(foreground, background) {
   return (Math.max(...values) + .05) / (Math.min(...values) + .05);
 }
 
-export function extractPalette(pixels, count) {
-  const groups = new Map();
-  for (let i = 0; i < pixels.length; i += 4) {
+export function extractPalette(pixels, count, width = pixels.length / 4) {
+  const samples = [];
+  const stride = Math.max(1, Math.floor(pixels.length / (4 * 4800)));
+  const height = pixels.length / (4 * width);
+  for (let i = 0; i < pixels.length; i += 4 * stride) {
     if (pixels[i + 3] < 128) continue;
-    const [r, g, b] = pixels.subarray(i, i + 3);
-    const key = ((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5);
-    const cluster = groups.get(key) ?? { channels: [0, 0, 0], count: 0 };
-    cluster.channels[0] += r;
-    cluster.channels[1] += g;
-    cluster.channels[2] += b;
-    cluster.count++;
-    groups.set(key, cluster);
+    const index = i / 4;
+    samples.push({
+      rgb: [pixels[i], pixels[i + 1], pixels[i + 2]],
+      x: (index % width + .5) / width,
+      y: (Math.floor(index / width) + .5) / height
+    });
   }
-  return [...groups.values()].sort((a, b) => b.count - a.count).slice(0, count)
-    .map(({ channels, count }) => ({
-      hex: '#' + channels.map(value =>
-        Math.round(value / count).toString(16).padStart(2, '0')).join('').toUpperCase(),
-      weight: count
-    }));
+  if (!samples.length) return [];
+  const distance = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
+  const centers = [samples[Math.floor(samples.length / 2)].rgb];
+  while (centers.length < count) {
+    let farthest;
+    let best = 0;
+    for (const { rgb } of samples) {
+      const nearest = Math.min(...centers.map(center => distance(rgb, center)));
+      if (nearest > best) { best = nearest; farthest = rgb; }
+    }
+    if (!farthest) break;
+    centers.push(farthest);
+  }
+  let groups;
+  for (let round = 0; round < 12; round++) {
+    groups = centers.map(() => []);
+    for (const sample of samples) {
+      let closest = 0;
+      let best = Infinity;
+      centers.forEach((center, i) => {
+        const d = distance(sample.rgb, center);
+        if (d < best) { best = d; closest = i; }
+      });
+      groups[closest].push(sample);
+    }
+    for (const [index, group] of groups.entries()) {
+      if (!group.length) continue;
+      const sums = [0, 0, 0];
+      for (const { rgb } of group) rgb.forEach((value, channel) => { sums[channel] += value; });
+      centers[index] = sums.map(sum => sum / group.length);
+    }
+  }
+  return groups.flatMap((group, index) => {
+    if (!group.length) return [];
+    const center = centers[index];
+    const nearest = group.reduce((a, b) => distance(b.rgb, center) < distance(a.rgb, center) ? b : a);
+    const hex = '#' + nearest.rgb.map(value => value.toString(16).padStart(2, '0')).join('').toUpperCase();
+    return [{ hex, weight: group.length, point: { x: nearest.x, y: nearest.y } }];
+  }).sort((a, b) => b.weight - a.weight);
 }

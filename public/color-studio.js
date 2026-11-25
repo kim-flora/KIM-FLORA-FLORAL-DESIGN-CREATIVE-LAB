@@ -1,3 +1,4 @@
+import { colorChannels, deltaE, paintFloral } from './studio-tools.js';
 import { allocate, analyzePalette, defaultWeights, generatePalette, generateVariation, contrastRatio, extractPalette } from './color-model.js';
 
 import { readPhotoPalettes, savePhotoPalette } from './palette-library.js';
@@ -24,11 +25,81 @@ export function setupColorStudio() {
   let photoFormulaId = null;
   let saving = false;
   const history = [];
+  const occasion = get('formula-occasion');
+  const notes = get('formula-notes');
+  const search = get('formula-search');
+  const photo = get('palette-photo');
+  const pipette = get('palette-pipette');
+  const markerLayer = get('palette-markers');
+  const product = get('floral-product');
+  let available = [];
+
+  function drawMarkers() {
+    markerLayer.replaceChildren(...palette.flatMap(({ point, hex }) => {
+      if (!point) return [];
+      const marker = document.createElement('span');
+      marker.style.left = point.x * 100 + '%';
+      marker.style.top = point.y * 100 + '%';
+      marker.style.backgroundColor = hex;
+      return [marker];
+    }));
+  }
+
+  pipette.onclick = () => {
+    const active = pipette.getAttribute('aria-pressed') !== 'true';
+    pipette.setAttribute('aria-pressed', String(active));
+    markerLayer.classList.toggle('picking', active);
+  };
+
+  photo.onclick = event => {
+    if (pipette.getAttribute('aria-pressed') !== 'true' || !photo.naturalWidth) return;
+    const rect = photo.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext('2d');
+    context.drawImage(photo, Math.min(photo.naturalWidth - 1, Math.floor(x * photo.naturalWidth)),
+      Math.min(photo.naturalHeight - 1, Math.floor(y * photo.naturalHeight)), 1, 1, 0, 0, 1, 1);
+    const [r, g, b, alpha] = context.getImageData(0, 0, 1, 1).data;
+    if (alpha < 128) {
+      get('palette-sample').textContent = 'Vùng này trong suốt. Hãy chọn vị trí khác.';
+      return;
+    }
+    const index = Number(get('palette-pick-slot').value);
+    const nextHex = '#' + [r, g, b].map(channel => channel.toString(16).padStart(2, '0')).join('').toUpperCase();
+    remember();
+    Object.assign(palette[index], { hex: nextHex, point: { x, y } });
+    if (index === 0) hex.value = base.value = nextHex;
+    render();
+    get('palette-sample').textContent = 'Đã lấy ' + nextHex + ' vào ô ' + (index + 1) + '.';
+  };
+
+  function drawMockup() {
+    paintFloral(get('floral-mockup'), palette, product.value);
+    get('floral-swap').disabled = palette.length < 2;
+  }
+
+  product.onchange = drawMockup;
+  get('floral-swap').onclick = () => {
+    const i = Math.min(2, palette.length - 1);
+    const main = palette[0];
+    const accent = palette[i];
+    remember();
+    [main.hex, accent.hex] = [accent.hex, main.hex];
+    [main.point, accent.point] = [accent.point, main.point];
+    hex.value = base.value = main.hex;
+    render();
+  };
+
 
   function showPhoto() {
     const image = get('palette-photo');
     if (photoUrl) URL.revokeObjectURL(photoUrl);
     photoUrl = sourcePhoto ? URL.createObjectURL(sourcePhoto) : null;
+    pipette.setAttribute('aria-pressed', 'false');
+    markerLayer.classList.remove('picking');
+    get('palette-sample').textContent = '';
     if (photoUrl) image.src = photoUrl;
     else image.removeAttribute('src');
     get('palette-source').hidden = !photoUrl;
@@ -72,9 +143,19 @@ export function setupColorStudio() {
     select.value = '';
   };
 
-  get('palette-image').onchange = async event => {
-    const input = event.currentTarget;
-    const file = input.files[0];
+  const photoInput = get('palette-image');
+  const drop = get('palette-drop');
+  photoInput.onchange = () => importPhoto(photoInput.files[0]);
+  drop.ondragover = event => { event.preventDefault(); drop.classList.add('dragging'); };
+  drop.ondragleave = () => drop.classList.remove('dragging');
+  drop.ondrop = event => {
+    event.preventDefault();
+    drop.classList.remove('dragging');
+    importPhoto(event.dataTransfer.files[0]);
+  };
+
+  async function importPhoto(file) {
+    const input = photoInput;
     if (!file || saving) {
       input.value = '';
       return;
@@ -93,15 +174,17 @@ export function setupColorStudio() {
       try { context.drawImage(image, 0, 0, canvas.width, canvas.height); }
       finally { image.close(); }
       const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-      const samples = extractPalette(pixels, colorCount);
+      const samples = extractPalette(pixels, colorCount, canvas.width);
       if (!samples.length) {
         paletteStatus.textContent = 'Ảnh không có vùng màu đủ rõ để phân tích.';
         return;
       }
       const percentages = allocate(samples.map(item => item.weight), 100);
       remember();
-      palette = samples.map((item, index) => ({ hex: item.hex, weight: percentages[index] }));
+      palette = samples.map((item, index) => ({ hex: item.hex, weight: percentages[index], point: item.point }));
       sourcePhoto = file;
+      occasion.value = '';
+      notes.value = '';
       photoFormulaId = crypto.randomUUID();
       name.value = file.name.replace(/\.[^.]+$/, '').slice(0, 120).trim() || 'Bảng màu từ ảnh';
       count.value = String(palette.length);
@@ -118,7 +201,7 @@ export function setupColorStudio() {
       input.disabled = false;
       input.value = '';
     }
-  };
+  }
 
   get('palette-png').onclick = () => {
     const canvas = document.createElement('canvas');
@@ -158,7 +241,7 @@ export function setupColorStudio() {
   };
 
   function snapshot() {
-    return { palette: palette.map(item => ({ ...item })), sourcePhoto, photoFormulaId, title: name.value };
+    return { palette: palette.map(item => ({ ...item })), sourcePhoto, photoFormulaId, title: name.value, occasion: occasion.value, notes: notes.value };
   }
 
   function updateHistory() {
@@ -179,6 +262,8 @@ export function setupColorStudio() {
     const previous = from.pop();
     ({ palette, sourcePhoto, photoFormulaId } = previous);
     name.value = previous.title;
+    occasion.value = previous.occasion;
+    notes.value = previous.notes;
     showPhoto();
     hex.value = base.value = palette[0].hex;
     count.value = String(palette.length);
@@ -219,6 +304,10 @@ export function setupColorStudio() {
       select.value = previous !== '' && Number(previous) < palette.length ? previous : String(Math.min(fallback, palette.length - 1));
     }
     updateContrast();
+    drawMockup();
+    drawMarkers();
+    get('studio-delta').textContent = palette.length < 2 ? '' : 'Chênh lệch màu CIE76 giữa màu chính và ' +
+      palette.slice(1).map(item => item.hex + ' (ΔE ' + deltaE(palette[0].hex, item.hex).toFixed(1) + ')').join(', ') + '.';
     const weights = palette.map(item => item.weight);
     const percentages = allocate(weights, 100);
     const roles = palette.length < 3 ? percentages :
@@ -229,7 +318,9 @@ export function setupColorStudio() {
     const { colors, contrast, harmony } = analyzePalette(palette);
     const rows = colors.map((color, index) => {
       const row = document.createElement('tr');
-      for (const value of [color.hex + ' · ' + percentages[index] + '%', color.temperature,
+      const channels = colorChannels(color.hex);
+      for (const value of [color.hex + ' · ' + percentages[index] + '%',
+        channels.rgb + ' / ' + channels.cmyk, color.temperature,
         Math.round(color.lightness * 100) + '%', Math.round(color.saturation * 100) + '%']) {
         const cell = document.createElement('td');
         cell.textContent = value;
@@ -251,6 +342,10 @@ export function setupColorStudio() {
   }
 
   function render() {
+    const slot = get('palette-pick-slot');
+    const index = Math.min(Number(slot.value), palette.length - 1);
+    slot.replaceChildren(...palette.map((_, i) => new Option('Ô ' + (i + 1), String(i))));
+    slot.value = String(index);
     swatches.replaceChildren(...palette.map((item, index) => {
       const tile = document.createElement('div');
       const color = document.createElement('input');
@@ -267,6 +362,7 @@ export function setupColorStudio() {
         if (/^#?[\da-f]{6}$/i.test(code.value.trim())) {
           if (item.hex !== normalizeHex(code.value)) remember();
           item.hex = normalizeHex(code.value);
+          delete item.point;
           color.value = item.hex;
           updateAnalysis();
           status.textContent = '';
@@ -278,13 +374,15 @@ export function setupColorStudio() {
       color.onchange = () => {
         if (item.hex !== normalizeHex(color.value)) remember();
         item.hex = normalizeHex(color.value);
+        delete item.point;
         code.value = item.hex;
         updateAnalysis();
       };
       const label = document.createElement('label');
       label.textContent = 'Phần tỷ lệ';
       const weight = document.createElement('input');
-      weight.type = 'number';
+      weight.type = 'range';
+      weight.disabled = palette.length === 1;
       weight.min = '0';
       weight.max = '100';
       weight.value = item.weight;
@@ -383,12 +481,17 @@ export function setupColorStudio() {
   }
 
   function updateList(formulas, selected = '') {
+    available = formulas.filter(item => item && typeof item.name === 'string' && Array.isArray(item.palette));
+    const query = search.value.trim().toLowerCase();
+    const matches = available.filter(item => [item.name, item.occasion, ...item.palette.map(color => color.hex)]
+      .some(value => value?.toLowerCase().includes(query)));
     list.replaceChildren(new Option('Chọn công thức', ''));
-    for (const item of formulas) list.add(new Option(item.name, item.id));
+    for (const item of matches) list.add(new Option(item.name, item.id));
     list.value = selected;
     get('open-formula').disabled = !list.value;
   }
 
+  search.oninput = () => updateList(available, list.value);
   list.onchange = () => { get('open-formula').disabled = !list.value; };
   async function allFormulas() {
     const [local, photos] = await Promise.allSettled([
@@ -402,7 +505,7 @@ export function setupColorStudio() {
   async function saveCurrentPhoto() {
     const entry = {
       id: photoFormulaId, name: name.value.trim(), palette: snapshot().palette,
-      photo: sourcePhoto, updatedAt: Date.now()
+      photo: sourcePhoto, occasion: occasion.value.trim(), notes: notes.value.trim(), updatedAt: Date.now()
     };
     try { await savePhotoPalette(entry); }
     catch { return false; }
@@ -431,7 +534,7 @@ export function setupColorStudio() {
     }
     try {
       const formulas = readFormulas();
-      const entry = { id: crypto.randomUUID(), name: formulaName, palette };
+      const entry = { id: crypto.randomUUID(), name: formulaName, palette, occasion: occasion.value.trim(), notes: notes.value.trim() };
       formulas.unshift(entry);
       localStorage.setItem(storageKey, JSON.stringify(formulas));
       updateList(await allFormulas(), entry.id);
@@ -457,12 +560,67 @@ export function setupColorStudio() {
       photoFormulaId = sourcePhoto ? entry.id : null;
       showPhoto();
       name.value = entry.name;
+      occasion.value = entry.occasion ?? '';
+      notes.value = entry.notes ?? '';
       hex.value = base.value = palette[0].hex;
       get('studio-count').value = String(palette.length);
       render();
       status.textContent = 'Đã mở ' + entry.name + '.';
     } catch {
       status.textContent = 'Chưa mở được công thức.';
+    }
+  };
+
+  function dossier(imageUrl) {
+    const article = document.createElement('article');
+    const heading = document.createElement('h2');
+    heading.id = 'dossier-title';
+    heading.textContent = name.value.trim() || 'Hồ sơ màu Kim Flora';
+    article.append(heading);
+    if (imageUrl) {
+      const image = document.createElement('img');
+      image.src = imageUrl;
+      image.alt = 'Ảnh nguồn của bảng màu';
+      article.append(image);
+    }
+    const details = document.createElement('p');
+    details.textContent = [occasion.value.trim(), notes.value.trim()].filter(Boolean).join('\n');
+    if (details.textContent) article.append(details);
+    article.append(get('studio-analysis').closest('table').cloneNode(true));
+    article.querySelector('tbody').removeAttribute('id');
+    for (const id of ['studio-harmony', 'studio-delta']) {
+      const line = document.createElement('p');
+      line.textContent = get(id).textContent;
+      article.append(line);
+    }
+    return article;
+  }
+
+  get('preview-dossier').onclick = () => {
+    get('dossier-preview').replaceChildren(dossier(photoUrl));
+    get('dossier-dialog').showModal();
+  };
+
+  get('export-dossier').onclick = async () => {
+    try {
+      const image = sourcePhoto ? await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(sourcePhoto);
+      }) : null;
+      const html = '<!doctype html><html lang="vi"><meta charset="utf-8"><title>Hồ sơ màu Kim Flora</title>' +
+        '<style>body{max-width:55rem;margin:2rem auto;padding:1rem;font:16px system-ui;color:#223227}' +
+        'img{max-width:100%;max-height:28rem}td,th{padding:.6rem;text-align:left;border-bottom:1px solid #ccc}p{white-space:pre-wrap}</style>' +
+        dossier(image).outerHTML + '</html>';
+      const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'kim-flora-ho-so-mau.html';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      status.textContent = 'Chưa xuất được hồ sơ màu.';
     }
   };
 

@@ -98,6 +98,7 @@ script[1]=script[1].slice(0,contourStart)+`if(selected.includes('form') && r.bou
 const penPage=freehandStudio(script[1],html);
 script[1]=penPage.script;
 html=penPage.html;
+script[1]=preserveStudioState(script[1].replace(/\r\n/g,'\n'));
 const start=script[1].indexOf('// ==================== AUTH & PASSWORD MANAGEMENT');
 const end=script[1].indexOf('// ==================== STORAGE & UTILITIES');
 if(start<0||end<start)throw Error('Unexpected Studio authentication layout');
@@ -182,4 +183,80 @@ function freehandStudio(script,html){
     });
     `);
   return {script,html};
+}
+
+function preserveStudioState(source){
+  function section(start,end,body){
+    const first=source.indexOf(start),last=source.indexOf(end,first+start.length);
+    if(first<0||last<0)throw Error('Saved-data compatibility check failed: '+start);
+    source=source.slice(0,first)+body+'\n'+source.slice(last);
+  }
+  section('function safeLoad()', 'function showToast(',`let savedRaw=null,readFailed=false;
+    function safeLoad(){
+      try{
+        savedRaw=localStorage.getItem(STORAGE_KEY);
+        if(savedRaw===null)return null;
+        const value=JSON.parse(savedRaw);
+        if(!value||Array.isArray(value)||typeof value!=='object')throw Error();
+        return value;
+      }catch{
+        readFailed=true;
+        showToast('Chưa đọc được dữ liệu đã lưu. Bản hiện có được giữ lại.', 'error');
+        return null;
+      }
+    }
+    function safeSave(value){
+      try{
+        if(readFailed || localStorage.getItem(STORAGE_KEY)!==savedRaw){
+          throw Error('Dữ liệu đã thay đổi hoặc chưa đọc được. Hãy mở lại Studio trước khi lưu tiếp.');
+        }
+        const next=JSON.stringify(value);
+        localStorage.setItem(STORAGE_KEY,next);
+        savedRaw=next;
+      }catch(error){
+        showToast(error.name==='Error'?error.message:'Chưa lưu được thay đổi. Bộ nhớ trình duyệt có thể đã đầy.', 'error');
+        throw error;
+      }
+    }
+    function applyDefaults(defaults,saved){
+      const result={...saved};
+      for(const [key,value] of Object.entries(defaults)){
+        if(!Object.hasOwn(result,key))result[key]=structuredClone(value);
+        else if(value && typeof value==='object' && !Array.isArray(value) && result[key] && typeof result[key]==='object' && !Array.isArray(result[key])){
+          result[key]=applyDefaults(value,result[key]);
+        }
+      }
+      return result;
+    }
+    `);
+  section('let state = Object.assign({}, DEFAULT_STATE', '// ==================== TAB NAVIGATION',`const previouslySaved=safeLoad();
+    let state=applyDefaults(DEFAULT_STATE,previouslySaved||{});
+    function persist(){safeSave(state);}
+    `);
+  source=source.replace('function loadImageToColorStudio(src)', 'let colorRequest=0;\n    function loadImageToColorStudio(src,restore=false)')
+    .replace("function loadImageToColorStudio(src,restore=false) {","function loadImageToColorStudio(src,restore=false) {\n      const request=++colorRequest;")
+    .replace('const maxW = 540, maxH = 340;','if(request!==colorRequest)return;\n        const maxW = 540, maxH = 340;')
+    .replace("state.currentImageDataUrl = colorCanvas.toDataURL","if(restore)return;\n        state.currentImageDataUrl = colorCanvas.toDataURL");
+  source=source.replace('function loadCompImage(src) {','function loadCompImage(src,restore=false) {')
+    .replace('compBgImg.onload = () => {','const requestedImage=compBgImg;\n      compBgImg.onload = () => {\n        if(requestedImage!==compBgImg)return;')
+    .replace('compCanvas.height = Math.round(compBgImg.height * scale);',`compCanvas.height = Math.round(compBgImg.height * scale);
+        if(!restore){
+          const imageCopy=document.createElement('canvas');
+          imageCopy.width=compCanvas.width;imageCopy.height=compCanvas.height;
+          imageCopy.getContext('2d').drawImage(compBgImg,0,0,imageCopy.width,imageCopy.height);
+          state.compSource=imageCopy.toDataURL('image/png');
+        }`)
+    .replace("      compBgImg.src = src;", "      compBgImg.src = src;")
+    .replace('        analyzeFloralComposition();\n        renderCompCanvas();','        analyzeFloralComposition();\n        renderCompCanvas();\n        if(!restore)persist();');
+  section('// Load default sample image into Color Studio', 'if (window.lucide)',`const sample=document.getElementById('sampleImgBouquet');
+      if(!colorRequest){
+        if(state.currentImageDataUrl)loadImageToColorStudio(state.currentImageDataUrl,true);
+        else if(!previouslySaved && !readFailed && sample?.src)loadImageToColorStudio(sample.src,true);
+      }
+      if(!compBgImg.src){
+        const src=state.compSource || state.currentImageDataUrl || (!previouslySaved && !readFailed && sample?.src);
+        if(src)loadCompImage(src,true);
+      }
+      `);
+  return source;
 }

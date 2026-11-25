@@ -78,6 +78,25 @@
         <p>Phối màu hoa theo vai trò chủ đạo, hỗ trợ và điểm nhấn.</p>
       </header>
       <div class="studio-grid">
+        <section class="studio-panel studio-source" aria-labelledby="source-title">
+          <h2 id="source-title">Trích màu từ ảnh hoa</h2>
+          <label class="photo-drop" id="palette-drop">Chọn hoặc kéo thả ảnh hoa
+            <input id="palette-image" type="file" accept="image/*">
+          </label>
+          <p id="palette-status" role="status"></p>
+          <figure id="palette-source" class="palette-source" hidden>
+            <div class="photo-frame">
+              <img id="palette-photo" alt="Ảnh nguồn của bảng màu">
+              <div id="palette-markers" aria-hidden="true"></div>
+            </div>
+            <figcaption id="palette-photo-name"></figcaption>
+            <div class="studio-controls">
+              <label>Chấm vào ô màu<select id="palette-pick-slot"></select></label>
+              <button id="palette-pipette" class="secondary" type="button" aria-pressed="false">Chấm màu trên ảnh</button>
+            </div>
+            <output id="palette-sample"></output>
+          </figure>
+        </section>
         <section class="studio-panel studio-palette" aria-labelledby="palette-title">
           <h2 id="palette-title">Bảng phối</h2>
           <form id="generate-palette" class="studio-controls">
@@ -94,11 +113,6 @@
             <button id="copy-palette" class="secondary" type="button">Sao chép HEX</button>
             <button id="palette-png" class="secondary" type="button">Xuất PNG</button>
           </div>
-          <p id="palette-status" role="status"></p>
-          <figure id="palette-source" class="palette-source" hidden>
-            <img id="palette-photo" alt="Ảnh nguồn của bảng màu">
-            <figcaption id="palette-photo-name"></figcaption>
-          </figure>
           <div id="studio-swatches" class="studio-swatches"></div>
           <div class="ratio-panel">
             <div class="studio-controls">
@@ -108,7 +122,6 @@
                 <option value="#49583E,#849272,#DDDAC3,#A16B50">Olive và đất nung</option>
                 <option value="#342B48,#747498,#BBC1D4,#DDD1C8">Tím chạng vạng</option>
               </select></label>
-              <label>Tải ảnh để tạo và lưu bảng màu<input id="palette-image" type="file" accept="image/*"></label>
             </div>
             <div class="ratio-heading">
               <h3>Phân bổ màu</h3>
@@ -120,7 +133,7 @@
         </section>
         <section class="studio-panel studio-analysis" aria-labelledby="analysis-title">
           <h2 id="analysis-title">Phân tích bảng màu</h2>
-          <div class="studio-table"><table><thead><tr><th scope="col">Màu</th><th scope="col">Thiên ấm/lạnh</th><th scope="col">Độ sáng HSL</th><th scope="col">Độ bão hòa HSL</th></tr></thead><tbody id="studio-analysis"></tbody></table></div>
+          <div class="studio-table"><table><thead><tr><th scope="col">Màu</th><th scope="col">RGB · CMYK ước tính</th><th scope="col">Thiên ấm/lạnh</th><th scope="col">Độ sáng HSL</th><th scope="col">Độ bão hòa HSL</th></tr></thead><tbody id="studio-analysis"></tbody></table></div>
           <p id="studio-contrast"></p>
           <div class="studio-controls">
             <label>Màu chữ<select id="contrast-foreground"></select></label>
@@ -128,21 +141,42 @@
           </div>
           <p id="contrast-result" role="status"></p>
           <p id="studio-harmony"></p>
+          <p id="studio-delta"></p>
+        </section>
+        <section class="studio-panel studio-mockup">
+          <h2>Mô phỏng phối hoa</h2>
+          <div class="studio-controls">
+            <label>Kiểu sản phẩm<select id="floral-product">
+              <option value="bouquet">Bó hoa</option><option value="vase">Bình hoa</option>
+              <option value="arch">Cổng hoa</option><option value="hatbox">Hộp hoa</option>
+            </select></label>
+            <button id="floral-swap" class="secondary" type="button">Đảo màu chính và màu nhấn</button>
+          </div>
+          <canvas id="floral-mockup" width="460" height="340" role="img" aria-label="Sơ đồ phối màu sản phẩm hoa"></canvas>
         </section>
         <section class="studio-panel studio-formulas" aria-labelledby="formula-title">
           <h2 id="formula-title">Công thức phối màu</h2>
           <form id="save-formula" class="studio-controls">
             <label>Tên công thức<input id="formula-name" maxlength="120" required></label>
+            <label>Chủ đề / dịp sử dụng<input id="formula-occasion" maxlength="160"></label>
+            <label>Ghi chú nguyên liệu<textarea id="formula-notes" rows="3" maxlength="3000"></textarea></label>
             <button class="primary" type="submit">Lưu công thức</button>
           </form>
           <div class="studio-controls">
+            <label>Tìm theo tên, chủ đề hoặc HEX<input id="formula-search" type="search"></label>
             <label>Công thức đã lưu<select id="formula-list"><option value="">Chọn công thức</option></select></label>
             <button class="secondary" id="open-formula" type="button" disabled>Mở công thức</button>
-            <button class="secondary" id="export-formula" type="button">Xuất hồ sơ màu</button>
+            <button class="secondary" id="export-formula" type="button">Xuất CSV</button>
+            <button class="secondary" id="preview-dossier" type="button">Xem hồ sơ màu</button>
+            <button class="secondary" id="export-dossier" type="button">Xuất hồ sơ HTML</button>
           </div>
           <p id="studio-status" role="status"></p>
         </section>
       </div>
+      <dialog id="dossier-dialog" aria-labelledby="dossier-title">
+        <article id="dossier-preview"></article>
+        <form method="dialog"><button class="secondary">Đóng</button></form>
+      </dialog>
     </section>
     <dialog id="settings-dialog" aria-labelledby="settings-title">
       <h2 id="settings-title" tabindex="-1">Cài đặt cá nhân</h2>

@@ -1,15 +1,22 @@
+import { setupWorkspace } from './workspace.js';
+
 const login = document.querySelector('#login');
 const change = document.querySelector('#change');
 const account = document.querySelector('#account');
+const accessLayout = document.querySelector('#access-layout');
 const settings = document.querySelector('#settings');
 const title = document.querySelector('#screen-title');
-const intro = document.querySelector('#intro');
 const notice = document.querySelector('#message');
+const settingsDialog = document.getElementById('settings-dialog');
+const settingsTitle = document.getElementById('settings-title');
+const settingsNotice = document.getElementById('settings-message');
 let busy = false;
+setupWorkspace();
 
 function message(value, isError = false) {
-  notice.classList.toggle('error', isError);
-  notice.textContent = value;
+  const target = settingsDialog.open ? settingsNotice : notice;
+  target.classList.toggle('error', isError);
+  target.textContent = value;
 }
 
 function togglePassword(button, visible) {
@@ -25,19 +32,24 @@ function screen(name, focus = true) {
     form.reset();
     form.querySelectorAll('.visibility').forEach(button => togglePassword(button, false));
   }
-  login.hidden = name !== 'login';
-  change.hidden = name !== 'change';
-  account.hidden = name !== 'account';
+  const insideWorkspace = name !== 'login';
+  const configuring = name === 'settings' || name === 'change';
+  account.hidden = !insideWorkspace;
+  accessLayout.hidden = insideWorkspace;
   settings.hidden = name !== 'settings';
-  const copy = {
-    login: ['Đăng nhập', 'Nhập mật khẩu riêng của Kim Flora để vào Creative Lab.'],
-    account: ['Tài khoản Kim Flora', 'Bạn đã đăng nhập vào Creative Lab.'],
-    settings: ['Cài đặt cá nhân', 'Quản lý mật khẩu tài khoản Kim Flora.'],
-    change: ['Đổi mật khẩu', 'Nhập mật khẩu hiện tại và xác nhận mật khẩu mới.']
-  };
-  [title.textContent, intro.textContent] = copy[name];
+  change.hidden = name !== 'change';
+  if (configuring) {
+    settingsTitle.textContent = name === 'change' ? 'Đổi mật khẩu' : 'Cài đặt cá nhân';
+    if (!settingsDialog.open) settingsDialog.showModal();
+  } else if (settingsDialog.open) {
+    settingsDialog.close();
+  }
   message('');
-  if (focus) title.focus();
+  if (focus) {
+    const activeTitle = configuring ? settingsTitle
+      : insideWorkspace ? document.getElementById('workspace-title') : title;
+    activeTitle.focus();
+  }
 }
 
 async function request(body) {
@@ -107,6 +119,11 @@ for (const [id, destination] of [
     if (!busy) screen(destination);
   });
 }
+
+settingsDialog.addEventListener('cancel', event => {
+  event.preventDefault();
+  if (!busy) screen('account');
+});
 
 request().then(data => {
   if (!busy && data.signedIn) showState(data, false);

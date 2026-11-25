@@ -9,7 +9,7 @@
   <script type="module" src="/app.js"></script>
 </head>
 <body>
-  <main class="layout">
+  <main class="layout" id="access-layout">
     <header class="brand">
       <div class="mark" role="img" aria-label="Logo chữ KF"><span>K</span><span>F</span></div>
       <h1>KIM FLORA</h1>
@@ -27,38 +27,75 @@
           </div>
           <button class="primary" type="submit">Đăng nhập</button>
         </form>
-        <div id="account" hidden>
-          <button class="primary" id="open-settings" type="button">Cài đặt cá nhân</button>
-          <button class="secondary logout" type="button">Đăng xuất</button>
-        </div>
-        <div id="settings" hidden>
-          <button class="primary" id="open-change" type="button">Đổi mật khẩu</button>
-          <button class="secondary" id="close-settings" type="button">Quay lại tài khoản</button>
-        </div>
-        <form id="change" method="post" action="/api/auth" hidden>
-          <label for="current-password">Mật khẩu hiện tại</label>
-          <div class="field">
-            <input id="current-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
-            <button class="visibility" type="button" aria-controls="current-password" aria-label="Hiện mật khẩu hiện tại">Hiện</button>
-          </div>
-          <label for="new-password">Mật khẩu mới</label>
-          <div class="field">
-            <input id="new-password" name="nextPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="password-hint" required>
-            <button class="visibility" type="button" aria-controls="new-password" aria-label="Hiện mật khẩu mới">Hiện</button>
-          </div>
-          <p class="hint" id="password-hint">Tối thiểu 12 ký tự.</p>
-          <label for="confirm-password">Xác nhận mật khẩu mới</label>
-          <div class="field">
-            <input id="confirm-password" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
-            <button class="visibility" type="button" aria-controls="confirm-password" aria-label="Hiện mật khẩu xác nhận">Hiện</button>
-          </div>
-          <button class="primary" type="submit">Lưu mật khẩu mới</button>
-          <button class="secondary" id="cancel" type="button">Quay lại cài đặt</button>
-        </form>
         <p id="message" role="status" aria-live="polite" aria-atomic="true"></p>
         <noscript>Vui lòng bật JavaScript để đăng nhập.</noscript>
       </div>
     </section>
+  </main>
+  <main id="account" class="workspace" hidden>
+    <header class="workspace-header">
+      <div class="wordmark">KIM FLORA <span>Creative Lab</span></div>
+      <button class="secondary" id="open-settings" type="button">Cài đặt cá nhân</button>
+    </header>
+    <div class="workspace-body">
+      <aside class="project-sidebar" aria-labelledby="project-list-title">
+        <h2 id="project-list-title">Dự án hoa</h2>
+        <button id="new-project" type="button" class="primary">Thêm dự án</button>
+        <ul id="project-list"></ul>
+        <p id="project-empty">Chưa có dự án trên thiết bị này.</p>
+      </aside>
+      <section class="project-content" aria-labelledby="workspace-title">
+        <h1 id="workspace-title" tabindex="-1">Xưởng thiết kế hoa</h1>
+        <p id="workspace-intro">Tạo dự án để lưu ý tưởng, nguyên liệu và bảng màu cho từng mẫu hoa.</p>
+        <form id="project-form" hidden>
+          <div class="project-fields">
+            <label>Tên dự án<input name="title" required maxlength="160"></label>
+            <label>Dịp hoặc khách hàng<input name="occasion" maxlength="160"></label>
+            <label>Ý tưởng thiết kế<textarea name="notes" rows="5"></textarea></label>
+            <label>Hoa và vật liệu<textarea name="materials" rows="5"></textarea></label>
+          </div>
+          <fieldset class="palette">
+            <legend>Bảng màu</legend>
+            <div id="project-colors"></div>
+            <button id="add-color" class="secondary" type="button">Thêm màu</button>
+          </fieldset>
+          <div class="project-actions">
+            <button type="submit" class="primary">Lưu dự án</button>
+            <button id="delete-project" type="button" class="secondary" hidden>Xóa dự án</button>
+          </div>
+        </form>
+        <p id="project-status" role="status"></p>
+      </section>
+    </div>
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <h2 id="settings-title" tabindex="-1">Cài đặt cá nhân</h2>
+      <div id="settings" hidden>
+        <button class="primary" id="open-change" type="button">Đổi mật khẩu</button>
+        <button class="secondary logout" type="button">Đăng xuất</button>
+        <button class="secondary" id="close-settings" type="button">Quay lại Creative Lab</button>
+      </div>
+      <form id="change" method="post" action="/api/auth" hidden>
+        <label for="current-password">Mật khẩu hiện tại</label>
+        <div class="field">
+          <input id="current-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+          <button class="visibility" type="button" aria-controls="current-password" aria-label="Hiện mật khẩu hiện tại">Hiện</button>
+        </div>
+        <label for="new-password">Mật khẩu mới</label>
+        <div class="field">
+          <input id="new-password" name="nextPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="password-hint" required>
+          <button class="visibility" type="button" aria-controls="new-password" aria-label="Hiện mật khẩu mới">Hiện</button>
+        </div>
+        <p class="hint" id="password-hint">Tối thiểu 12 ký tự.</p>
+        <label for="confirm-password">Xác nhận mật khẩu mới</label>
+        <div class="field">
+          <input id="confirm-password" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          <button class="visibility" type="button" aria-controls="confirm-password" aria-label="Hiện mật khẩu xác nhận">Hiện</button>
+        </div>
+        <button class="primary" type="submit">Lưu mật khẩu mới</button>
+        <button class="secondary" id="cancel" type="button">Quay lại cài đặt</button>
+      </form>
+      <p id="settings-message" role="status"></p>
+    </dialog>
   </main>
 </body>
 </html>

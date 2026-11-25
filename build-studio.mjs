@@ -24,7 +24,7 @@ script[1]=script[1].slice(0,focusStart)+`
         return;
       }
       `+script[1].slice(focusEnd);
-script[1]=script[1].replace('function extractColorsFromCanvas(k)',()=>read('flower-leaf-samples.js')+'\\nfunction extractColorsFromCanvas(k)');
+script[1]=script[1].replace('function extractColorsFromCanvas(k)',()=>read('flower-leaf-samples.js')+'\nfunction extractColorsFromCanvas(k)');
 const normalization=script[1].indexOf('// Normalize to 100%',focusStart);
 if(normalization<0)throw Error('Missing palette normalization');
 script[1]=script[1].slice(0,normalization)+`

@@ -92,3 +92,22 @@ export function analyzePalette(palette) {
   const contrast = (Math.max(...luminances) + .05) / (Math.min(...luminances) + .05);
   return { colors, harmony, contrast };
 }
+
+export function generateVariation(base, count, scheme, current, random = Math.random) {
+  const locked = current.map((item, index) => ({ item, index })).filter(({ item }) => item.locked);
+  if (locked.length > count) return null;
+  const slots = Array(count).fill(null);
+  for (const { item, index } of locked.filter(({ index }) => index < count)) slots[index] = item;
+  for (const { item } of locked.filter(({ index }) => index >= count)) slots[slots.indexOf(null)] = item;
+
+  const candidates = generatePalette(base, count, scheme);
+  return candidates.map((item, index) => {
+    if (slots[index]) return { ...slots[index] };
+    const weight = current.length === count ? current[index].weight : item.weight;
+    if (!index) return { ...item, weight };
+    const { hue, saturation, lightness } = hexToHsl(item.hex);
+    const shade = Math.max(.10, Math.min(.90, lightness + (random() - .5) * .24));
+    const chroma = Math.max(0, Math.min(.95, saturation * (.75 + random() * .45)));
+    return { hex: hslToHex(hue, chroma, shade), weight };
+  });
+}

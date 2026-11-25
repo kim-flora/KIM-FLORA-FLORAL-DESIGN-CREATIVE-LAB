@@ -1,7 +1,7 @@
 import { flowerLeafSamples } from './moodboard-mask.js';
 import { extractPalette } from './color-model.js';
 
-export function mount(host,legacy,oldImages,actions){
+export function mount(host,oldImages,actions){
   const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;n.className=cls;return n;};
   const button=(text,fn)=>{const b=el('button',text,'secondary');b.type='button';b.onclick=fn;return b;};
   const status=el('p');status.setAttribute('role','status');
@@ -17,8 +17,7 @@ export function mount(host,legacy,oldImages,actions){
   const library=el('details');library.append(el('summary','Nghiên cứu và phương án đã lưu trên thiết bị'));
   const list=el('div');library.append(list);
   const gallery=el('div','','mr-gallery'),workspace=el('div'),compare=el('section');
-  const old=el('details');old.append(el('summary','Mở công cụ và concept phiên bản trước'),legacy);let opened=false;old.ontoggle=()=>{if(old.open&&!opened){opened=true;actions.legacy();}};
-  host.append(el('h2','Floral Design Moodboard'),fileLabel,status,gallery,workspace,compare,library,old);
+  host.append(el('h2','Floral Design Moodboard'),fileLabel,status,gallery,workspace,compare,library);
   const putText=(parent,title,obj,key)=>{
     const label=el('label',title,'mr-field'),area=el('textarea');area.rows=2;area.value=obj[key]||'';
     area.oninput=()=>{obj[key]=area.value;comparison='';};label.append(area);parent.append(label);

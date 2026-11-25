@@ -78,3 +78,6 @@
   .studio .studio-swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .studio .studio-swatches input[type=color] { height: 6rem; }
 }
+.palette-source { margin: 0 0 1rem; display: grid; gap: .4rem; justify-items: start; }
+.palette-source img { display: block; max-width: 100%; max-height: 17rem; border-radius: .4rem; }
+.palette-source figcaption { overflow-wrap: anywhere; color: #485840; font-size: .9rem; }

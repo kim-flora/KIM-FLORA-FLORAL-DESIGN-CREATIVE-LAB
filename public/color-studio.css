@@ -40,3 +40,21 @@
   .studio-formulas { grid-column: auto; grid-row: auto; }
 }
 @media (max-width: 550px) { .workspace-header { flex-wrap: wrap; } .lab-nav { justify-content: flex-start; } }
+
+/* The palette spans the workspace. Analysis and formulas stay below it. */
+.studio-palette { grid-column: 1 / -1; }
+.studio-formulas { grid-row: auto; min-width: 0; }
+.palette-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; padding-top: .65rem; border-top: 1px solid #ded8ca; }
+.palette-toolbar span { margin-right: auto; color: #485840; font-size: .9rem; }
+.palette-toolbar button, .swatch-actions button { padding: .4rem .55rem; font-size: .85rem; }
+#palette-status { margin: .55rem 0; color: #485840; }
+#palette-status:empty { margin-bottom: .8rem; }
+.studio-swatches { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: .65rem; }
+.studio-swatches > div { padding: .65rem; background: #fffdf7; }
+.studio-swatches input[type=color] { height: clamp(4rem, 12vw, 8rem); }
+.swatch-role { display: block; font-size: .85rem; font-weight: 700; margin-bottom: .4rem; }
+.swatch-actions { display: flex; gap: .25rem; flex-wrap: wrap; margin: .45rem 0; }
+.swatch-actions button[aria-pressed=true] { background: #354b38; color: white; }
+@media (max-width: 800px) {
+  .studio-formulas { grid-column: 1; }
+}

@@ -95,6 +95,9 @@ script[1]=script[1].slice(0,contourStart)+`if(selected.includes('form') && r.bou
   compCtx.restore();
 }
 `+script[1].slice(contourEnd);
+const penPage=freehandStudio(script[1],html);
+script[1]=penPage.script;
+html=penPage.html;
 const start=script[1].indexOf('// ==================== AUTH & PASSWORD MANAGEMENT');
 const end=script[1].indexOf('// ==================== STORAGE & UTILITIES');
 if(start<0||end<start)throw Error('Unexpected Studio authentication layout');
@@ -109,3 +112,74 @@ save('index.html',html);
 copyFileSync('node_modules/lucide/dist/umd/lucide.min.js','public/studio-icons.js');
 writeFileSync('studio-tailwind-input.css','@tailwind base;@tailwind components;@tailwind utilities;');
 execFileSync('node_modules/.bin/tailwindcss',['-i','studio-tailwind-input.css','--content','public/index.html,public/studio-main.js','-o','public/studio-layout.css','--minify'],{stdio:'inherit'});
+
+function freehandStudio(script,html){
+  function splice(source,start,end,replacement){
+    const a=source.indexOf(start),b=source.indexOf(end,a+start.length);
+    if(a<0||b<0)throw Error('Studio layout changed: '+start);
+    return source.slice(0,a)+replacement+source.slice(b);
+  }
+  html=splice(html,'<!-- Step 2: Select Analysis Criteria','<!-- Step 5:', '');
+  html=html.replace(/<button data-cstep="2"[^>]*>[^<]*<\/button>\s*<span[^>]*>[^<]*<\/span>/,'')
+    .replace(/<label[^>]*>\s*<input[^>]*id="toggleAutoOverlay"[^>]*>[^<]*<\/label>/,'')
+    .replace(/<div[^>]*id="compToolButtons">[\s\S]*?<\/div>/,'')
+    .replace(/<p[^>]*>Thực hành theo 5 bước:[^<]*<\/p>/,'')
+    .replaceAll('Bước 5 – Tự đánh dấu &amp; So sánh','Bước 4 – Bút vẽ tự do')
+    .replaceAll('Bước 5: Tự đánh dấu &amp; So sánh','Bước 4: Vẽ tự do')
+    .replaceAll('Bước 4: Đọc kết quả','Bước 3: Ghi nhận xét').replaceAll('Bước 4: Ghi nhận xét','Bước 3: Ghi nhận xét')
+    .replaceAll('Bước 4 – Kết quả Phân tích','Bước 3 – Nhận xét của bạn').replaceAll('Bước 4 – Nhận xét của bạn','Bước 3 – Nhận xét của bạn')
+    .replaceAll('Bước 3: Xem trực quan','Bước 2: Xem ảnh').replaceAll('(Bước 5)','(Bước 4)')
+    .replace(/data-cstep="([345])"/g,(_,n)=>`data-cstep="${n-1}"`);
+  script=splice(script,'function getSelectedCriteria()', 'const reviewLabels=',`function getSelectedCriteria(){return Object.keys(reviewLabels);}
+    function analyzeFloralComposition(){renderCompDiagnosis();}
+    `).replace('activeGuideReset(); changeReviewSource(src);','changeReviewSource(src);')
+    .replaceAll('if(useGuides.checked)analyzeFloralComposition();','')
+    .replace("const desc = a.tool === 'focal'", "const desc = a.tool === 'pen' ? 'Nét bút tự do' : a.tool === 'focal'");
+  script=splice(script,"document.querySelectorAll('.comp-crit').forEach", "['guideThirds'",'');
+  script=splice(script,"document.getElementById('btnCompAutoAnalyze').onclick", "document.getElementById('btnCompUndo').onclick",'');
+  script=script.replace("if (ann.tool === 'focal') {",`if(ann.tool==='pen'){
+      const points=ann.points||[];
+      compCtx.lineCap='round';compCtx.lineJoin='round';
+      if(points.length===1){compCtx.beginPath();compCtx.arc(points[0].x*w,points[0].y*h,1.5,0,2*Math.PI);compCtx.fill();}
+      if(points.length>1){compCtx.beginPath();points.forEach((p,i)=>i?compCtx.lineTo(p.x*w,p.y*h):compCtx.moveTo(p.x*w,p.y*h));compCtx.stroke();}
+    }else if (ann.tool === 'focal') {`);
+  script=splice(script,'if (isDrawingComp && compStart','renderCompMetrics();','if(penStroke)drawShape(penStroke);\n      ');
+  script=splice(script,'let isPanningComp = false', "document.querySelectorAll('.comp-color-btn')",`
+    let penStroke=null,penPointer=null;
+    compCanvas.style.touchAction='none';
+    compCanvas.style.cursor='crosshair';
+    function penPoint(e){
+      const rect=compCanvas.getBoundingClientRect();
+      return {x:clamp((e.clientX-rect.left)/rect.width,0,1),y:clamp((e.clientY-rect.top)/rect.height,0,1)};
+    }
+    compCanvas.onpointerdown=e=>{
+      if(penPointer!==null||e.button!==0||!compBgImg.naturalWidth)return;
+      penPointer=e.pointerId;compCanvas.setPointerCapture(penPointer);
+      penStroke={tool:'pen',color:activeCompColor,points:[penPoint(e)]};
+      renderCompCanvas();
+    };
+    compCanvas.onpointermove=e=>{
+      if(e.pointerId!==penPointer)return;
+      const samples=e.getCoalescedEvents?.()||[];
+      for(const sample of samples.length?samples:[e])penStroke.points.push(penPoint(sample));
+      renderCompCanvas();
+    };
+    compCanvas.onpointerup=e=>{
+      if(e.pointerId!==penPointer)return;
+      const p=penPoint(e),last=penStroke.points.at(-1);
+      if(last.x!==p.x||last.y!==p.y)penStroke.points.push(p);
+      state.compAnnotations.push(penStroke);penStroke=null;penPointer=null;
+      renderCompCanvas();persist();
+    };
+    compCanvas.onlostpointercapture=compCanvas.onpointercancel=e=>{
+      if(e.pointerId===penPointer){penStroke=null;penPointer=null;renderCompCanvas();}
+    };
+    document.querySelectorAll('[data-cstep]').forEach(button=>button.onclick=()=>{
+      const ids=['btnCompUpload','compCanvas','compDiagnosisCards','btnCompUndo'];
+      const target=button.dataset.cstep==='2'?compCanvas:document.getElementById(ids[Number(button.dataset.cstep)-1]);
+      if(button.dataset.cstep==='3')document.getElementById('compAutoReportPanel').classList.remove('hidden');
+      target?.scrollIntoView({block:'center',behavior:'smooth'});
+    });
+    `);
+  return {script,html};
+}

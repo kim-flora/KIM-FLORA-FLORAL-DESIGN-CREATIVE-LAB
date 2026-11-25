@@ -47,10 +47,8 @@ function screen(name, focus = true) {
     settingsDialog.close();
   }
   message('');
-  if (focus) {
-    if (insideWorkspace && !configuring) focusWorkspace();
-    else (configuring ? settingsTitle : title).focus();
-  }
+  if (insideWorkspace && !configuring) focusWorkspace(focus);
+  else if (focus) (configuring ? settingsTitle : title).focus();
 }
 
 async function request(body) {

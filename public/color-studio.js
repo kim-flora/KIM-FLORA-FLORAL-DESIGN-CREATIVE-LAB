@@ -283,20 +283,35 @@ export function setupColorStudio() {
     }
   };
 
+  const composition = get('composition');
+  const compositionButton = get('show-composition');
+  let initialized = false;
   function focusView() {
-    get(studio.hidden ? 'workspace-title' : 'studio-title').focus();
+    get(!composition.hidden ? 'composition-title' : studio.hidden ? 'workspace-title' : 'studio-title').focus();
   }
-
-  function navigate(openStudio) {
-    studio.hidden = !openStudio;
-    projectView.hidden = openStudio;
-    (openStudio ? projectButton : studioButton).removeAttribute('aria-current');
-    (openStudio ? studioButton : projectButton).setAttribute('aria-current', 'page');
-    focusView();
+  async function route(focus = true) {
+    if (get('account').hidden) return;
+    const page = location.hash.slice(1);
+    const views = [[projectView, projectButton, !['composition', 'color-studio'].includes(page)],
+      [studio, studioButton, page === 'color-studio'], [composition, compositionButton, page === 'composition']];
+    for (const [view, button, active] of views) {
+      view.hidden = !active;
+      if (active) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    }
+    if (focus) focusView();
+    if (!composition.hidden && !initialized) {
+      try {
+        const module = await import('./composition.js');
+        if (!initialized) module.setup();
+        initialized = true;
+      } catch { get('comp-status').textContent = 'Chưa tải được công cụ. Bấm lại Phân tích bố cục hoa để thử lại.'; }
+    }
   }
-  studioButton.onclick = () => navigate(true);
-  projectButton.onclick = () => navigate(false);
-
+  for (const [button, hash] of [[projectButton,'projects'], [studioButton,'color-studio'], [compositionButton,'composition']]) {
+    button.onclick = () => location.hash.slice(1) === hash ? route() : location.hash = hash;
+  }
+  window.addEventListener('hashchange', () => route());
   function updateAnalysis() {
     for (const [select, fallback] of [[foreground, 0], [background, 1]]) {
       const previous = select.value;
@@ -643,5 +658,5 @@ export function setupColorStudio() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   render();
-  return focusView;
+  return route;
 }

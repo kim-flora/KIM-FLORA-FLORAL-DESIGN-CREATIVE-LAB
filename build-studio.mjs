@@ -77,22 +77,11 @@ script[1]=script[1].slice(0,analysisStart)+read('studio-composition-measure.js')
       compAutoResult=measureStudioComposition(ctx.getImageData(0,0,off.width,off.height).data,off.width,off.height,selectedFlowerGuides());
       renderCompDiagnosis();
     }
-    function renderCompDiagnosis(){
-      if(!compAutoResult)return;
-      const selected=getSelectedCriteria();
-      document.getElementById('compFormBadge').textContent=selected.length===8?'Phân tích Tổng thể':selected.length+' tiêu chí';
-      if(!compAutoResult.bodies){
-        document.getElementById('compDiagnosisCards').textContent='Chưa tách được chủ thể đủ rõ. Thử ảnh thấy trọn dáng hoa với nền ít chi tiết.';
-        return;
-      }
-      const keys=['form','layout','ratio','focal','balance','rhythm','flow','space'];
-      const titles=['Hình dáng tổng thể','Bố cục','Tỷ lệ','Trọng tâm','Cân bằng','Nhịp điệu','Dòng chảy','Khoảng trống'];
-      const cards=Object.fromEntries(keys.map((key,i)=>[key,{title:(i+1)+'. '+titles[i],body:compAutoResult.bodies[i]}]));
-      `+script[1].slice(cardsEnd);
+    `+read('studio-review.js')+'\n'+script[1].slice(script[1].indexOf('function renderCompCanvas()',cardsEnd));
 script[1]=script[1].replace("if (selected.includes('flow')) {","if (selected.includes('flow') && r.flow) {");
 const arrow=script[1].indexOf('const ang = Math.atan2(ey - my, ex - mx);');
 if(arrow>=0)script[1]=script[1].slice(0,arrow)+script[1].slice(script[1].indexOf('compCtx.restore();',arrow));
-script[1]=script[1].replace('function loadCompImage(src) {','function loadCompImage(src) { activeGuideReset();')
+script[1]=script[1].replace('function loadCompImage(src) {','function loadCompImage(src) { activeGuideReset(); changeReviewSource(src);')
   .replace('const activeGuides=new WeakSet();','let activeGuides=new WeakSet(); function activeGuideReset(){activeGuides=new WeakSet();useGuides.checked=false;}')
   .replace(/(state\.compAnnotations\.push\(\{ tool: activeCompTool[^\n]+?\}\);)/,'$1 activeGuides.add(state.compAnnotations.at(-1)); if(useGuides.checked)analyzeFloralComposition();')
   .replace('state.compAnnotations.pop(); renderCompCanvas();','state.compAnnotations.pop(); if(useGuides.checked)analyzeFloralComposition(); renderCompCanvas();')
@@ -115,6 +104,7 @@ html=html.replace(script[0],'<script src="/studio-main.js"></script>')
   .replace('https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js','/studio-icons.js')
   .replace('<p class="text-xs text-[#5F6B64]">Tách màu hoa chính xác từ ảnh thật, tùy chỉnh 2–10 màu, chia tỷ lệ 60–30–10 và mô phỏng thực tế trên sản phẩm hoa.</p>', '')
   .replace('</nav>','<a class="whitespace-nowrap px-3 py-2 text-xs font-semibold" href="/workspace.html">Công cụ &amp; hồ sơ đã lưu</a></nav>');
+html=html.replace('Bước 4 – Kết quả Phân tích','Bước 4 – Nhận xét của bạn').replace('Bước 4: Đọc kết quả','Bước 4: Ghi nhận xét').replace('Ẩn/Hiện Nhận xét Tự động','Ẩn/Hiện nhận xét').replace('Nhận định nghiên cứu của bạn (So sánh với máy):','Nhận định nghiên cứu của bạn:');
 save('index.html',html);
 copyFileSync('node_modules/lucide/dist/umd/lucide.min.js','public/studio-icons.js');
 writeFileSync('studio-tailwind-input.css','@tailwind base;@tailwind components;@tailwind utilities;');

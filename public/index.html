@@ -75,7 +75,7 @@
     <section id="color-studio" class="studio" aria-labelledby="studio-title" hidden>
       <header class="studio-heading">
         <h1 id="studio-title" tabindex="-1">Floral Color Studio</h1>
-        <p>Phối màu hoa</p>
+        <p>Phối màu hoa theo vai trò chủ đạo, hỗ trợ và điểm nhấn.</p>
       </header>
       <div class="studio-grid">
         <section class="studio-panel studio-palette" aria-labelledby="palette-title">
@@ -85,8 +85,15 @@
             <label>Mã HEX<input id="studio-hex" value="#9A5064" pattern="#?[0-9A-Fa-f]{6}" required></label>
             <label>Số màu<select id="studio-count"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
             <label>Kiểu phối<select id="studio-scheme"><option value="analogous">Tương đồng</option><option value="complementary">Bổ túc</option><option value="monochrome">Đơn sắc</option><option value="triadic">Bộ ba</option></select></label>
-            <button class="primary" type="submit">Tạo bảng phối</button>
+            <button class="primary" type="submit">Tạo biến thể</button>
           </form>
+          <div class="palette-toolbar">
+            <span>Dấu cách để thử biến thể</span>
+            <button id="undo-palette" class="secondary" type="button" disabled>Hoàn tác</button>
+            <button id="redo-palette" class="secondary" type="button" disabled>Làm lại</button>
+            <button id="copy-palette" class="secondary" type="button">Sao chép HEX</button>
+          </div>
+          <p id="palette-status" role="status"></p>
           <div id="studio-swatches" class="studio-swatches"></div>
           <div class="ratio-panel">
             <div class="ratio-heading">

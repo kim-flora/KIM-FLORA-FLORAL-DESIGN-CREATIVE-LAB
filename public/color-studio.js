@@ -1,4 +1,4 @@
-import { allocate, analyzePalette, defaultWeights, generatePalette, generateVariation } from './color-model.js';
+import { allocate, analyzePalette, defaultWeights, generatePalette, generateVariation, contrastRatio, extractColors } from './color-model.js';
 
 const storageKey = 'kim-flora-color-formulas-v1';
 const normalizeHex = value => '#' + value.trim().replace(/^#/, '').toUpperCase();
@@ -21,6 +21,99 @@ export function setupColorStudio() {
   const future = [];
   const count = get('studio-count');
   const paletteStatus = get('palette-status');
+  const foreground = get('contrast-foreground');
+  const background = get('contrast-background');
+
+  function updateContrast() {
+    const ratio = contrastRatio(palette[Number(foreground.value)].hex, palette[Number(background.value)].hex);
+    get('contrast-result').textContent = ratio.toFixed(2) +
+      ' : 1 · ' + (ratio >= 7 ? 'AAA cho chữ thường' : ratio >= 4.5 ? 'AA cho chữ thường' :
+        ratio >= 3 ? 'AA cho chữ lớn' : 'Chưa đạt AA cho chữ lớn');
+  }
+
+  foreground.onchange = background.onchange = updateContrast;
+
+  function replaceColors(colors) {
+    if (palette.some(item => item.locked)) {
+      paletteStatus.textContent = 'Bỏ khóa các màu hiện tại để thay toàn bộ bảng phối.';
+      return;
+    }
+    remember();
+    palette = colors.map((hex, index) => ({ hex, weight: defaultWeights(colors.length)[index] }));
+    count.value = String(colors.length);
+    render();
+    paletteStatus.textContent = 'Đã nạp bảng màu.';
+  }
+
+  get('palette-preset').onchange = event => {
+    const select = event.currentTarget;
+    if (select.value) replaceColors(select.value.split(','));
+    select.value = '';
+  };
+
+  get('palette-image').onchange = async event => {
+    const input = event.currentTarget;
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const image = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      const scale = Math.min(1, 160 / Math.max(image.width, image.height));
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      image.close();
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      const colors = extractColors(pixels, Number(count.value));
+      if (colors.length < 2) {
+        paletteStatus.textContent = 'Ảnh cần có ít nhất hai nhóm màu rõ để tạo bảng phối.';
+        return;
+      }
+      replaceColors(colors);
+    } catch {
+      paletteStatus.textContent = 'Chưa đọc được ảnh. Hãy thử tệp JPG, PNG hoặc WebP.';
+    } finally {
+      input.value = '';
+    }
+  };
+
+  get('palette-png').onclick = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 480;
+    const context = canvas.getContext('2d');
+    const proportions = allocate(palette.map(item => item.weight), 100);
+    const widths = allocate(palette.map(item => item.weight), canvas.width);
+    context.fillStyle = '#F4F0E7';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#29342A';
+    context.font = '25px system-ui';
+    context.fillText('KIM FLORA  /  FLORAL COLOR STUDIO', 32, 52);
+    let left = 32;
+    const column = (canvas.width - 64) / palette.length;
+    palette.forEach(({ hex }, index) => {
+      const x = 32 + column * index;
+      context.fillStyle = hex;
+      context.fillRect(x, 82, column, 260);
+      context.fillStyle = '#29342A';
+      context.font = '20px monospace';
+      context.fillText(hex, x + 8, 377);
+      context.fillText(proportions[index] + '%', x + 8, 405);
+      context.fillStyle = hex;
+      context.fillRect(left, 434, widths[index] * (1016 / 1080), 14);
+      left += widths[index] * (1016 / 1080);
+    });
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = 'kim-flora-bang-mau.png';
+      link.href = url;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  };
 
   function snapshot() {
     return palette.map(item => ({ ...item }));
@@ -74,6 +167,12 @@ export function setupColorStudio() {
   projectButton.onclick = () => navigate(false);
 
   function updateAnalysis() {
+    for (const [select, fallback] of [[foreground, 0], [background, 1]]) {
+      const previous = select.value;
+      select.replaceChildren(...palette.map((item, index) => new Option(item.hex, String(index))));
+      select.value = previous !== '' && Number(previous) < palette.length ? previous : String(fallback);
+    }
+    updateContrast();
     const weights = palette.map(item => item.weight);
     const percentages = allocate(weights, 100);
     const roles = palette.length === 2 ? [percentages[0], percentages[1]] :

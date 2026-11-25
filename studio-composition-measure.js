@@ -3,11 +3,41 @@ function measureStudioComposition(data,w,h){
   const key=(r,g,b)=>(r<<16)|(g<<8)|b;
   const foreground=new Set(colors.map(c=>key(...c)));
   const mask=new Uint8Array(w*h),rows=new Array(h).fill(0),cols=new Array(w).fill(0);
+  // Estimate floral detail at a neighbourhood scale. Smooth pedestal faces
+  // may differ from the wall in colour but have little interior detail.
+  const initial=new Uint8Array(w*h), texture=new Float32Array(w*h);
+  let rawCount=0;
+  for(let p=0;p<w*h;p++){
+    const i=4*p;
+    if(data[i+3]>=128 && foreground.has(key(data[i],data[i+1],data[i+2]))){initial[p]=1;rawCount++;}
+  }
+  const radius=Math.max(2,Math.round(Math.min(w,h)*.045));
+  const stride=w+1,integral=new Float64Array(stride*(h+1));
+  let detailed=0;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const p=y*w+x;
+    let local=0;
+    if(initial[p]&&x>0&&y>0&&initial[p-1]&&initial[p-w]){
+      for(let c=0;c<3;c++)local+=Math.min(48,Math.abs(data[4*p+c]-data[4*(p-1)+c]))+Math.min(48,Math.abs(data[4*p+c]-data[4*(p-w)+c]));
+      local/=6;
+    }
+    texture[p]=local;
+    const seed=local>7?1:0;
+    detailed+=seed;
+    const j=(y+1)*stride+x+1;
+    integral[j]=seed+integral[j-1]+integral[j-stride]-integral[j-stride-1];
+  }
+  function density(x,y,r){
+    const l=Math.max(0,x-r),t=Math.max(0,y-r),rr=Math.min(w,x+r+1),bb=Math.min(h,y+r+1);
+    return (integral[bb*stride+rr]-integral[t*stride+rr]-integral[bb*stride+l]+integral[t*stride+l])/((rr-l)*(bb-t));
+  }
+  const refine=detailed>Math.max(20,rawCount*.06);
   let n=0,sx=0,sy=0,xx=0,yy=0,xy=0,left=0;
   const zones=new Map();
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){
     const p=y*w+x,i=4*p;
-    if(data[i+3]<128||!foreground.has(key(data[i],data[i+1],data[i+2])))continue;
+    if(!initial[p])continue;
+    if(refine && density(x,y,radius)<.075 && density(x,y,2*radius)<.13)continue;
     mask[p]=1;rows[y]++;cols[x]++;n++;sx+=x;sy+=y;xx+=x*x;yy+=y*y;xy+=x*y;
     if(x<w/2)left++;
     const id=Math.floor(y/6)*Math.ceil(w/6)+Math.floor(x/6);
@@ -15,7 +45,7 @@ function measureStudioComposition(data,w,h){
     const j=4*(y*w+Math.min(w-1,x+2)),k=4*(Math.min(h-1,y+2)*w+x);
     let edge=0;
     for(let c=0;c<3;c++)edge+=Math.abs(data[i+c]-data[j+c])+Math.abs(data[i+c]-data[k+c]);
-    z.strength+=edge/6;z.count++;z.x+=x;z.y+=y;zones.set(id,z);
+    z.strength+=(texture[p]+Math.min(edge/6,30))*(.25+density(x,y,2*radius));z.count++;z.x+=x;z.y+=y;zones.set(id,z);
   }
   const result={silhouettePoly:[],primaryFocal:null,secondaryFocal:null,flow:null};
   if(n<Math.max(12,w*h*.008)||n>w*h*.94)return result;
@@ -56,18 +86,44 @@ function measureStudioComposition(data,w,h){
   }
   const shares=bands.map(k=>Math.round(100*k/Math.max(1,occupied)));
   const widest=shares.indexOf(Math.max(...shares)),position=['trên','giữa','dưới'][widest];
-  const form=ratio>1.25?'Dáng vươn cao':ratio<.80?'Dáng trải ngang':'Khối có chiều cao và ngang gần nhau';
   const lp=Math.round(left/n*100),bg=Math.round(100*(1-n/(w*h)));
   const axis=Math.abs(dy)<.35?'ngang':Math.abs(dx)<.35?'dọc':dy>0?'chéo từ trên trái xuống dưới phải':'chéo từ dưới trái lên trên phải';
+  // Locate the dense flower mass separately from its upright or trailing lines.
+  const denseRows=rows.map((v,i)=>v+ (rows[i-1]||0)+(rows[i+1]||0));
+  const corePeak=denseRows.indexOf(Math.max(...denseRows));
+  const cutoff=denseRows[corePeak]*.65;
+  let bodyTop=Math.max(y0,Math.min(y1,corePeak)),bodyBase=bodyTop;
+  while(bodyTop>y0 && denseRows[bodyTop-1]>=cutoff)bodyTop--;
+  while(bodyBase<y1 && denseRows[bodyBase+1]>=cutoff)bodyBase++;
+  const upper=(bodyTop-y0)/height,lower=(y1-bodyBase)/height;
+  const coreRatio=(bodyBase-bodyTop+1)/width;
+  const extension=upper>.15&&lower>.15?'Có cả ngọn vươn và phần rủ dưới khối chính.':upper>.15?'Có nhánh vươn cao khỏi cụm chính.':lower>.15?'Có phần rủ xuống dưới cụm chính.':'Đường bao tập trung quanh cụm chính.';
+  let gapArea=0,envelope=0;
+  for(let y=y0;y<=y1;y++){
+    const first=mask.subarray(y*w+x0,y*w+x1+1);
+    const lo=first.indexOf(1),hi=first.lastIndexOf(1);
+    if(lo<0)continue;
+    envelope+=hi-lo+1;
+    for(let i=lo;i<=hi;i++)if(!first[i])gapArea++;
+  }
+  const gapPct=Math.round(100*gapArea/Math.max(1,envelope));
+  const clusters=[];
+  for(const z of scores){
+    if(z.score<=Math.max(8,baseline*1.15))break;
+    if(clusters.every(p=>Math.hypot((z.cx-p.cx)*w/width,(z.cy-p.cy)*h/height)>.19))clusters.push(z);
+    if(clusters.length===5)break;
+  }
+  const clusterText=clusters.length>=3?'Có '+clusters.length+' vùng chi tiết tách nhau. Quan sát khoảng nghỉ giữa các cụm để đối chiếu nhịp lặp.':clusters.length===2?'Hai vùng chi tiết nổi lên thành một cặp.':'Chưa đủ vùng chi tiết riêng biệt để xác định nhịp lặp.';
+  const bodyForm=coreRatio<.82?'Khối chính bè ngang':coreRatio>1.25?'Khối chính kéo dọc':'Khối chính khá gọn, chiều cao gần chiều ngang';
   result.bodies=[
-    `${form}. ${fill<.48?'Đường bao thoáng, nhiều khe hở giữa các nhánh.':fill>.74?'Phần lớn diện tích trong đường bao được lấp đầy.':'Các mảng đặc xen với vùng hở trong đường bao.'}`,
-    `${mirror>.79?'Hai nửa có hình bao khá tương ứng':mirror<.52?'Hai nửa có đường bao khác biệt rõ':'Hai nửa chỉ tương ứng một phần'} khi đối chiếu qua trục giữa khối. Mảng tập trung nhất nằm ở tầng ${position}.`,
-    `Cao/rộng của vùng chủ thể ước lượng ≈ ${ratio.toFixed(2)}. Phép đo có thể gồm bình và các vật liệu cùng màu với hoa.`,
+    `${bodyForm}. ${extension} ${fill<.48?'Đường bao thoáng, nhiều khe hở giữa các nhánh.':fill>.74?'Phần lớn diện tích trong đường bao được lấp đầy.':'Các mảng đặc xen với vùng hở trong đường bao.'}`,
+    `${mirror>.79?'Hai nửa có hình bao khá tương ứng':mirror<.52?'Hai nửa có đường bao khác biệt rõ':'Hai nửa chỉ tương ứng một phần'} khi đối chiếu qua trục giữa khối. Mảng tập trung nhất nằm ở tầng ${position}; dải dày của khối trải từ ${Math.round(bodyTop/h*100)}% đến ${Math.round(bodyBase/h*100)}% chiều cao ảnh.`,
+    `Cao/rộng toàn dáng ≈ ${ratio.toFixed(2)}. Riêng dải hoa dày, chiều cao bằng khoảng ${Math.round(coreRatio*100)}% bề ngang toàn dáng.`,
     peak&&result.primaryFocal?`Vùng có chi tiết tương phản nổi bật tại x=${Math.round(100*peak.cx)}%, y=${Math.round(100*peak.cy)}% khung ảnh. ${result.secondaryFocal?'Có thêm vùng nổi bật tách rời; kiểm tra hai vùng có tranh điểm nhấn khi nhìn từ xa.':'Thử đối chiếu dấu khoanh với cụm hoa bạn muốn người xem nhìn đầu tiên.'}`:'Chưa thấy vùng tương phản nổi trội đủ để khoanh điểm nhấn.',
     `So với đường giữa ảnh, phần diện tích nhận diện bên trái chiếm ${lp}%, bên phải ${100-lp}%. ${Math.abs(lp-50)<8?'Diện tích hai bên khá cân.':`Khối tập trung về phía ${lp>50?'trái':'phải'}.`}`,
-    `Trong ba tầng bằng chiều cao, diện tích chủ thể phân bố ${shares.join(' / ')}% từ trên xuống. ${Math.max(...shares)-Math.min(...shares)<12?'Mật độ khá đều giữa các tầng.':`Nhịp đặc nhất ở tầng ${position}; xem các cành thưa kế bên tạo khoảng nghỉ ở đâu.`}`,
+    `${clusterText} Trong ba tầng bằng chiều cao, diện tích chủ thể phân bố ${shares.join(' / ')}% từ trên xuống. ${Math.max(...shares)-Math.min(...shares)<12?'Mật độ khá đều giữa các tầng.':`Nhịp đặc nhất ở tầng ${position}; xem các cành thưa kế bên tạo khoảng nghỉ ở đâu.`}`,
     result.flow?`Khối kéo dài theo trục ${axis}. Đường trên ảnh gợi hướng để đối chiếu với cành dẫn.`:'Các mảng trải theo nhiều hướng. Chưa thấy trục đủ rõ để vẽ đường dẫn.',
-    `Khoảng ${bg}% toàn khung gần màu nền. Riêng bên trong khung bao chủ thể, phần hở ước lượng ${Math.round(100*(1-fill))}%.`
+    `Vùng hoa lá nhận diện chiếm khoảng ${100-bg}% khung hình. Giữa hai mép ngoài của từng tầng hoa, khoảng hở chiếm khoảng ${gapPct}%.`
   ];
   return result;
 }

@@ -12,6 +12,7 @@ save('studio-main.js',script[1].slice(0,start)+"const gate = document.getElement
 html=html.replace(script[0],'<script src="/studio-main.js"></script>')
   .replace('<script src="https://cdn.tailwindcss.com/3.4.17"></script>','<link rel="stylesheet" href="/studio-layout.css">')
   .replace('https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js','/studio-icons.js')
+  .replace('<p class="text-xs text-[#5F6B64]">Tách màu hoa chính xác từ ảnh thật, tùy chỉnh 2–10 màu, chia tỷ lệ 60–30–10 và mô phỏng thực tế trên sản phẩm hoa.</p>', '')
   .replace('</nav>','<a class="whitespace-nowrap px-3 py-2 text-xs font-semibold" href="/workspace.html">Công cụ &amp; hồ sơ đã lưu</a></nav>');
 save('index.html',html);
 copyFileSync('node_modules/lucide/dist/umd/lucide.min.js','public/studio-icons.js');

@@ -48,6 +48,24 @@ const analysisStart=script[1].indexOf('function analyzeFloralComposition()');
 const cardsEnd=script[1].indexOf("const container = document.getElementById('compDiagnosisCards')",analysisStart);
 if(analysisStart<0||cardsEnd<0)throw Error('Missing Composition Analyzer');
 script[1]=script[1].slice(0,analysisStart)+read('studio-composition-measure.js')+`
+    const useGuides=document.createElement('input');
+    useGuides.type='checkbox';
+    const guideLabel=document.createElement('label');
+    guideLabel.className='flex items-center gap-2 mt-2 text-xs';
+    guideLabel.append(useGuides,'Dùng vùng khoanh, trọng tâm và dòng chảy đã vẽ để phân tích');
+    document.getElementById('btnCompAutoAnalyze').after(guideLabel);
+    const activeGuides=new WeakSet();
+    function selectedFlowerGuides(){
+      const out={};
+      if(useGuides.checked)for(const mark of state.compAnnotations){
+        if(activeGuides.has(mark) && ['box','flow','focal'].includes(mark.tool)){
+          if(mark.tool==='box' && Math.abs(mark.x2-mark.x1)*Math.abs(mark.y2-mark.y1)<.001)continue;
+          out[mark.tool]=mark;
+        }
+      }
+      return out;
+    }
+    useGuides.onchange=()=>{analyzeFloralComposition();renderCompCanvas();};
     function analyzeFloralComposition(){
       if(!compBgImg.complete||!compBgImg.naturalWidth)return;
       const scale=Math.min(1,180/Math.max(compCanvas.width,compCanvas.height));
@@ -56,7 +74,7 @@ script[1]=script[1].slice(0,analysisStart)+read('studio-composition-measure.js')
       off.height=Math.max(1,Math.round(compCanvas.height*scale));
       const ctx=off.getContext('2d');
       ctx.drawImage(compBgImg,0,0,off.width,off.height);
-      compAutoResult=measureStudioComposition(ctx.getImageData(0,0,off.width,off.height).data,off.width,off.height);
+      compAutoResult=measureStudioComposition(ctx.getImageData(0,0,off.width,off.height).data,off.width,off.height,selectedFlowerGuides());
       renderCompDiagnosis();
     }
     function renderCompDiagnosis(){
@@ -74,6 +92,20 @@ script[1]=script[1].slice(0,analysisStart)+read('studio-composition-measure.js')
 script[1]=script[1].replace("if (selected.includes('flow')) {","if (selected.includes('flow') && r.flow) {");
 const arrow=script[1].indexOf('const ang = Math.atan2(ey - my, ex - mx);');
 if(arrow>=0)script[1]=script[1].slice(0,arrow)+script[1].slice(script[1].indexOf('compCtx.restore();',arrow));
+script[1]=script[1].replace('function loadCompImage(src) {','function loadCompImage(src) { activeGuideReset();')
+  .replace('const activeGuides=new WeakSet();','let activeGuides=new WeakSet(); function activeGuideReset(){activeGuides=new WeakSet();useGuides.checked=false;}')
+  .replace(/(state\.compAnnotations\.push\(\{ tool: activeCompTool[^\n]+?\}\);)/,'$1 activeGuides.add(state.compAnnotations.at(-1)); if(useGuides.checked)analyzeFloralComposition();')
+  .replace('state.compAnnotations.pop(); renderCompCanvas();','state.compAnnotations.pop(); if(useGuides.checked)analyzeFloralComposition(); renderCompCanvas();')
+  .replace('state.compAnnotations = []; renderCompCanvas();','state.compAnnotations = []; if(useGuides.checked)analyzeFloralComposition(); renderCompCanvas();');
+const contourStart=script[1].indexOf("if (selected.includes('form') && r.silhouettePoly");
+const contourEnd=script[1].indexOf('// Focal Zones',contourStart);
+if(contourStart<0||contourEnd<0)throw Error('Missing composition outline');
+script[1]=script[1].slice(0,contourStart)+`if(selected.includes('form') && r.boundary){
+  compCtx.save();compCtx.fillStyle='rgba(245,158,11,.78)';
+  for(const [x,y] of r.boundary)compCtx.fillRect(x*w,y*h,1.6,1.6);
+  compCtx.restore();
+}
+`+script[1].slice(contourEnd);
 const start=script[1].indexOf('// ==================== AUTH & PASSWORD MANAGEMENT');
 const end=script[1].indexOf('// ==================== STORAGE & UTILITIES');
 if(start<0||end<start)throw Error('Unexpected Studio authentication layout');

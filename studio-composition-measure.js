@@ -1,4 +1,4 @@
-function measureStudioComposition(data,w,h){
+function measureStudioComposition(data,w,h,guides={}){
   const colors=flowerLeafSamples(data,w,h,1);
   const key=(r,g,b)=>(r<<16)|(g<<8)|b;
   const foreground=new Set(colors.map(c=>key(...c)));
@@ -31,12 +31,37 @@ function measureStudioComposition(data,w,h){
     const l=Math.max(0,x-r),t=Math.max(0,y-r),rr=Math.min(w,x+r+1),bb=Math.min(h,y+r+1);
     return (integral[bb*stride+rr]-integral[t*stride+rr]-integral[bb*stride+l]+integral[t*stride+l])/((rr-l)*(bb-t));
   }
+  // Look for a sustained pair of vertical material edges below the flower mass.
+  // Limit subtraction to the space between the two edges; keep trailing stems outside.
+  const supports=[];
+  for(let x=2;x<w-2;x++){
+    let start=0,hits=0,miss=0;
+    for(let y=Math.floor(h*.52);y<=h;y++){
+      const i=4*(y*w+x);
+      const jump=y<h?Math.max(...[0,1,2].map(c=>Math.abs(data[i-8+c]-data[i+8+c]))):0;
+      if(jump>28){if(!hits)start=y;hits++;miss=0;}
+      else if(++miss>2||y===h){
+        if(hits>=h*.12 && y>h*.73)supports.push({x,top:start,end:y-miss,length:hits});
+        hits=0;miss=0;
+      }
+    }
+  }
+  let vessel=null,best=0;
+  for(const l of supports)for(const r of supports){
+    const span=r.x-l.x,top=Math.max(l.top,r.top),end=Math.min(l.end,r.end);
+    if(span<w*.09||span>w*.5||end-top<h*.12||Math.abs(l.end-r.end)>h*.09)continue;
+    const score=(end-top)*Math.sqrt(span)*(1-Math.abs(l.top-r.top)/h);
+    if(score>best){best=score;vessel={l:l.x,r:r.x,top,end};}
+  }
+  const box=guides.box;
   const refine=detailed>Math.max(20,rawCount*.06);
   let n=0,sx=0,sy=0,xx=0,yy=0,xy=0,left=0;
   const zones=new Map();
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){
     const p=y*w+x,i=4*p;
     if(!initial[p])continue;
+    if(box && (x/w<Math.min(box.x1,box.x2)||x/w>Math.max(box.x1,box.x2)||y/h<Math.min(box.y1,box.y2)||y/h>Math.max(box.y1,box.y2)))continue;
+    if(vessel && y>=vessel.top && y<=vessel.end+3 && x>=vessel.l-2 && x<=vessel.r+2)continue;
     if(refine && density(x,y,radius)<.075 && density(x,y,2*radius)<.13)continue;
     mask[p]=1;rows[y]++;cols[x]++;n++;sx+=x;sy+=y;xx+=x*x;yy+=y*y;xy+=x*y;
     if(x<w/2)left++;
@@ -80,6 +105,19 @@ function measureStudioComposition(data,w,h){
     result.flow={startX:(mx+low*dx)/w,startY:(my+low*dy)/h,midX:mx/w,midY:my/h,endX:(mx+high*dx)/w,endY:(my+high*dy)/h};
   }
   const scores=[...zones.values()].filter(z=>z.count>=5).map(z=>({cx:z.x/z.count/w,cy:z.y/z.count/h,score:z.strength/z.count*Math.sqrt(z.count/36)})).sort((a,b)=>b.score-a.score);
+  // A local contrast maximum by itself often selects a twig. Pool over nearby
+  // occupied cells so a coherent head of flowers can outweigh an isolated edge.
+  const occupiedZones=[...zones.values()];
+  for(const z of scores){
+    let mass=0,detail=0;
+    for(const cell of occupiedZones){
+      const dist=Math.hypot(cell.x/cell.count-z.cx*w,cell.y/cell.count-z.cy*h);
+      const weight=Math.exp(-dist*dist/(2*Math.pow(Math.max(4,Math.min(width,height)*.09),2)));
+      mass+=weight*cell.count;detail+=weight*cell.strength;
+    }
+    z.score=.25*z.score+.75*detail/Math.sqrt(Math.max(1,mass))/9;
+  }
+  scores.sort((a,b)=>b.score-a.score);
   const peak=scores[0],baseline=scores[Math.floor(scores.length/2)]?.score||0;
   if(peak&&peak.score>Math.max(12,baseline*1.45)){
     result.primaryFocal=peak;result.secondaryFocal=scores.find(z=>z.score>Math.max(peak.score*.77,baseline*1.45)&&Math.hypot(z.cx-peak.cx,z.cy-peak.cy)>.24);
@@ -125,5 +163,44 @@ function measureStudioComposition(data,w,h){
     result.flow?`Khối kéo dài theo trục ${axis}. Đường trên ảnh gợi hướng để đối chiếu với cành dẫn.`:'Các mảng trải theo nhiều hướng. Chưa thấy trục đủ rõ để vẽ đường dẫn.',
     `Vùng hoa lá nhận diện chiếm khoảng ${100-bg}% khung hình. Giữa hai mép ngoài của từng tầng hoa, khoảng hở chiếm khoảng ${gapPct}%.`
   ];
+  // Trace actual mask boundaries, including interior openings.
+  result.boundary=[];
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const p=y*w+x;
+    if(!mask[p])continue;
+    if(x===0||x===w-1||y===0||y===h-1||!mask[p-1]||!mask[p+1]||!mask[p-w]||!mask[p+w])result.boundary.push([x/w,y/h]);
+  }
+  const directions=['phải','dưới phải','dưới','dưới trái','trái','trên trái','trên','trên phải'];
+  const reaches=Array.from({length:8},()=>[]);
+  for(let p=0;p<mask.length;p++)if(mask[p]){
+    const vx=(p%w-mx)/width,vy=(Math.floor(p/w)-my)/width;
+    reaches[(Math.round(Math.atan2(vy,vx)/(Math.PI/4))+8)%8].push(Math.hypot(vx,vy));
+  }
+  const arms=reaches.map((r,i)=>{
+    r.sort((a,b)=>a-b);
+    return {direction:directions[i],reach:r[Math.floor(r.length*.97)]||0,count:r.length};
+  }).filter(z=>z.count>=Math.max(6,n*.018)).sort((a,b)=>b.reach-a.reach);
+  if(arms.length && arms[0].reach>.45){
+    result.bodies[0]+=' Biên vươn xa nhất về phía '+arms[0].direction+'.';
+    if(!result.flow)result.bodies[6]='Từ khối chính, phần vươn dài nhất hướng '+arms[0].direction+
+      (arms[1]?.reach>arms[0].reach*.82?', kèm hướng '+arms[1].direction:'')+'. Chưa xác định được một đường dẫn mắt liên tục.';
+  }
+  const dominant=scores.filter(z=>z.score>Math.max(10,baseline*1.6)&&!scores.some(other=>other.score>z.score&&Math.hypot((z.cx-other.cx)*w/width,(z.cy-other.cy)*h/height)<.18));
+  if(dominant.length>=2){
+    const gaps=dominant.map(z=>Math.min(...dominant.filter(other=>other!==z).map(other=>Math.hypot((z.cx-other.cx)*w,(z.cy-other.cy)*h))));
+    const gapRatio=Math.max(...gaps)/Math.max(1,Math.min(...gaps));
+    result.bodies[5]='Có '+dominant.length+' vùng tương phản cục bộ. '+(dominant.length===2?'Hai vùng tạo một cặp; chưa đủ để xác định nhịp lặp.':gapRatio>1.6?'Khoảng cách giữa các vùng biến đổi rõ: nhịp sít xen với khoảng nghỉ rộng hơn.':'Khoảng cách giữa các vùng khá đều, gợi nhịp lặp.')+' Vùng dày nhất nằm ở tầng '+position+'.';
+  }else result.bodies[5]='Chưa thấy chuỗi điểm nhấn lặp đủ rõ. Mật độ ở ba tầng trên, giữa và dưới lần lượt là '+shares.join(' / ')+'%.';
+  if(vessel)result.bodies[2]+=' Đã loại vùng chân đỡ có hai cạnh thẳng khỏi phép đo.';
+  if(box)result.bodies[2]+=' Phạm vi tính theo vùng bạn khoanh.';
+  if(guides.focal){
+    const f=guides.focal;result.primaryFocal={cx:f.x1,cy:f.y1};result.secondaryFocal=null;
+    result.bodies[3]='Điểm nhấn bạn xác nhận ở '+Math.round(f.x1*100)+'% ngang, '+Math.round(f.y1*100)+'% dọc. Tâm phân bố của vùng hoa lá ở '+Math.round(mx/w*100)+'%, '+Math.round(my/h*100)+'%.';
+  }
+  if(guides.flow){
+    const f=guides.flow;
+    result.flow={startX:f.x1,startY:f.y1,midX:(f.x1+f.x2)/2,midY:(f.y1+f.y2)/2,endX:f.x2,endY:f.y2};
+    result.bodies[6]='Theo nét bạn xác nhận, đường dẫn đi từ ('+Math.round(f.x1*100)+'%, '+Math.round(f.y1*100)+'%) tới ('+Math.round(f.x2*100)+'%, '+Math.round(f.y2*100)+'%).';
+  }
   return result;
 }

@@ -81,3 +81,37 @@
 .palette-source { margin: 0 0 1rem; display: grid; gap: .4rem; justify-items: start; }
 .palette-source img { display: block; max-width: 100%; max-height: 17rem; border-radius: .4rem; }
 .palette-source figcaption { overflow-wrap: anywhere; color: #485840; font-size: .9rem; }
+
+/* Studio workspace: source / working palette / records and application. */
+.studio-heading { background: #1c2f26; color: #faf8f2; padding: 1.35rem clamp(1rem, 3vw, 2.2rem); border-radius: .8rem; }
+.studio-heading p { color: #e7e2d6; }
+.studio-grid { grid-template-columns: minmax(14rem, 3fr) minmax(0, 6fr) minmax(15rem, 3fr); }
+.studio-source { grid-column: 1; grid-row: 1 / span 2; min-width: 0; }
+.studio-palette { grid-column: 2; grid-row: 1; min-width: 0; }
+.studio-analysis { grid-column: 2; grid-row: 2; min-width: 0; }
+.studio-mockup { grid-column: 3; grid-row: 1; min-width: 0; }
+.studio-formulas { grid-column: 3; grid-row: 2; }
+.photo-drop { padding: .85rem; border: 1px dashed #899580; border-radius: .4rem; }
+.photo-drop input { margin-top: .35rem; }
+.photo-drop.dragging { background: #e8eedf; }
+.photo-frame { position: relative; width: fit-content; max-width: 100%; }
+.photo-frame img { max-height: 24rem; margin: 0; }
+.photo-frame:has(#palette-markers.picking) img { cursor: crosshair; }
+#palette-markers { position: absolute; inset: 0; pointer-events: none; }
+#palette-markers span { position: absolute; transform: translate(-50%, -50%); border: 2px solid white; outline: 1px solid #263a2a; border-radius: 50%; width: 1.1rem; height: 1.1rem; }
+#floral-mockup { display: block; width: 100%; height: auto; background: #f4f0e7; border-radius: .45rem; }
+.studio textarea { width: 100%; padding: .5rem; font: inherit; border: 1px solid #8c967f; border-radius: .35rem; }
+#dossier-dialog { width: min(48rem, 92vw); max-height: 88vh; overflow: auto; border-radius: .8rem; border: 1px solid #899580; }
+#dossier-preview img { max-width: 100%; max-height: 23rem; }
+#dossier-preview table { display: block; overflow: auto; }
+#dossier-preview p { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 1100px) {
+  .studio-grid { grid-template-columns: minmax(14rem, 1fr) minmax(0, 2fr); }
+  .studio-source { grid-row: 1; }
+  .studio-mockup { grid-column: 1; grid-row: 2; }
+  .studio-formulas { grid-column: 1 / -1; grid-row: 3; }
+}
+@media (max-width: 690px) {
+  .studio-grid { grid-template-columns: minmax(0, 1fr); }
+  .studio-grid > section { grid-column: 1; grid-row: auto; }
+}

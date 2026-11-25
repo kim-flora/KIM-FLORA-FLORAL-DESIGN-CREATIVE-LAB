@@ -190,21 +190,20 @@ export function setup(){
     }
   }
   function element(tag,text){const el=document.createElement(tag);el.textContent=text;return el;}
-  const academy='https://kim-flora.github.io';
-  let reader=null, courses=[];
-  const connect=element('button','Liên kết bài học Học viện');connect.type='button';connect.className='secondary';
-  const connection=element('p','');connection.setAttribute('role','status');
-  get('drop').after(connect,connection);
-  connect.onclick=()=>{
-    reader=window.open(academy+'/hocvienhoakimflora/guest.html?creativeLab='+encodeURIComponent(location.origin),'kfAcademyCourses');
-    connection.textContent=reader?'Trong Học viện, đăng nhập rồi chọn “Dùng bài Bố cục và Phối màu trong Creative Lab”.':'Hãy cho phép mở cửa sổ Học viện để đọc bài học.';
-  };
-  window.addEventListener('message',event=>{
-    if(!reader||event.source!==reader||event.origin!==academy||event.data?.type!=='kf-academy-lessons')return;
-    courses=(event.data.results||[]).filter(c=>Array.isArray(c.lessons)&&c.lessons.length);
-    connection.textContent='Đã đọc '+courses.reduce((n,c)=>n+c.lessons.length,0)+' mục bài học từ '+courses.length+'/2 tab. '+(courses.length<2?'Có thể mở Học viện và đọc lại.':'Bài học sẽ được đối chiếu với từng ảnh trong phiên này.');
-    if(result)renderFindings();
+  const reference=element('details','');
+  reference.append(element('summary','Tham chiếu bài học Học viện'));
+  const source=element('a','Mở Học viện Kim Flora');
+  source.href='https://kim-flora.github.io/hocvienhoakimflora/guest.html';
+  source.target='_blank';source.rel='noopener noreferrer';
+  reference.append(source,element('p','Dán đoạn bài muốn đối chiếu. Mỗi dòng là một trích đoạn dùng cho các ảnh trong phiên này.'));
+  const courses=['Bố cục & Thiết kế','Phối màu & Chọn màu'].map(label=>{
+    const field=element('textarea','');
+    const caption=element('label',label);
+    caption.append(field);reference.append(caption);
+    field.onchange=()=>{if(result)renderFindings();};
+    return {label,field};
   });
+  get('drop').after(reference);
   function renderFindings(){
     const masked=new Uint8ClampedArray(pixels.data);
     for(let p=0;p<result.mask.length;p++)if(!result.mask[p])masked[p*4+3]=0;
@@ -217,11 +216,16 @@ export function setup(){
     const normalize=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/đ/g,'d');
     for(const course of courses){
       const terms=course.label.startsWith('Bố')?[result.directional?'duong dan':'hinh bao',result.focal?'diem nhan':'thu bac','trong tam','silhouette']:[spread>.35?'tuong phan':'sang toi','value','sac do','chu dao'];
-      const ranked=course.lessons.map(lesson=>{
+      const excerpts=course.field.value.split(/\n/).map(line=>line.trim()).filter(Boolean);
+      if(!excerpts.length){
+        groups.push([course.label,'Chủ đề đối chiếu: '+(course===courses[0]?(result.directional?'đường dẫn và trọng tâm':'hình bao và thứ bậc thị giác'):(spread>.35?'tương phản sáng tối':'sắc độ và màu chủ đạo'))+'.']);
+        continue;
+      }
+      const ranked=excerpts.map(text=>({title:'',text})).map(lesson=>{
         const title=normalize(lesson.title),body=normalize(lesson.text);
         return {lesson,weight:terms.reduce((n,k)=>n+(title.includes(k)?4:0)+(body.includes(k)?1:0),0)};
       }).filter(item=>item.weight>0).sort((a,b)=>b.weight-a.weight).slice(0,2);
-      groups.push([course.label,...(ranked.length?ranked.map(({lesson})=>lesson.title+' — '+lesson.text):['Chưa tìm thấy mục bài học khớp với dấu hiệu trong ảnh.'])]);
+      groups.push([course.label,...(ranked.length?ranked.map(({lesson})=>lesson.text):['Chưa tìm thấy mục bài học khớp với dấu hiệu trong ảnh.'])]);
     }
     result.linkedGroups=groups;
     get('findings').replaceChildren(...[...result.groups,...groups].flatMap(([title,...body])=>[element('h3',title),...body.map(t=>element('p',t))]));

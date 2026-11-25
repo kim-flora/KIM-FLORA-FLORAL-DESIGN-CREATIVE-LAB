@@ -115,3 +115,35 @@
   .studio-grid { grid-template-columns: minmax(0, 1fr); }
   .studio-grid > section { grid-column: 1; grid-row: auto; }
 }
+
+/* Composition research workflow */
+.comp-steps, #composition .studio-controls { display: flex; flex-wrap: wrap; gap: .55rem; }
+.comp-steps { padding-bottom: .85rem; border-bottom: 1px solid #ded8ca; }
+.comp-steps button { padding: .55rem .75rem; border: 1px solid transparent; color: #36473c; background: transparent; }
+.comp-steps button[aria-current="step"] { background: #24483b; color: white; }
+.comp-steps button:disabled { opacity: .5; }
+#comp-status { margin: .65rem 0; }
+.comp-workspace { display: grid; gap: 1rem; align-items: start; grid-template-columns: minmax(0, 1fr) minmax(18rem, .8fr); }
+.comp-workspace:has(.comp-photo[hidden]) { grid-template-columns: minmax(0, 42rem); }
+.comp-sidebar { min-width: 0; }
+.comp-frame { display: grid; place-items: center; overflow: hidden; border-radius: .4rem; background: #eeeae1; }
+#comp-canvas { display: block; max-width: 100%; height: auto; max-height: 68vh; width: auto; }
+#comp-canvas[data-drawing] { cursor: crosshair; touch-action: none; }
+#comp-layers { margin-top: .85rem; }
+#comp-layers label, #comp-criteria label { display: flex; align-items: center; gap: .4rem; font-size: .9rem; }
+#comp-layers input, #comp-criteria input { width: auto; min-height: auto; margin: 0; accent-color: #24483b; }
+#comp-layers label { border: 1px solid #ded8ca; border-radius: .4rem; padding: .35rem .5rem; }
+#comp-criteria { margin: .85rem 0; }
+#comp-criteria label + label { margin-top: .4rem; }
+#composition details { margin: .75rem 0; }
+#composition summary { cursor: pointer; font-weight: 650; }
+#composition details p { margin: .55rem 0; }
+#composition .comp-insight { background: #edf1e8; border-radius: .4rem; padding: .8rem; }
+#composition [data-comp-next] { margin-top: .85rem; }
+#composition #comp-all[aria-pressed="true"] { background: #e4ede4; border-color: #567563; }
+#comp-history { white-space: pre-line; }
+#composition .comp-history { margin-top: 1rem; }
+@media (max-width: 760px) {
+  .comp-workspace { grid-template-columns: minmax(0, 1fr); }
+  #comp-canvas { max-height: 52vh; }
+}

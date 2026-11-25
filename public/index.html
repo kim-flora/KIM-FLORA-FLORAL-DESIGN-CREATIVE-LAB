@@ -74,34 +74,82 @@
       </section>
     </div>
     <section id="composition" class="studio" aria-labelledby="composition-title" hidden>
-      <header class="studio-heading"><h1 id="composition-title" tabindex="-1">Phân tích bố cục hoa</h1></header>
-      <div class="studio-grid">
-        <section class="studio-panel">
-          <label class="photo-drop" id="comp-drop">Chọn hoặc kéo thả ảnh hoa<input id="comp-file" type="file" accept="image/*"></label>
-          <fieldset id="comp-samples" class="studio-controls"><legend>Thử bố cục mẫu</legend>
-            <button class="secondary" type="button" data-sample="0">Bất đối xứng lệch trái</button>
-            <button class="secondary" type="button" data-sample="1">Vòm tròn cổ điển</button>
-            <button class="secondary" type="button" data-sample="2">Thác đổ</button>
-          </fieldset>
-          <p id="comp-status" role="status"></p>
-          <canvas id="comp-canvas" style="max-width:100%;height:auto" aria-label="Ảnh hoa và các lớp phân tích" hidden></canvas>
+      <header class="studio-heading"><h1 id="composition-title" tabindex="-1">Phòng nghiên cứu bố cục hoa</h1></header>
+      <nav class="comp-steps" aria-label="Quy trình phân tích">
+        <button type="button" data-comp-step="1" aria-current="step">1. Chọn ảnh</button>
+        <button type="button" data-comp-step="2" disabled>2. Chọn tiêu chí</button>
+        <button type="button" data-comp-step="3" disabled>3. Quan sát trên ảnh</button>
+        <button type="button" data-comp-step="4" disabled>4. Đọc kết quả</button>
+        <button type="button" data-comp-step="5" disabled>5. Đánh dấu &amp; đối chiếu</button>
+      </nav>
+      <p id="comp-status" role="status"></p>
+      <div class="comp-workspace">
+        <section class="studio-panel comp-photo" id="comp-photo" hidden>
+          <div class="comp-frame"><canvas id="comp-canvas" aria-label="Ảnh thiết kế và các lớp phân tích" hidden></canvas></div>
           <div class="studio-controls" id="comp-layers" hidden>
-            <label><input type="checkbox" value="outline" checked> Hình bao · Silhouette</label>
-            <label><input type="checkbox" value="center" checked> Trọng tâm &amp; cân bằng</label>
-            <label><input type="checkbox" value="rhythm"> Nhịp điệu · Rhythm</label>
-            <label><input type="checkbox" value="axis"> Dòng chảy · Visual Flow</label>
+            <label><input type="checkbox" value="outline"> Hình bao</label>
+            <label><input type="checkbox" value="center"> Trọng tâm &amp; điểm hút mắt</label>
+            <label><input type="checkbox" value="axis"> Trục hình khối</label>
+            <label><input type="checkbox" value="rhythm"> Cụm chi tiết</label>
             <label><input type="checkbox" value="grid"> Lưới ⅓</label>
+            <label><input type="checkbox" value="notes" checked> Dấu của bạn</label>
           </div>
         </section>
-        <section class="studio-panel" id="comp-result" hidden>
-          <h2>Nhận xét bố cục</h2><div id="comp-findings"></div>
-          <label>Tên báo cáo<input id="comp-title" maxlength="160"></label>
-          <label>Ghi chú chỉnh sửa<textarea id="comp-note" rows="3"></textarea></label>
-          <button type="button" class="primary" id="comp-save">Lưu báo cáo</button>
-          <button type="button" class="secondary" id="comp-export">Xuất HTML</button>
-        </section>
-        <section class="studio-panel"><h2>Hồ sơ trên thiết bị</h2><div id="comp-history"></div></section>
+        <div class="comp-sidebar">
+          <section class="studio-panel" data-comp-panel="1">
+            <h2>Chọn ảnh thiết kế</h2>
+            <label class="photo-drop" id="comp-drop">Chọn hoặc kéo thả ảnh bó hoa, bình hoa, tráp hoa hay decor<input id="comp-file" type="file" accept="image/*"></label>
+            <details id="comp-samples"><summary>Thử bố cục mẫu</summary>
+              <button class="secondary" type="button" data-sample="0">Bất đối xứng lệch trái</button>
+              <button class="secondary" type="button" data-sample="1">Vòm tròn cổ điển</button>
+              <button class="secondary" type="button" data-sample="2">Thác đổ</button>
+            </details>
+          </section>
+          <section class="studio-panel" data-comp-panel="2" hidden>
+            <h2>Bạn muốn xem điều gì?</h2>
+            <button type="button" class="secondary" id="comp-all" aria-pressed="true">Phân tích tổng thể</button>
+            <fieldset id="comp-criteria"><legend>Tiêu chí</legend>
+              <label><input type="checkbox" value="0" checked> Hình dáng và hình bao</label>
+              <label><input type="checkbox" value="4" checked> Tỷ lệ và cân bằng</label>
+              <label><input type="checkbox" value="1" checked> Điểm nhấn và thứ bậc</label>
+              <label><input type="checkbox" value="3" checked> Nhịp điệu</label>
+              <label><input type="checkbox" value="2" checked> Trục và dòng chảy thị giác</label>
+            </fieldset>
+            <button type="button" class="primary" data-comp-next="3">Xem phân tích trên ảnh</button>
+          </section>
+          <section class="studio-panel" data-comp-panel="3" hidden>
+            <h2>Quan sát trên ảnh</h2>
+            <p>Đường xanh ôm biên ước lượng. Vòng vàng chỉ trọng tâm theo tương phản. Dấu chữ thập chỉ vùng có thể hút mắt.</p>
+            <p>Trục nét đứt cho thấy hướng kéo dài của khối. Các vòng xanh nhỏ chỉ cụm nhiều chi tiết để bạn kiểm tra nhịp lặp.</p>
+            <button type="button" class="primary" data-comp-next="4">Đọc kết quả</button>
+          </section>
+          <section class="studio-panel" id="comp-result" data-comp-panel="4" hidden>
+            <h2>Nhận xét bố cục</h2>
+            <div id="comp-findings"></div>
+            <button type="button" class="primary" data-comp-next="5">Đánh dấu và đối chiếu</button>
+          </section>
+          <section class="studio-panel" data-comp-panel="5" hidden>
+            <h2>Đánh dấu nhận định của bạn</h2>
+            <div class="studio-controls">
+              <label>Kiểu đánh dấu<select id="comp-tool">
+                <option value="">Chỉ xem ảnh</option><option value="pen">Vẽ đường tự do</option>
+                <option value="box">Khoanh vùng</option><option value="pin">Ghim ghi chú</option>
+              </select></label>
+              <label id="comp-pin-field" hidden>Nội dung ghim<input id="comp-pin" maxlength="140"></label>
+              <button type="button" class="secondary" id="comp-undo" disabled>Hoàn tác dấu cuối</button>
+            </div>
+            <ol id="comp-marks"></ol>
+            <details><summary>Đối chiếu kết quả tự động</summary><div id="comp-compare"></div></details>
+            <label>Tên báo cáo<input id="comp-title" maxlength="160"></label>
+            <label>Ghi chú chỉnh sửa<textarea id="comp-note" rows="3"></textarea></label>
+            <div class="studio-controls">
+              <button type="button" class="primary" id="comp-save">Lưu báo cáo</button>
+              <button type="button" class="secondary" id="comp-export">Xuất HTML</button>
+            </div>
+          </section>
+        </div>
       </div>
+      <details class="studio-panel comp-history"><summary>Hồ sơ trên thiết bị</summary><div id="comp-history"></div></details>
     </section>
     <section id="color-studio" class="studio" aria-labelledby="studio-title" hidden>
       <header class="studio-heading">

@@ -98,7 +98,7 @@ export function analyze({data, width:w, height:h}) {
     'Khối ước lượng '+(ratio>1.2?'thiên dọc':ratio<.83?'trải ngang':'gần vuông')+' · cao/rộng '+ratio.toFixed(2)+'.',
     'Trọng tâm tương phản ở '+Math.round(100*x/w)+'% chiều ngang và '+Math.round(100*y/h)+'% chiều cao, tính từ góc trên trái.',
     'Vùng gần màu nền chiếm '+Math.round(100*(1-n/(w*h)))+'% khung ảnh. Nền, giấy gói và bình có thể ảnh hưởng kết quả.',
-    directional?'Khối có trục kéo dài rõ. Bật Dòng chảy để đối chiếu hướng cành dẫn với trục này.':'Khối chưa thể hiện trục kéo dài rõ.',
+    directional?'Khối có trục kéo dài rõ. Bật Trục hình khối để đối chiếu hướng cành với trục này.':'Khối chưa thể hiện trục kéo dài rõ.',
     'Thứ bậc và nhịp điệu · Quan sát cụm hút mắt đầu tiên rồi lần theo các bông lặp lại. Nếu hai cụm tranh điểm nhấn, thử hạ một cụm phụ xuống một lớp và so sánh lại.'
   ];
   const focal=focalRegion(data,mask,w,h,bg);
@@ -111,21 +111,14 @@ export function analyze({data, width:w, height:h}) {
   ];
   const {peaks,density}=regions(data,mask,w,h,[left,top,right,bottom]);
   const angle=.5*Math.atan2(2*c,a-b);
-  peaks.sort((p,q)=>(p.x-q.x)*Math.cos(angle)+(p.y-q.y)*Math.sin(angle));
-  const path=directional && peaks.length>=2 ? peaks : [];
-  const widths=[];
-  const dx=Math.cos(angle),dy=Math.sin(angle);
-  for(let py=top;py<=bottom;py++)for(let px=left;px<=right;px++){
-    if(!mask[py*w+px])continue;
-    const bin=Math.floor(((px-x)*dx+(py-y)*dy)/Math.max(4,Math.min(right-left+1,bottom-top+1)/3));
-    const cross=-(px-x)*dy+(py-y)*dx;
-    const band=widths.find(b=>b.bin===bin);
-    if(band){band.min=Math.min(band.min,cross);band.max=Math.max(band.max,cross);}
-    else widths.push({bin,min:cross,max:cross});
+
+  let leftMass=0;
+  for(let py=top;py<=bottom;py++)for(let px=left;px<(left+right)/2;px++){
+    const pos=py*w+px;
+    if(mask[pos])leftMass+=distance(pos*4);
   }
-  widths.sort((a,b)=>a.bin-b.bin);
-  const transverse=widths.map(b=>Math.round(b.max-b.min+1));
-  const gaps=peaks.slice(1).map((p,i)=>Math.round(Math.hypot(p.x-peaks[i].x,p.y-peaks[i].y)));
+  const leftShare=Math.round(100*leftMass/weight);
+  const balance='Theo đường giữa của chủ thể, khối tương phản chia khoảng '+leftShare+'% bên trái và '+(100-leftShare)+'% bên phải.';
   const blank=Math.round(100*(1-n/(w*h)));
   const revisions=[
     ['Điểm nhấn',groups[2][1]],
@@ -134,26 +127,68 @@ export function analyze({data, width:w, height:h}) {
     ['Cân bằng',shifted?'Thử hạ một cụm phụ ở phía đối diện để kiểm tra đối trọng mà vẫn giữ được dáng lệch.':'Nếu muốn thêm chuyển động cho khối giữa, thử xoay một nhánh phụ ra ngoài và so sánh hai góc nhìn.']
   ];
   const sections=[
-    ['1. Hình bao tổng thể',lines[0]+' '+(clipped?'Biên chạm mép ảnh.':'Đường biên ước lượng nằm trong khung ảnh.')],
-    ['2. Thứ bậc thị giác',(focal?'Dấu chữ thập chỉ vùng ứng viên cho điểm nhấn chính.':'Chưa thấy một vùng tương phản nổi trội.')+' Các vùng viền phụ có thể là lớp nâng đỡ. Đối chiếu với hoa phụ, lá đệm và nền trên ảnh gốc.'],
-    ['3. Dòng chảy thị giác',lines[3]+' Mật độ viền tương phản trong chủ thể khoảng '+density+'%. '+(path.length?'Đường nối các vùng viền theo trục chính gợi ý hướng chuyển giữa các cụm.':'Chưa đủ tín hiệu để nối thành đường dẫn.')],
-    ['4. Nhịp điệu thị giác',lines[2]+' Bề rộng của khối qua các lát cắt liên tiếp theo trục là '+transverse.join(' · ')+' px. '+(gaps.length?'Các vòng biểu thị lượng chi tiết viền tại từng vùng. Khoảng cách giữa các vùng lần lượt là '+gaps.join(' · ')+' px trên ảnh phân tích. Đối chiếu với nhịp bông lớn, bông nhỏ và khoảng nghỉ.':'Chưa đủ vùng riêng biệt để đối chiếu nhịp lặp.')],
-    ['5. Tỷ lệ, trọng tâm và cân bằng',lines[1]+' Độ lệch ngang so với trục giữa bằng '+Math.round(100*Math.abs(x/w-.5))+'% chiều rộng ảnh. Tỷ lệ cao/rộng '+ratio.toFixed(2)+'.'],
-    ['6. Điểm mạnh và điểm yếu',groups[0][0]+': '+groups[0][1],groups[1][0]+': '+groups[1][1]],
-    ['7. Phương án chỉnh sửa',...revisions.map(([label,body])=>label+' · '+body)]
+    ['Hình dáng và hình bao',lines[0],clipped?'Biên ước lượng chạm mép ảnh. Kiểm tra xem ngọn, cành rủ hoặc vật liệu có bị cắt khỏi khung.':'Đối chiếu đường bao với mép thật của thiết kế. Trước khi gọi tên dáng, kiểm tra các cành thưa, phần giấy và bình có nằm đúng trong vùng đo.'],
+    ['Điểm nhấn và thứ bậc',focal?'Dấu chữ thập chỉ vùng có tương phản nổi bật trong ảnh.':'Chưa thấy một vùng tương phản vượt trội.','Nhìn lại ảnh gốc và xác định cụm nào hút mắt đầu tiên. Nếu dấu rơi vào giấy, lá hoặc nền, đánh dấu lại cụm hoa bạn muốn dẫn mắt tới.'],
+    ['Trục và dòng chảy thị giác',lines[3],'Dòng chảy chưa xác định tự động. Hãy nhìn từ cụm hút mắt đầu tiên, lần theo hướng mặt hoa và cành. Chỉ vẽ đường dẫn nếu thấy mắt chuyển tiếp rõ giữa các cụm.'],
+    ['Nhịp điệu',peaks.length>=2?'Các vòng xanh đánh dấu vùng nhiều chi tiết để đối chiếu.':'Chưa có đủ cụm chi tiết tách biệt để đối chiếu.','So sánh mặt hoa, hướng, màu hoặc khoảng cách giữa các cụm. Nếu chưa thấy yếu tố lặp hay biến đổi có liên hệ, hãy ghi nhận nhịp chưa rõ.'],
+    ['Tỷ lệ và cân bằng','Tỷ lệ cao/rộng của vùng tách được là '+ratio.toFixed(2)+'. '+balance,'So hai phía theo kích thước cụm, độ đậm và độ vươn. Một cụm nhỏ nhưng vươn xa có thể cân lại cụm lớn ở sát tâm.'],
+    ['Điểm mạnh và điểm cần kiểm tra',groups[0][1],groups[1][1]],
+    ['Phương án chỉnh sửa',...revisions.map(([label,body])=>label+' · '+body)]
   ];
-  lines.push(focal?'Dấu chữ thập chỉ vùng tương phản nổi bật ước lượng.':'Chưa xác định được điểm nhấn tương phản rõ.');
-  return {x,y,mask,focal,groups:sections,peaks,path,directional,angle:.5*Math.atan2(2*c,a-b),lines};
+  return {x,y,mask,focal,groups:sections,peaks,directional,angle,bounds:[left,top,right,bottom]};
+
 }
 export function setup(){
   const canvas=get('canvas'),ctx=canvas.getContext('2d');
-  let pixels,result,sequence=0;
+  let pixels,result,sequence=0,step=1,active;
+  const marks=[];
+  const section=document.getElementById('composition');
+  const steps=[...section.querySelectorAll('[data-comp-step]')];
+  const criteria=[...get('criteria').querySelectorAll('input')];
+  const layers=[...get('layers').querySelectorAll('input')];
+  const tool=get('tool');
+  const layerCriteria={outline:[0],center:[1,4],axis:[2],rhythm:[3],grid:[4]};
+  const selection=()=>new Set(criteria.filter(input=>input.checked).map(input=>Number(input.value)));
+  function showStep(next,focus=true){
+    step=next;
+    for(const button of steps){
+      const current=Number(button.dataset.compStep);
+      button.disabled=current>1 && (!pixels || (!result && current!==5) || (!selection().size && current>=3 && current<5));
+      if(current===step)button.setAttribute('aria-current','step');
+      else button.removeAttribute('aria-current');
+    }
+    for(const panel of section.querySelectorAll('[data-comp-panel]'))panel.hidden=Number(panel.dataset.compPanel)!==step;
+    get('photo').hidden=!pixels;
+    get('layers').hidden=step<3;
+    for(const input of layers)input.closest('label').hidden=!result && input.value!=='notes';
+    get('save').disabled=get('export').disabled=!pixels;
+    get('compare').parentElement.hidden=!result;
+    canvas.toggleAttribute('data-drawing',step===5 && !!tool.value);
+    if(pixels)draw();
+    if(focus){
+      const heading=section.querySelector('[data-comp-panel="'+step+'"] h2');
+      heading.tabIndex=-1;
+      heading.focus({preventScroll:true});
+    }
+  }
+  function applyCriteria(){
+    const chosen=selection();
+    get('all').setAttribute('aria-pressed',String(chosen.size===criteria.length));
+    section.querySelector('[data-comp-next="3"]').disabled=!chosen.size;
+    for(const input of layers){
+      if(input.value==='notes')continue;
+      input.checked=layerCriteria[input.value].some(index=>chosen.has(index));
+    }
+    if(result)renderFindings();
+    showStep(step,false);
+  }
   const status=text=>get('status').textContent=text;
   function draw(){
     ctx.putImageData(pixels,0,0);
-    if(!result) return;
-    const w=canvas.width,h=canvas.height,{mask,x,y,angle}=result;
-    for(const input of get('layers').querySelectorAll('input:checked')){
+    const w=canvas.width,h=canvas.height;
+    if(step<3)return;
+    for(const input of layers.filter(control=>result && control.checked && control.value!=='notes')){
+      const {mask,x,y,angle,bounds}=result;
       ctx.strokeStyle='#e39a39';ctx.fillStyle='#174e41';ctx.lineWidth=2;
       if(input.value==='outline'){
         for(let j=1;j<h-1;j++) for(let i=1;i<w-1;i++){
@@ -162,14 +197,18 @@ export function setup(){
         }
       }
       ctx.beginPath();
-      if(input.value==='center' && result.focal){
-        const {x:fx,y:fy}=result.focal;
-        ctx.moveTo(fx-9,fy);ctx.lineTo(fx+9,fy);ctx.moveTo(fx,fy-9);ctx.lineTo(fx,fy+9);
-        ctx.strokeStyle='white';ctx.lineWidth=5;ctx.stroke();
-        ctx.strokeStyle='#79283d';ctx.lineWidth=2;
+      if(input.value==='center'){
+        ctx.arc(x,y,7,0,2*Math.PI);
+        const middle=(bounds[0]+bounds[2])/2;
+        ctx.moveTo(middle,bounds[1]);ctx.lineTo(middle,bounds[3]);ctx.stroke();
+        ctx.beginPath();
+        if(result.focal){
+          const {x:fx,y:fy}=result.focal;
+          ctx.moveTo(fx-9,fy);ctx.lineTo(fx+9,fy);ctx.moveTo(fx,fy-9);ctx.lineTo(fx,fy+9);
+          ctx.strokeStyle='white';ctx.lineWidth=5;ctx.stroke();
+          ctx.strokeStyle='#79283d';ctx.lineWidth=2;
+        }
       }
-      if(input.value==='center'){ctx.beginPath();ctx.strokeStyle='#e39a39';ctx.lineWidth=2;ctx.moveTo(w/2,0);ctx.lineTo(w/2,h);ctx.stroke();ctx.beginPath();} 
-      if(input.value==='center') ctx.arc(x,y,6,0,2*Math.PI);
       if(input.value==='grid') for(const t of [1/3,2/3]){
         ctx.moveTo(w*t,0);ctx.lineTo(w*t,h);ctx.moveTo(0,h*t);ctx.lineTo(w,h*t);
       }
@@ -177,18 +216,90 @@ export function setup(){
         ctx.strokeStyle='#326e69';
         for(const p of result.peaks){ctx.moveTo(p.x+p.r,p.y);ctx.arc(p.x,p.y,p.r,0,2*Math.PI);}
       }
-      if(input.value==='axis' && result.path.length){
-        ctx.strokeStyle='#b85530';
-        result.path.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
-        ctx.stroke();ctx.beginPath();ctx.setLineDash([4,5]);
-      }
       if(input.value==='axis' && result.directional){
+        ctx.strokeStyle='#b85530';ctx.setLineDash([5,5]);
         const len=Math.min(w,h)*.35,dx=Math.cos(angle)*len,dy=Math.sin(angle)*len;
         ctx.moveTo(x-dx,y-dy);ctx.lineTo(x+dx,y+dy);
       }
       ctx.stroke();ctx.setLineDash([]);
     }
+    drawMarks();
   }
+  function renderMarks(){
+    get('marks').replaceChildren(...marks.map(mark=>element('li',mark.note || (mark.type==='box'?'Vùng khoanh':'Đường tự vẽ'))));
+    get('undo').disabled=!marks.length;
+    if(pixels)draw();
+  }
+  function drawMarks(){
+    if(!layers.find(input=>input.value==='notes').checked)return;
+    ctx.save();
+    ctx.strokeStyle='#a51e62';ctx.fillStyle='#a51e62';ctx.lineWidth=3;ctx.lineJoin='round';ctx.lineCap='round';
+    [...marks,...(active?[active]:[])].forEach(({type,points},index)=>{
+      const first=points[0],last=points.at(-1);
+      ctx.beginPath();
+      if(type==='pen'){
+        ctx.moveTo(first.x,first.y);
+        for(const point of points.slice(1))ctx.lineTo(point.x,point.y);
+        ctx.stroke();
+      }else if(type==='box'){
+        ctx.strokeRect(first.x,first.y,last.x-first.x,last.y-first.y);
+      }else{
+        ctx.arc(first.x,first.y,10,0,2*Math.PI);ctx.fill();
+        ctx.save();ctx.fillStyle='white';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(String(index+1),first.x,first.y);ctx.restore();
+      }
+    });
+    ctx.restore();
+  }
+  function point(event){
+    const rect=canvas.getBoundingClientRect();
+    return {
+      x:Math.max(0,Math.min(canvas.width,(event.clientX-rect.left)*canvas.width/rect.width)),
+      y:Math.max(0,Math.min(canvas.height,(event.clientY-rect.top)*canvas.height/rect.height))
+    };
+  }
+  section.querySelector('nav').onclick=event=>{
+    const button=event.target.closest('[data-comp-step]');
+    if(button && !button.disabled)showStep(Number(button.dataset.compStep));
+  };
+  for(const button of section.querySelectorAll('[data-comp-next]'))button.onclick=()=>showStep(Number(button.dataset.compNext));
+  get('criteria').onchange=applyCriteria;
+  get('all').onclick=()=>{for(const input of criteria)input.checked=true;applyCriteria();};
+  tool.onchange=()=>{
+    get('pin-field').hidden=tool.value!=='pin';
+    canvas.toggleAttribute('data-drawing',step===5 && !!tool.value);
+  };
+  canvas.onpointerdown=event=>{
+    if(step!==5 || !tool.value || active || event.button!==0)return;
+    const note=get('pin').value.trim();
+    if(tool.value==='pin' && !note){get('pin').focus();status('Nhập nội dung ghim rồi chạm vào ảnh.');return;}
+    const start=point(event);
+    layers.find(input=>input.value==='notes').checked=true;
+    if(tool.value==='pin'){
+      marks.push({type:'pin',points:[start],note});
+      get('pin').value='';renderMarks();status('Đã ghim ghi chú.');return;
+    }
+    active={type:tool.value,points:[start,start],pointer:event.pointerId};
+    canvas.setPointerCapture(event.pointerId);
+    draw();
+  };
+  canvas.onpointermove=event=>{
+    if(active?.pointer!==event.pointerId)return;
+    if(active.type==='box')active.points[1]=point(event);
+    else active.points.push(point(event));
+    draw();
+  };
+  canvas.onpointerup=event=>{
+    if(active?.pointer!==event.pointerId)return;
+    const end=point(event);
+    if(active.type==='box')active.points[1]=end;
+    else active.points.push(end);
+    const first=active.points[0];
+    if(active.points.some(p=>Math.hypot(p.x-first.x,p.y-first.y)>2))marks.push(active);
+    active=undefined;renderMarks();
+  };
+  canvas.onlostpointercapture=()=>{if(active){active=undefined;renderMarks();}};
+  get('undo').onclick=()=>{marks.pop();renderMarks();};
   function element(tag,text){const el=document.createElement(tag);el.textContent=text;return el;}
   const reference=element('details','');
   reference.append(element('summary','Tham chiếu bài học Học viện'));
@@ -203,7 +314,7 @@ export function setup(){
     field.onchange=()=>{if(result)renderFindings();};
     return {label,field};
   });
-  get('drop').after(reference);
+  get('findings').after(reference);
   function renderFindings(){
     const masked=new Uint8ClampedArray(pixels.data);
     for(let p=0;p<result.mask.length;p++)if(!result.mask[p])masked[p*4+3]=0;
@@ -228,28 +339,44 @@ export function setup(){
       groups.push([course.label,...(ranked.length?ranked.map(({lesson})=>lesson.text):['Chưa tìm thấy mục bài học khớp với dấu hiệu trong ảnh.'])]);
     }
     result.linkedGroups=groups;
-    get('findings').replaceChildren(...[...result.groups,...groups].flatMap(([title,...body])=>[element('h3',title),...body.map(t=>element('p',t))]));
+    const chosen=selection();
+    const details=(title,body)=>{
+      const block=element('details','');
+      block.append(element('summary',title),...body.map(t=>element('p',t)));
+      return block;
+    };
+    const report=()=>[...result.groups.filter((_,index)=>chosen.has(index) || index===5).map(([title,...body],index)=>{
+      const block=details(title,body);block.open=index===0;return block;
+    }),...groups.map(([title,...body])=>details(title,body))];
+    const [title,...body]=result.groups[6];
+    const action=details(title,body.filter((_,index)=>chosen.has([1,0,3,4][index]) || (index===1 && chosen.has(2))));action.open=true;action.className='comp-insight';
+    get('findings').replaceChildren(action,...report());
+    get('compare').replaceChildren(...report());
   }
   async function open(file){
     if(!file) return;
-    const ticket=++sequence; result=null;
-    get('layers').hidden=get('result').hidden=canvas.hidden=true;
+    const ticket=++sequence;
     const url=URL.createObjectURL(file);
     try {
       status('Đang đọc ảnh…');
       const img=new Image();img.src=url;await img.decode();
       if(ticket!==sequence)return;
-      const scale=Math.min(1,620/img.width,480/img.height);
+      const scale=Math.min(1,960/img.width,960/img.height);
       canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
       ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
       pixels=ctx.getImageData(0,0,canvas.width,canvas.height);result=analyze(pixels);
-      canvas.hidden=false;
-      if(!result){status('Chưa xác định được chủ thể. Thử ảnh có nền đều và thấy trọn dáng hoa.');return;}
-      get('file').value='';get('title').value=file.name.replace(/\.[^.]+$/,'');get('note').value='';
-      renderFindings();
-      get('layers').hidden=get('result').hidden=false;draw();status('Đã phân tích ảnh.');
-    } catch {if(ticket===sequence)status('Chưa đọc được ảnh. Hãy chọn tệp JPG, PNG hoặc WebP.');}
-    finally{URL.revokeObjectURL(url);}
+      canvas.hidden=false;marks.length=0;active=undefined;tool.value='';tool.onchange();
+      get('file').value='';get('title').value=file.name.replace(/\.[^.]+$/,'');get('note').value='';get('pin').value='';
+      for(const input of criteria)input.checked=true;
+      renderMarks();
+      if(!result){
+        showStep(5);
+        status('Chưa tách được chủ thể. Bạn có thể đánh dấu ảnh này hoặc quay lại chọn ảnh có nền đều và thấy trọn dáng hoa.');
+        return;
+      }
+      applyCriteria();showStep(2);status('Ảnh đã sẵn sàng.');
+    } catch {if(ticket===sequence)status('Chưa xử lý được ảnh. Hãy thử tệp JPG, PNG hoặc WebP khác.');}
+    finally{if(ticket===sequence)get('file').value='';URL.revokeObjectURL(url);}
   }
   for(const button of get('samples').querySelectorAll('button')){
     button.onclick=()=>open(sampleFile(Number(button.dataset.sample),button.textContent));
@@ -267,15 +394,22 @@ export function setup(){
       };row.append(del);return row;
     }));}catch{status('Chưa đọc được hồ sơ trên thiết bị.');}
   }
-  function reportText(){return [...result.groups.flat(),...(result.linkedGroups||[]).flat(),get('note').value.trim()].filter(Boolean).join('\n');}
+  function reportText(){
+    const chosen=selection();
+    return [result?'':'Ảnh nghiên cứu thủ công. Chưa tách được chủ thể.',
+      ...(result?.groups.filter((_,index)=>chosen.has(index)||index>=5).flat()||[]),
+      ...(result?.linkedGroups||[]).flat(),
+      ...marks.map((mark,index)=>mark.note?'Ghim '+(index+1)+' · '+mark.note:''),
+      get('note').value.trim()].filter(Boolean).join('\n');
+  }
   get('save').onclick=()=>{
-    if(!result)return;
+    if(!pixels)return;
     try{const report={id:crypto.randomUUID(),title:get('title').value.trim()||'Báo cáo bố cục',summary:reportText(),createdAt:new Date().toISOString()};
       localStorage.setItem(key,JSON.stringify([report,...read()]));history();status('Đã lưu báo cáo trên thiết bị.');
     }catch{status('Chưa lưu được báo cáo. Bạn có thể xuất HTML để giữ bản sao.');}
   };
   get('export').onclick=()=>{
-    if(!result)return;
+    if(!pixels)return;
     const article=element('article','');const img=new Image();img.src=canvas.toDataURL('image/jpeg',.82);img.alt='Bản đồ bố cục';
     article.append(element('h1',get('title').value||'Báo cáo bố cục'),img,...reportText().split('\n').map(t=>element('p',t)));
     const url=URL.createObjectURL(new Blob(['<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Báo cáo Kim Flora</title><style>body{max-width:48rem;margin:auto;padding:1em;font:16px/1.5 system-ui}img{max-width:100%}</style>',article.outerHTML],{type:'text/html'}));

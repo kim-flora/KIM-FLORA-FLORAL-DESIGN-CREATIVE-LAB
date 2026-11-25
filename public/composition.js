@@ -1,6 +1,73 @@
+const samples = [[[102,105,25],[142,91,21],[72,75,15],[57,49,10],[178,103,14],[207,88,8]],[[160,80,23],[120,91,22],[200,91,22],[97,122,20],[223,122,20],[139,120,25],[181,120,25]],[[109,48,22],[143,64,29],[162,93,22],[180,120,15],[190,145,10],[197,164,6]]];
+
+function sampleFile(index, title) {
+  const blooms = samples[index];
+  const leaves = blooms.map(([x,y,r], i) => {
+    const angle = i % 2 ? -32 : 28;
+    return `<ellipse cx="${x-r}" cy="${y+6}" rx="${r}" ry="${r*.38}" fill="#5d7966" transform="rotate(${angle} ${x-r} ${y+6})"/>`;
+  });
+  const flowers = blooms.map(([x,y,r], i) =>
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="${['#ca826d','#e8ac94','#d79682'][i%3]}"/><circle cx="${x}" cy="${y}" r="${r*.34}" fill="${i===1?'#70283c':'#c48170'}"/>`);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 320 200"><rect width="320" height="200" fill="#f6f0e9"/>${leaves.join('')}${flowers.join('')}</svg>`;
+  return new File([svg], title+'.svg', {type:'image/svg+xml'});
+}
+
+// Compare local contrast against typical pixels belonging to the subject.
+function focalRegion(data, mask, width, height, background) {
+  const size = Math.max(3, Math.round(Math.min(width,height)/18));
+  const cols = Math.ceil(width/size);
+  const cells = new Map();
+  let total = 0, count = 0;
+  for (let p=0;p<mask.length;p++) {
+    if (!mask[p]) continue;
+    const x=p%width, y=Math.floor(p/width), i=p*4;
+    const distance=Math.hypot(...background.map((v,k)=>data[i+k]-v));
+    const id=Math.floor(y/size)*cols+Math.floor(x/size);
+    const cell=cells.get(id) || {sum:0,count:0,x:0,y:0};
+    cell.sum+=distance; cell.count++; cell.x+=x; cell.y+=y;
+    cells.set(id,cell); total+=distance; count++;
+  }
+  let best=null, peak=total/count*1.18;
+  for(const cell of cells.values()){
+    const strength=cell.sum/cell.count;
+    if(cell.count>=size*size*.6 && strength>peak){
+      peak=strength;
+      best={x:cell.x/cell.count,y:cell.y/cell.count};
+    }
+  }
+  return best;
+}
 const key = 'kim_flora_composition_reports_v1';
 const get = id => document.getElementById('comp-' + id);
 const median = values => values.sort((a,b) => a-b)[Math.floor(values.length/2)];
+function regions(data,mask,w,h,bounds){
+  const [left,top,right,bottom]=bounds;
+  const span=Math.max(4,Math.round(Math.min(right-left+1,bottom-top+1)/6));
+  const cols=Math.ceil(w/span), cells=new Map();
+  let edges=0, count=0;
+  for(let y=top;y<=bottom;y++) for(let x=left;x<=right;x++){
+    const p=y*w+x;
+    if(!mask[p])continue;
+    const i=p*4, k=Math.min(w-1,x+1)+y*w, m=Math.min(h-1,y+1)*w+x;
+    const edge=Math.max(...[0,1,2].map(c=>Math.max(Math.abs(data[i+c]-data[k*4+c]),Math.abs(data[i+c]-data[m*4+c]))));
+    count++;
+    if(edge<24)continue;
+    edges++;
+    const id=Math.floor(y/span)*cols+Math.floor(x/span);
+    const cell=cells.get(id)||{x:0,y:0,n:0};
+    cell.x+=x;cell.y+=y;cell.n++;cells.set(id,cell);
+  }
+  const peaks=[];
+  for(const cell of [...cells.values()].sort((a,b)=>b.n-a.n)){
+    if(cell.n<Math.max(3,span*.6))break;
+    const x=cell.x/cell.n,y=cell.y/cell.n;
+    if(peaks.every(p=>Math.hypot(p.x-x,p.y-y)>span*1.6)){
+      peaks.push({x,y,r:Math.max(3,Math.sqrt(cell.n))});
+      if(peaks.length===5)break;
+    }
+  }
+  return {peaks,density:Math.round(100*edges/count)};
+}
 export function analyze({data, width:w, height:h}) {
   const border = [[],[],[]];
   for(let y=0;y<h;y++) for(let x=0;x<w;x++) {
@@ -30,10 +97,52 @@ export function analyze({data, width:w, height:h}) {
     'Khối ước lượng '+(ratio>1.2?'thiên dọc':ratio<.83?'trải ngang':'gần vuông')+' · cao/rộng '+ratio.toFixed(2)+'.',
     'Trọng tâm tương phản ở '+Math.round(100*x/w)+'% chiều ngang và '+Math.round(100*y/h)+'% chiều cao, tính từ góc trên trái.',
     'Vùng gần màu nền chiếm '+Math.round(100*(1-n/(w*h)))+'% khung ảnh. Nền, giấy gói và bình có thể ảnh hưởng kết quả.',
-    directional?'Khối có trục kéo dài rõ. Bật Trục chính để đối chiếu hướng cành dẫn với trục này.':'Khối chưa thể hiện trục kéo dài rõ.',
+    directional?'Khối có trục kéo dài rõ. Bật Dòng chảy để đối chiếu hướng cành dẫn với trục này.':'Khối chưa thể hiện trục kéo dài rõ.',
     'Thứ bậc và nhịp điệu · Quan sát cụm hút mắt đầu tiên rồi lần theo các bông lặp lại. Nếu hai cụm tranh điểm nhấn, thử hạ một cụm phụ xuống một lớp và so sánh lại.'
   ];
-  return {x,y,mask,directional,angle:.5*Math.atan2(2*c,a-b),lines};
+  const focal=focalRegion(data,mask,w,h,bg);
+  const clipped=left===0 || right===w-1 || top===0 || bottom===h-1;
+  const shifted=Math.abs(x/w-.5)>.1;
+  const groups=[
+    ['Điểm mạnh',directional?'Trục dài hiện rõ trong khối. Có thể dùng hướng này để nhấn đường vươn hoặc đường rủ.':shifted?'Khối lệch về phía '+(x<w/2?'trái':'phải')+', tạo điều kiện dùng khoảng trống phía đối diện làm đối trọng.':'Trọng tâm nằm gần trục giữa, thuận lợi nếu bạn muốn phom hoa nhìn ổn định.'],
+    ['Điểm yếu cần kiểm tra',clipped?'Biên chủ thể chạm mép ảnh. Một phần cành hoặc vật liệu có thể bị cắt khỏi khung.':focal?'Vùng đánh dấu có tương phản cao. Kiểm tra xem đó là hoa chính, phần giấy gói hay một mảng lá tối.':'Chưa thấy vùng tương phản vượt trội. Nếu muốn nhấn một bông chính, hãy kiểm tra xem mặt hoa có bị các bông phụ che khuất.'],
+    ['Cách chỉnh hoa',clipped?'Chụp lùi để thấy đủ ngọn cành rồi đối chiếu hình bao trước khi tỉa.':focal?'Nếu dấu rơi vào lá hoặc giấy, thử xoay mặt lá hoặc hạ nếp giấy gần hoa chính. Chụp lại cùng góc để xem điểm hút mắt có chuyển về hoa không.':'Thử xoay mặt hoa chính về góc nhìn chủ đạo và hạ một bông phụ cạnh nó. Khoảng hở giữa hai lớp sẽ giúp đọc rõ cụm chính.']
+  ];
+  const {peaks,density}=regions(data,mask,w,h,[left,top,right,bottom]);
+  const angle=.5*Math.atan2(2*c,a-b);
+  peaks.sort((p,q)=>(p.x-q.x)*Math.cos(angle)+(p.y-q.y)*Math.sin(angle));
+  const path=directional && peaks.length>=2 ? peaks : [];
+  const widths=[];
+  const dx=Math.cos(angle),dy=Math.sin(angle);
+  for(let py=top;py<=bottom;py++)for(let px=left;px<=right;px++){
+    if(!mask[py*w+px])continue;
+    const bin=Math.floor(((px-x)*dx+(py-y)*dy)/Math.max(4,Math.min(right-left+1,bottom-top+1)/3));
+    const cross=-(px-x)*dy+(py-y)*dx;
+    const band=widths.find(b=>b.bin===bin);
+    if(band){band.min=Math.min(band.min,cross);band.max=Math.max(band.max,cross);}
+    else widths.push({bin,min:cross,max:cross});
+  }
+  widths.sort((a,b)=>a.bin-b.bin);
+  const transverse=widths.map(b=>Math.round(b.max-b.min+1));
+  const gaps=peaks.slice(1).map((p,i)=>Math.round(Math.hypot(p.x-peaks[i].x,p.y-peaks[i].y)));
+  const blank=Math.round(100*(1-n/(w*h)));
+  const revisions=[
+    ['Điểm nhấn',groups[2][1]],
+    ['Đường bao',directional?'Thử xoay cành ngoài cùng theo trục khối rồi nhìn lại từ chính diện. Giữ nhánh giúp kéo dài phom.':'Xoay từng nhánh ở rìa trước khi cắt để thấy nhánh nào làm mất dáng viền.'],
+    ['Khoảng thở',blank<35?'Tách nhẹ hai cụm đang chạm nhau để mở khe sáng và phân biệt lớp trước với lớp sau.':'Xem khoảng hở giữa các cụm ở góc trưng bày. Nếu hai cụm rời nhau, thử một nhánh chuyển tiếp mảnh để nối hướng.'],
+    ['Cân bằng',shifted?'Thử hạ một cụm phụ ở phía đối diện để kiểm tra đối trọng mà vẫn giữ được dáng lệch.':'Nếu muốn thêm chuyển động cho khối giữa, thử xoay một nhánh phụ ra ngoài và so sánh hai góc nhìn.']
+  ];
+  const sections=[
+    ['1. Hình bao tổng thể',lines[0]+' '+(clipped?'Biên chạm mép ảnh.':'Đường biên ước lượng nằm trong khung ảnh.')],
+    ['2. Thứ bậc thị giác',(focal?'Dấu chữ thập chỉ vùng ứng viên cho điểm nhấn chính.':'Chưa thấy một vùng tương phản nổi trội.')+' Các vùng viền phụ có thể là lớp nâng đỡ. Đối chiếu với hoa phụ, lá đệm và nền trên ảnh gốc.'],
+    ['3. Dòng chảy thị giác',lines[3]+' Mật độ viền tương phản trong chủ thể khoảng '+density+'%. '+(path.length?'Đường nối các vùng viền theo trục chính gợi ý hướng chuyển giữa các cụm.':'Chưa đủ tín hiệu để nối thành đường dẫn.')],
+    ['4. Nhịp điệu thị giác',lines[2]+' Bề rộng của khối qua các lát cắt liên tiếp theo trục là '+transverse.join(' · ')+' px. '+(gaps.length?'Các vòng biểu thị lượng chi tiết viền tại từng vùng. Khoảng cách giữa các vùng lần lượt là '+gaps.join(' · ')+' px trên ảnh phân tích. Đối chiếu với nhịp bông lớn, bông nhỏ và khoảng nghỉ.':'Chưa đủ vùng riêng biệt để đối chiếu nhịp lặp.')],
+    ['5. Tỷ lệ, trọng tâm và cân bằng',lines[1]+' Độ lệch ngang so với trục giữa bằng '+Math.round(100*Math.abs(x/w-.5))+'% chiều rộng ảnh. Tỷ lệ cao/rộng '+ratio.toFixed(2)+'.'],
+    ['6. Điểm mạnh và điểm yếu',groups[0][0]+': '+groups[0][1],groups[1][0]+': '+groups[1][1]],
+    ['7. Phương án chỉnh sửa',...revisions.map(([label,body])=>label+' · '+body)]
+  ];
+  lines.push(focal?'Dấu chữ thập chỉ vùng tương phản nổi bật ước lượng.':'Chưa xác định được điểm nhấn tương phản rõ.');
+  return {x,y,mask,focal,groups:sections,peaks,path,directional,angle:.5*Math.atan2(2*c,a-b),lines};
 }
 export function setup(){
   const canvas=get('canvas'),ctx=canvas.getContext('2d');
@@ -52,15 +161,31 @@ export function setup(){
         }
       }
       ctx.beginPath();
+      if(input.value==='center' && result.focal){
+        const {x:fx,y:fy}=result.focal;
+        ctx.moveTo(fx-9,fy);ctx.lineTo(fx+9,fy);ctx.moveTo(fx,fy-9);ctx.lineTo(fx,fy+9);
+        ctx.strokeStyle='white';ctx.lineWidth=5;ctx.stroke();
+        ctx.strokeStyle='#79283d';ctx.lineWidth=2;
+      }
+      if(input.value==='center'){ctx.beginPath();ctx.strokeStyle='#e39a39';ctx.lineWidth=2;ctx.moveTo(w/2,0);ctx.lineTo(w/2,h);ctx.stroke();ctx.beginPath();} 
       if(input.value==='center') ctx.arc(x,y,6,0,2*Math.PI);
       if(input.value==='grid') for(const t of [1/3,2/3]){
         ctx.moveTo(w*t,0);ctx.lineTo(w*t,h);ctx.moveTo(0,h*t);ctx.lineTo(w,h*t);
+      }
+      if(input.value==='rhythm'){
+        ctx.strokeStyle='#326e69';
+        for(const p of result.peaks){ctx.moveTo(p.x+p.r,p.y);ctx.arc(p.x,p.y,p.r,0,2*Math.PI);}
+      }
+      if(input.value==='axis' && result.path.length){
+        ctx.strokeStyle='#b85530';
+        result.path.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+        ctx.stroke();ctx.beginPath();ctx.setLineDash([4,5]);
       }
       if(input.value==='axis' && result.directional){
         const len=Math.min(w,h)*.35,dx=Math.cos(angle)*len,dy=Math.sin(angle)*len;
         ctx.moveTo(x-dx,y-dy);ctx.lineTo(x+dx,y+dy);
       }
-      ctx.stroke();
+      ctx.stroke();ctx.setLineDash([]);
     }
   }
   function element(tag,text){const el=document.createElement(tag);el.textContent=text;return el;}
@@ -80,10 +205,13 @@ export function setup(){
       canvas.hidden=false;
       if(!result){status('Chưa xác định được chủ thể. Thử ảnh có nền đều và thấy trọn dáng hoa.');return;}
       get('file').value='';get('title').value=file.name.replace(/\.[^.]+$/,'');get('note').value='';
-      get('findings').replaceChildren(...result.lines.map(t=>element('p',t)));
+      get('findings').replaceChildren(...result.groups.flatMap(([title,...body])=>[element('h3',title),...body.map(t=>element('p',t))]));
       get('layers').hidden=get('result').hidden=false;draw();status('Đã phân tích ảnh.');
     } catch {if(ticket===sequence)status('Chưa đọc được ảnh. Hãy chọn tệp JPG, PNG hoặc WebP.');}
     finally{URL.revokeObjectURL(url);}
+  }
+  for(const button of get('samples').querySelectorAll('button')){
+    button.onclick=()=>open(sampleFile(Number(button.dataset.sample),button.textContent));
   }
   get('file').onchange=e=>open(e.target.files[0]);get('layers').onchange=draw;
   get('drop').ondragover=e=>e.preventDefault();
@@ -98,7 +226,7 @@ export function setup(){
       };row.append(del);return row;
     }));}catch{status('Chưa đọc được hồ sơ trên thiết bị.');}
   }
-  function reportText(){return [...result.lines,get('note').value.trim()].filter(Boolean).join('\n');}
+  function reportText(){return [...result.groups.flat(),get('note').value.trim()].filter(Boolean).join('\n');}
   get('save').onclick=()=>{
     if(!result)return;
     try{const report={id:crypto.randomUUID(),title:get('title').value.trim()||'Báo cáo bố cục',summary:reportText(),createdAt:new Date().toISOString()};

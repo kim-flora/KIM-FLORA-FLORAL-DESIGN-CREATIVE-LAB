@@ -78,12 +78,18 @@
       <div class="studio-grid">
         <section class="studio-panel">
           <label class="photo-drop" id="comp-drop">Chọn hoặc kéo thả ảnh hoa<input id="comp-file" type="file" accept="image/*"></label>
+          <fieldset id="comp-samples" class="studio-controls"><legend>Thử bố cục mẫu</legend>
+            <button class="secondary" type="button" data-sample="0">Bất đối xứng lệch trái</button>
+            <button class="secondary" type="button" data-sample="1">Vòm tròn cổ điển</button>
+            <button class="secondary" type="button" data-sample="2">Thác đổ</button>
+          </fieldset>
           <p id="comp-status" role="status"></p>
           <canvas id="comp-canvas" style="max-width:100%;height:auto" aria-label="Ảnh hoa và các lớp phân tích" hidden></canvas>
           <div class="studio-controls" id="comp-layers" hidden>
-            <label><input type="checkbox" value="outline" checked> Biên chủ thể</label>
-            <label><input type="checkbox" value="center" checked> Trọng tâm</label>
-            <label><input type="checkbox" value="axis"> Trục chính</label>
+            <label><input type="checkbox" value="outline" checked> Hình bao · Silhouette</label>
+            <label><input type="checkbox" value="center" checked> Trọng tâm &amp; cân bằng</label>
+            <label><input type="checkbox" value="rhythm"> Nhịp điệu · Rhythm</label>
+            <label><input type="checkbox" value="axis"> Dòng chảy · Visual Flow</label>
             <label><input type="checkbox" value="grid"> Lưới ⅓</label>
           </div>
         </section>

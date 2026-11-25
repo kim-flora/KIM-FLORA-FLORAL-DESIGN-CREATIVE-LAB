@@ -1,3 +1,4 @@
+import { setupColorStudio } from './color-studio.js';
 import { setupWorkspace } from './workspace.js';
 
 const login = document.querySelector('#login');
@@ -12,6 +13,7 @@ const settingsTitle = document.getElementById('settings-title');
 const settingsNotice = document.getElementById('settings-message');
 let busy = false;
 setupWorkspace();
+const focusWorkspace = setupColorStudio();
 
 function message(value, isError = false) {
   const target = settingsDialog.open ? settingsNotice : notice;
@@ -46,9 +48,8 @@ function screen(name, focus = true) {
   }
   message('');
   if (focus) {
-    const activeTitle = configuring ? settingsTitle
-      : insideWorkspace ? document.getElementById('workspace-title') : title;
-    activeTitle.focus();
+    if (insideWorkspace && !configuring) focusWorkspace();
+    else (configuring ? settingsTitle : title).focus();
   }
 }
 

@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#28362b">
   <title>Kim Flora | Floral Design &amp; Creative Lab</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/color-studio.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
@@ -35,9 +36,13 @@
   <main id="account" class="workspace" hidden>
     <header class="workspace-header">
       <div class="wordmark">KIM FLORA <span>Creative Lab</span></div>
-      <button class="secondary" id="open-settings" type="button">Cài đặt cá nhân</button>
+      <nav class="lab-nav" aria-label="Creative Lab">
+        <button class="secondary" id="show-projects" type="button" aria-current="page">Dự án hoa</button>
+        <button class="secondary" id="show-color-studio" type="button">Floral Color Studio</button>
+        <button class="secondary" id="open-settings" type="button">Cài đặt cá nhân</button>
+      </nav>
     </header>
-    <div class="workspace-body">
+    <div class="workspace-body" id="project-view">
       <aside class="project-sidebar" aria-labelledby="project-list-title">
         <h2 id="project-list-title">Dự án hoa</h2>
         <button id="new-project" type="button" class="primary">Thêm dự án</button>
@@ -67,6 +72,51 @@
         <p id="project-status" role="status"></p>
       </section>
     </div>
+    <section id="color-studio" class="studio" aria-labelledby="studio-title" hidden>
+      <header class="studio-heading">
+        <h1 id="studio-title" tabindex="-1">Floral Color Studio</h1>
+        <p>Phối màu hoa · Phân tích · Mô phỏng</p>
+      </header>
+      <div class="studio-grid">
+        <section class="studio-panel" aria-labelledby="palette-title">
+          <h2 id="palette-title">Bảng phối</h2>
+          <form id="generate-palette" class="studio-controls">
+            <label>Màu gốc<input id="studio-base" type="color" value="#9a5064"></label>
+            <label>Mã HEX<input id="studio-hex" value="#9A5064" pattern="#?[0-9A-Fa-f]{6}" required></label>
+            <label>Số màu<select id="studio-count"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
+            <label>Kiểu phối<select id="studio-scheme"><option value="analogous">Tương đồng</option><option value="complementary">Bổ túc</option><option value="monochrome">Đơn sắc</option><option value="triadic">Bộ ba</option></select></label>
+            <button class="primary" type="submit">Tạo bảng phối</button>
+          </form>
+          <div id="studio-swatches" class="studio-swatches"></div>
+          <p id="studio-ratio"></p>
+          <button id="reset-ratio" class="secondary" type="button">Áp dụng 60–30–10</button>
+        </section>
+        <section class="studio-panel" aria-labelledby="simulation-title">
+          <h2 id="simulation-title">Mô phỏng bó hoa</h2>
+          <div id="studio-bouquet" class="studio-bouquet" aria-hidden="true"></div>
+          <p>Diện tích màu được mô phỏng theo số bông. Hình dáng, kích thước hoa và ánh sáng thực tế sẽ đổi cảm nhận tỷ lệ.</p>
+        </section>
+        <section class="studio-panel studio-analysis" aria-labelledby="analysis-title">
+          <h2 id="analysis-title">Phân tích bảng màu</h2>
+          <div class="studio-table"><table><thead><tr><th scope="col">Màu</th><th scope="col">Thiên ấm/lạnh</th><th scope="col">Độ sáng HSL</th><th scope="col">Độ bão hòa HSL</th></tr></thead><tbody id="studio-analysis"></tbody></table></div>
+          <p id="studio-contrast"></p>
+          <p id="studio-harmony"></p>
+        </section>
+        <section class="studio-panel" aria-labelledby="formula-title">
+          <h2 id="formula-title">Công thức phối màu</h2>
+          <form id="save-formula" class="studio-controls">
+            <label>Tên công thức<input id="formula-name" maxlength="120" required></label>
+            <button class="primary" type="submit">Lưu công thức</button>
+          </form>
+          <div class="studio-controls">
+            <label>Công thức đã lưu<select id="formula-list"><option value="">Chọn công thức</option></select></label>
+            <button class="secondary" id="open-formula" type="button" disabled>Mở công thức</button>
+            <button class="secondary" id="export-formula" type="button">Xuất hồ sơ màu</button>
+          </div>
+          <p id="studio-status" role="status"></p>
+        </section>
+      </div>
+    </section>
     <dialog id="settings-dialog" aria-labelledby="settings-title">
       <h2 id="settings-title" tabindex="-1">Cài đặt cá nhân</h2>
       <div id="settings" hidden>

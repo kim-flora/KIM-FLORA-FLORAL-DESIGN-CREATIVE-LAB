@@ -1,0 +1,94 @@
+export function hexToHsl(hex) {
+  const [r, g, b] = hex.match(/[\da-f]{2}/gi).map(pair => parseInt(pair, 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  const lightness = (max + min) / 2;
+  if (!delta) return { hue: 0, saturation: 0, lightness };
+  let sector = (r - g) / delta + 4;
+  if (max === r) sector = (g - b) / delta;
+  else if (max === g) sector = (b - r) / delta + 2;
+  return {
+    hue: (sector * 60 + 360) % 360,
+    saturation: delta / (1 - Math.abs(2 * lightness - 1)),
+    lightness
+  };
+}
+
+function hslToHex(hue, saturation, lightness) {
+  const amplitude = saturation * Math.min(lightness, 1 - lightness);
+  const channel = offset => {
+    const wave = (offset + hue / 30) % 12;
+    const value = lightness - amplitude * Math.max(-1, Math.min(wave - 3, 9 - wave, 1));
+    return Math.round(value * 255).toString(16).padStart(2, '0');
+  };
+  return ('#' + [0, 8, 4].map(channel).join('')).toUpperCase();
+}
+
+const offsets = {
+  analogous: [0, 22, -22, 42, -42, 12],
+  complementary: [0, 180, 15, 195, -12, 165],
+  monochrome: [0, 0, 0, 0, 0, 0],
+  triadic: [0, 120, 240, 0, 120, 240]
+};
+
+export function defaultWeights(count) {
+  if (count === 2) return [60, 40];
+  if (count === 3) return [60, 30, 10];
+  if (count === 4) return [60, 30, 6, 4];
+  if (count === 5) return [60, 30, 5, 3, 2];
+  return [60, 30, 4, 3, 2, 1];
+}
+
+export function generatePalette(base, count, scheme) {
+  const { hue, saturation, lightness } = hexToHsl(base);
+  const steps = [0, .19, -.16, .32, -.29, .09];
+  return defaultWeights(count).map((weight, index) => {
+    const shifted = scheme === 'monochrome'
+      ? .1 + .8 * ((lightness + [0, .28, .59, .82, .14, .42][index]) % 1)
+      : Math.max(.12, Math.min(.88, lightness + steps[index]));
+    const targetHue = (hue + offsets[scheme][index] + 360) % 360;
+    const targetSaturation = saturation < .04 && scheme !== 'monochrome' ? .24 : saturation;
+    return { hex: index ? hslToHex(targetHue, targetSaturation, shifted) : base, weight };
+  });
+}
+
+export function allocate(weights, total) {
+  const sum = weights.reduce((a, b) => a + b, 0);
+  const normalized = weights.map(weight => sum ? weight / sum * total : total / weights.length);
+  const counts = normalized.map(Math.floor);
+  const priority = normalized.map((value, index) => ({ index, fraction: value - counts[index] }));
+  priority.sort((a, b) => b.fraction - a.fraction);
+  const remainder = total - counts.reduce((a, b) => a + b, 0);
+  priority.slice(0, remainder).forEach(({ index }) => counts[index]++);
+  return counts;
+}
+
+function luminance(hex) {
+  const channels = hex.match(/[\da-f]{2}/gi).map(pair => parseInt(pair, 16) / 255);
+  const [r, g, b] = channels.map(x => x <= .04045 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4);
+  return .2126 * r + .7152 * g + .0722 * b;
+}
+
+export function analyzePalette(palette) {
+  const colors = palette.map(({ hex }) => {
+    const hsl = hexToHsl(hex);
+    const { hue, saturation } = hsl;
+    const temperature = saturation < .08 ? 'Trung tính' : hue <= 70 || hue >= 330 ? 'Thiên ấm' : 'Thiên lạnh';
+    return { hex, ...hsl, temperature };
+  });
+  const neutralLimit = .08;
+  const hues = colors.filter(color => color.saturation >= neutralLimit).map(color => color.hue);
+  const distances = hues.flatMap((hue, i) => hues.slice(i + 1).map(other => {
+    const difference = Math.abs(hue - other);
+    return Math.min(difference, 360 - difference);
+  }));
+  let harmony = 'Nhiều hướng sắc. Kiểm tra sắc nào đóng vai trò chủ đạo trên hoa thật.';
+  if (!distances.length) harmony = 'Chủ yếu trung tính hoặc một hướng sắc.';
+  else if (distances.every(distance => distance <= 55)) harmony = 'Các sắc gần nhau, thiên về hòa sắc tương đồng.';
+  else if (distances.every(distance => distance <= 35 || distance >= 145)) harmony = 'Hai nhóm sắc đối nhau, thiên về hòa sắc bổ túc.';
+  else if (distances.every(distance => distance <= 30 || Math.abs(distance - 120) <= 25)) harmony = 'Các nhóm sắc gần cấu trúc bộ ba.';
+  const luminances = colors.map(({ hex }) => luminance(hex));
+  const contrast = (Math.max(...luminances) + .05) / (Math.min(...luminances) + .05);
+  return { colors, harmony, contrast };
+}

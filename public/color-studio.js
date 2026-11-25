@@ -1,4 +1,6 @@
-import { allocate, analyzePalette, defaultWeights, generatePalette, generateVariation, contrastRatio, extractColors } from './color-model.js';
+import { allocate, analyzePalette, defaultWeights, generatePalette, generateVariation, contrastRatio, extractPalette } from './color-model.js';
+
+import { readPhotoPalettes, savePhotoPalette } from './palette-library.js';
 
 const storageKey = 'kim-flora-color-formulas-v1';
 const normalizeHex = value => '#' + value.trim().replace(/^#/, '').toUpperCase();
@@ -17,7 +19,22 @@ export function setupColorStudio() {
   const swatches = get('studio-swatches');
   let palette = generatePalette('#9A5064', 3, 'analogous');
 
+  let sourcePhoto = null;
+  let photoUrl;
+  let photoFormulaId = null;
+  let saving = false;
   const history = [];
+
+  function showPhoto() {
+    const image = get('palette-photo');
+    if (photoUrl) URL.revokeObjectURL(photoUrl);
+    photoUrl = sourcePhoto ? URL.createObjectURL(sourcePhoto) : null;
+    if (photoUrl) image.src = photoUrl;
+    else image.removeAttribute('src');
+    get('palette-source').hidden = !photoUrl;
+    get('palette-photo-name').textContent = sourcePhoto?.name ?? '';
+  }
+
   const future = [];
   const count = get('studio-count');
   const paletteStatus = get('palette-status');
@@ -39,6 +56,10 @@ export function setupColorStudio() {
       return;
     }
     remember();
+    sourcePhoto = null;
+    photoFormulaId = null;
+    name.value = '';
+    showPhoto();
     palette = colors.map((hex, index) => ({ hex, weight: defaultWeights(colors.length)[index] }));
     count.value = String(colors.length);
     render();
@@ -54,26 +75,47 @@ export function setupColorStudio() {
   get('palette-image').onchange = async event => {
     const input = event.currentTarget;
     const file = input.files[0];
-    if (!file) return;
+    if (!file || saving) {
+      input.value = '';
+      return;
+    }
+    input.disabled = true;
+    saving = true;
+    paletteStatus.textContent = 'Đang phân tích ảnh…';
+    const colorCount = Number(count.value);
     try {
       const image = await createImageBitmap(file);
       const canvas = document.createElement('canvas');
-      const scale = Math.min(1, 160 / Math.max(image.width, image.height));
+      const scale = Math.min(1, 240 / Math.max(image.width, image.height));
       canvas.width = Math.max(1, Math.round(image.width * scale));
       canvas.height = Math.max(1, Math.round(image.height * scale));
       const context = canvas.getContext('2d');
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      image.close();
+      try { context.drawImage(image, 0, 0, canvas.width, canvas.height); }
+      finally { image.close(); }
       const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-      const colors = extractColors(pixels, Number(count.value));
-      if (colors.length < 2) {
-        paletteStatus.textContent = 'Ảnh cần có ít nhất hai nhóm màu rõ để tạo bảng phối.';
+      const samples = extractPalette(pixels, colorCount);
+      if (!samples.length) {
+        paletteStatus.textContent = 'Ảnh không có vùng màu đủ rõ để phân tích.';
         return;
       }
-      replaceColors(colors);
+      const percentages = allocate(samples.map(item => item.weight), 100);
+      remember();
+      palette = samples.map((item, index) => ({ hex: item.hex, weight: percentages[index] }));
+      sourcePhoto = file;
+      photoFormulaId = crypto.randomUUID();
+      name.value = file.name.replace(/\.[^.]+$/, '').slice(0, 120).trim() || 'Bảng màu từ ảnh';
+      count.value = String(palette.length);
+      hex.value = base.value = palette[0].hex;
+      showPhoto();
+      render();
+      paletteStatus.textContent = await saveCurrentPhoto()
+        ? 'Đã phân tích và lưu ảnh gốc cùng bảng màu trên thiết bị này.'
+        : 'Đã phân tích ảnh. Chưa lưu được ảnh và bảng màu. Hãy thử nút Lưu công thức.';
     } catch {
       paletteStatus.textContent = 'Chưa đọc được ảnh. Hãy thử tệp JPG, PNG hoặc WebP.';
     } finally {
+      saving = false;
+      input.disabled = false;
       input.value = '';
     }
   };
@@ -116,7 +158,7 @@ export function setupColorStudio() {
   };
 
   function snapshot() {
-    return palette.map(item => ({ ...item }));
+    return { palette: palette.map(item => ({ ...item })), sourcePhoto, photoFormulaId, title: name.value };
   }
 
   function updateHistory() {
@@ -134,7 +176,11 @@ export function setupColorStudio() {
   function restore(from, to) {
     if (!from.length) return;
     to.push(snapshot());
-    palette = from.pop();
+    const previous = from.pop();
+    ({ palette, sourcePhoto, photoFormulaId } = previous);
+    name.value = previous.title;
+    showPhoto();
+    hex.value = base.value = palette[0].hex;
     count.value = String(palette.length);
     paletteStatus.textContent = '';
     render();
@@ -170,15 +216,15 @@ export function setupColorStudio() {
     for (const [select, fallback] of [[foreground, 0], [background, 1]]) {
       const previous = select.value;
       select.replaceChildren(...palette.map((item, index) => new Option(item.hex, String(index))));
-      select.value = previous !== '' && Number(previous) < palette.length ? previous : String(fallback);
+      select.value = previous !== '' && Number(previous) < palette.length ? previous : String(Math.min(fallback, palette.length - 1));
     }
     updateContrast();
     const weights = palette.map(item => item.weight);
     const percentages = allocate(weights, 100);
-    const roles = palette.length === 2 ? [percentages[0], percentages[1]] :
+    const roles = palette.length < 3 ? percentages :
       [percentages[0], percentages[1], percentages.slice(2).reduce((sum, value) => sum + value, 0)];
     const ratio = roles.map(value => value + '%').join(' · ');
-    get('studio-ratio').textContent = 'Tỷ lệ chính · phụ' +
+    get('studio-ratio').textContent = (roles.length === 1 ? 'Tỷ lệ màu chính' : 'Tỷ lệ chính · phụ') +
       (roles.length === 3 ? ' · nhấn' : '') + ' ' + ratio;
     const { colors, contrast, harmony } = analyzePalette(palette);
     const rows = colors.map((color, index) => {
@@ -291,6 +337,7 @@ export function setupColorStudio() {
       tile.append(role, color, code, controls, label);
       return tile;
     }));
+    get('reset-ratio').hidden = palette.length === 1;
     get('reset-ratio').textContent = palette.length === 2 ? 'Áp dụng 60–40' : 'Áp dụng 60–30–10';
     updateAnalysis();
     updateHistory();
@@ -343,14 +390,43 @@ export function setupColorStudio() {
   }
 
   list.onchange = () => { get('open-formula').disabled = !list.value; };
-  try { updateList(readFormulas()); }
-  catch { status.textContent = 'Chưa đọc được công thức trên trình duyệt này.'; }
+  async function allFormulas() {
+    const [local, photos] = await Promise.allSettled([
+      Promise.resolve().then(readFormulas),
+      readPhotoPalettes()
+    ]);
+    if (local.status === 'rejected' && photos.status === 'rejected') throw new Error();
+    return [...(photos.value ?? []).sort((a, b) => b.updatedAt - a.updatedAt), ...(local.value ?? [])];
+  }
 
-  get('save-formula').onsubmit = event => {
+  async function saveCurrentPhoto() {
+    const entry = {
+      id: photoFormulaId, name: name.value.trim(), palette: snapshot().palette,
+      photo: sourcePhoto, updatedAt: Date.now()
+    };
+    try { await savePhotoPalette(entry); }
+    catch { return false; }
+    updateList(await allFormulas(), entry.id);
+    return true;
+  }
+
+  allFormulas().then(entries => { if (!list.value) updateList(entries); })
+    .catch(() => { status.textContent = 'Chưa đọc được công thức trên trình duyệt này.'; });
+
+  get('save-formula').onsubmit = async event => {
     event.preventDefault();
+    if (saving) return;
     const formulaName = name.value.trim();
     if (!formulaName) {
       status.textContent = 'Hãy nhập tên công thức.';
+      return;
+    }
+    if (sourcePhoto) {
+      saving = true;
+      try {
+        status.textContent = await saveCurrentPhoto()
+          ? 'Đã lưu ảnh và bảng màu trên thiết bị này.' : 'Chưa lưu được ảnh và bảng màu.';
+      } finally { saving = false; }
       return;
     }
     try {
@@ -358,23 +434,28 @@ export function setupColorStudio() {
       const entry = { id: crypto.randomUUID(), name: formulaName, palette };
       formulas.unshift(entry);
       localStorage.setItem(storageKey, JSON.stringify(formulas));
-      updateList(formulas, entry.id);
+      updateList(await allFormulas(), entry.id);
       status.textContent = 'Đã lưu công thức trên trình duyệt này.';
     } catch {
       status.textContent = 'Chưa lưu được. Chị có thể xuất hồ sơ màu để giữ công thức.';
     }
   };
 
-  get('open-formula').onclick = () => {
+  get('open-formula').onclick = async () => {
+    if (saving) return;
+    const id = list.value;
     try {
-      const entry = readFormulas().find(item => item.id === list.value);
+      const entry = (await allFormulas()).find(item => item.id === id);
       if (!entry) throw new Error();
-      if (!Array.isArray(entry.palette) || entry.palette.length < 2 || entry.palette.length > 6 ||
+      if (!Array.isArray(entry.palette) || entry.palette.length < 1 || entry.palette.length > 6 ||
           !entry.palette.every(item => item && /^#[\da-f]{6}$/i.test(item.hex) && Number.isFinite(item.weight))) {
         throw new Error();
       }
       remember();
       palette = entry.palette;
+      sourcePhoto = entry.photo ?? null;
+      photoFormulaId = sourcePhoto ? entry.id : null;
+      showPhoto();
       name.value = entry.name;
       hex.value = base.value = palette[0].hex;
       get('studio-count').value = String(palette.length);

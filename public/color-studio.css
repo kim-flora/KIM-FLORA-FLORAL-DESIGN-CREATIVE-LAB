@@ -58,3 +58,23 @@
 @media (max-width: 800px) {
   .studio-formulas { grid-column: 1; }
 }
+.studio .studio-palette { padding: clamp(.85rem, 2vw, 1.7rem); }
+.studio .studio-swatches { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); }
+.studio .studio-swatches > div { display: flex; flex-direction: column; padding: .55rem; overflow: hidden; }
+.studio .studio-swatches input[type=color] {
+  height: clamp(7.5rem, 18vw, 14rem);
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.studio-swatches input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.studio-swatches input[type=color]::-webkit-color-swatch { border: 0; border-radius: .3rem; }
+.studio-swatches input[type=color]::-moz-color-swatch { border: 0; border-radius: .3rem; }
+.swatch-actions { flex-grow: 1; }
+.swatch-actions button { flex: 0 0 auto; }
+#contrast-result { font-variant-numeric: tabular-nums; }
+#palette-image { width: min(100%, 19rem); }
+@media (max-width: 480px) {
+  .studio .studio-swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .studio .studio-swatches input[type=color] { height: 6rem; }
+}

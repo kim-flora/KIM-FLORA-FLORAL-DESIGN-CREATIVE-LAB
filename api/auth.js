@@ -55,6 +55,13 @@ async function database(path, method = 'GET', body) {
   return result.json();
 }
 
+export async function hasStudioSession(req) {
+  const version=sessionVersion(req);
+  if(!version)return false;
+  const [row]=await database(table+'?select=version&id=eq.1');
+  return row?.version===version;
+}
+
 function validInput(password) {
   return typeof password === 'string' && password.length > 0 && password.length <= 128;
 }

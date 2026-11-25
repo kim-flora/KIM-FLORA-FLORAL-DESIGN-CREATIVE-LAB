@@ -99,6 +99,7 @@ const penPage=freehandStudio(script[1],html);
 script[1]=penPage.script;
 html=penPage.html;
 script[1]=preserveStudioState(script[1].replace(/\r\n/g,'\n'));
+script[1]=script[1].replace("if (target === 'designmood') renderDesignMoodboard();","if (target === 'designmood') openDesignResearch();").replace('function renderDesignMoodboard()',()=>"async function openDesignResearch(){\n    const host=document.getElementById('tab-designmood');\n    if(host.dataset.research)return;\n    host.dataset.research='loading';\n    try{\n      const {mount}=await import('/moodboard-research.js');\n      const legacy=document.createElement('div');\n      while(host.firstChild)legacy.append(host.firstChild);\n      mount(host,legacy,state.designMoodboard?.images,{\n        legacy:renderDesignMoodboard,\n        palette(colors){\n          state.palette=colors.map((c,i)=>({id:crypto.randomUUID(),hex:c.hex,ratio:c.percent,imgArea:c.percent,locked:false,name:'Màu ảnh '+(i+1)}));\n          normalizeRatios();renderColorStudio();persist();document.querySelector('[data-tab=\"color\"]').click();\n        },\n        recipe(plan){state.recipe.name=plan.name;state.recipe.steps=[plan.idea,plan.form,plan.materials,plan.make].join('\\n');persist();renderRecipe();document.querySelector('[data-tab=\"recipe\"]').click();}\n      });\n      host.dataset.research='ready';\n    }catch{delete host.dataset.research;showToast('Chưa mở được phòng nghiên cứu. Hãy mở lại tab.','error');}\n  }\n"+'function renderDesignMoodboard()');
 const start=script[1].indexOf('// ==================== AUTH & PASSWORD MANAGEMENT');
 const end=script[1].indexOf('// ==================== STORAGE & UTILITIES');
 if(start<0||end<start)throw Error('Unexpected Studio authentication layout');
@@ -109,6 +110,8 @@ html=html.replace(script[0],'<script src="/studio-main.js"></script>')
   .replace('<p class="text-xs text-[#5F6B64]">Tách màu hoa chính xác từ ảnh thật, tùy chỉnh 2–10 màu, chia tỷ lệ 60–30–10 và mô phỏng thực tế trên sản phẩm hoa.</p>', '')
   .replace('</nav>','<a class="whitespace-nowrap px-3 py-2 text-xs font-semibold" href="/workspace.html">Công cụ &amp; hồ sơ đã lưu</a></nav>');
 html=html.replace('Bước 4 – Kết quả Phân tích','Bước 4 – Nhận xét của bạn').replace('Bước 4: Đọc kết quả','Bước 4: Ghi nhận xét').replace('Ẩn/Hiện Nhận xét Tự động','Ẩn/Hiện nhận xét').replace('Nhận định nghiên cứu của bạn (So sánh với máy):','Nhận định nghiên cứu của bạn:');
+html=html.replace('</head>','<link rel="stylesheet" href="/moodboard-research.css"></head>');
+save('moodboard-mask.js','export '+read('flower-leaf-samples.js'));
 save('index.html',html);
 copyFileSync('node_modules/lucide/dist/umd/lucide.min.js','public/studio-icons.js');
 writeFileSync('studio-tailwind-input.css','@tailwind base;@tailwind components;@tailwind utilities;');

@@ -29,7 +29,9 @@ const offsets = {
   analogous: [0, 22, -22, 42, -42, 12],
   complementary: [0, 180, 15, 195, -12, 165],
   monochrome: [0, 0, 0, 0, 0, 0],
-  triadic: [0, 120, 240, 0, 120, 240]
+  triadic: [0, 120, 240, 0, 120, 240],
+  split: [0, 150, 210, 14, 164, 226],
+  tetradic: [0, 90, 180, 270, 12, 102]
 };
 
 export function defaultWeights(count) {
@@ -110,4 +112,27 @@ export function generateVariation(base, count, scheme, current, random = Math.ra
     const chroma = Math.max(0, Math.min(.95, saturation * (.75 + random() * .45)));
     return { hex: hslToHex(hue, chroma, shade), weight };
   });
+}
+
+export function contrastRatio(foreground, background) {
+  const values = [luminance(foreground), luminance(background)];
+  return (Math.max(...values) + .05) / (Math.min(...values) + .05);
+}
+
+export function extractColors(pixels, count) {
+  const groups = new Map();
+  for (let i = 0; i < pixels.length; i += 4) {
+    if (pixels[i + 3] < 128) continue;
+    const [r, g, b] = pixels.subarray(i, i + 3);
+    const key = ((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5);
+    const cluster = groups.get(key) ?? { channels: [0, 0, 0], count: 0 };
+    cluster.channels[0] += r;
+    cluster.channels[1] += g;
+    cluster.channels[2] += b;
+    cluster.count++;
+    groups.set(key, cluster);
+  }
+  return [...groups.values()].sort((a, b) => b.count - a.count).slice(0, count)
+    .map(({ channels, count }) => '#' + channels.map(value =>
+      Math.round(value / count).toString(16).padStart(2, '0')).join('').toUpperCase());
 }

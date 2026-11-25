@@ -35,6 +35,7 @@ const offsets = {
 };
 
 export function defaultWeights(count) {
+  if (count === 1) return [100];
   if (count === 2) return [60, 40];
   if (count === 3) return [60, 30, 10];
   if (count === 4) return [60, 30, 6, 4];
@@ -119,7 +120,7 @@ export function contrastRatio(foreground, background) {
   return (Math.max(...values) + .05) / (Math.min(...values) + .05);
 }
 
-export function extractColors(pixels, count) {
+export function extractPalette(pixels, count) {
   const groups = new Map();
   for (let i = 0; i < pixels.length; i += 4) {
     if (pixels[i + 3] < 128) continue;
@@ -133,6 +134,9 @@ export function extractColors(pixels, count) {
     groups.set(key, cluster);
   }
   return [...groups.values()].sort((a, b) => b.count - a.count).slice(0, count)
-    .map(({ channels, count }) => '#' + channels.map(value =>
-      Math.round(value / count).toString(16).padStart(2, '0')).join('').toUpperCase());
+    .map(({ channels, count }) => ({
+      hex: '#' + channels.map(value =>
+        Math.round(value / count).toString(16).padStart(2, '0')).join('').toUpperCase(),
+      weight: count
+    }));
 }

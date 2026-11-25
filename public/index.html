@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#28362b">
+  <title>Kim Flora | Floral Design &amp; Creative Lab</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <main class="layout">
+    <header class="brand">
+      <div class="mark" role="img" aria-label="Logo chữ KF"><span>K</span><span>F</span></div>
+      <h1>KIM FLORA</h1>
+      <p>FLORAL DESIGN &amp; CREATIVE LAB</p>
+    </header>
+    <section class="access" aria-labelledby="screen-title">
+      <div class="panel">
+        <h2 id="screen-title" tabindex="-1">Đăng nhập</h2>
+        <p id="intro">Nhập mật khẩu riêng của Kim Flora để vào Creative Lab.</p>
+        <form id="login" method="post" action="/api/auth">
+          <label for="login-password">Mật khẩu</label>
+          <div class="field">
+            <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+            <button class="visibility" type="button" aria-controls="login-password" aria-label="Hiện mật khẩu">Hiện</button>
+          </div>
+          <button class="primary" type="submit">Đăng nhập</button>
+        </form>
+        <div id="account" hidden>
+          <button class="primary" id="open-change" type="button">Đổi mật khẩu</button>
+          <button class="secondary logout" type="button">Đăng xuất</button>
+        </div>
+        <form id="change" method="post" action="/api/auth" hidden>
+          <label for="current-password">Mật khẩu hiện tại</label>
+          <div class="field">
+            <input id="current-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+            <button class="visibility" type="button" aria-controls="current-password" aria-label="Hiện mật khẩu hiện tại">Hiện</button>
+          </div>
+          <label for="new-password">Mật khẩu mới</label>
+          <div class="field">
+            <input id="new-password" name="nextPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="password-hint" required>
+            <button class="visibility" type="button" aria-controls="new-password" aria-label="Hiện mật khẩu mới">Hiện</button>
+          </div>
+          <p class="hint" id="password-hint">Tối thiểu 12 ký tự.</p>
+          <label for="confirm-password">Xác nhận mật khẩu mới</label>
+          <div class="field">
+            <input id="confirm-password" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+            <button class="visibility" type="button" aria-controls="confirm-password" aria-label="Hiện mật khẩu xác nhận">Hiện</button>
+          </div>
+          <button class="primary" type="submit">Lưu mật khẩu mới</button>
+          <button class="secondary" id="cancel" type="button">Quay lại</button>
+          <button class="secondary logout" id="rotate-logout" type="button" hidden>Đăng xuất</button>
+        </form>
+        <p id="message" role="status" aria-live="polite" aria-atomic="true"></p>
+        <noscript>Vui lòng bật JavaScript để đăng nhập.</noscript>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#28362b">
+  <title>Kim Flora | Floral Design &amp; Creative Lab</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/color-studio.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <main class="layout" id="access-layout">
+    <header class="brand">
+      <div class="mark" role="img" aria-label="Logo chữ KF"><span>K</span><span>F</span></div>
+      <h1>KIM FLORA</h1>
+      <p>FLORAL DESIGN &amp; CREATIVE LAB</p>
+    </header>
+    <section class="access" aria-labelledby="screen-title">
+      <div class="panel">
+        <h2 id="screen-title" tabindex="-1">Đăng nhập</h2>
+        <p id="intro">Nhập mật khẩu riêng của Kim Flora để vào Creative Lab.</p>
+        <form id="login" method="post" action="/api/auth">
+          <label for="login-password">Mật khẩu</label>
+          <div class="field">
+            <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+            <button class="visibility" type="button" aria-controls="login-password" aria-label="Hiện mật khẩu">Hiện</button>
+          </div>
+          <button class="primary" type="submit">Đăng nhập</button>
+        </form>
+        <p id="message" role="status" aria-live="polite" aria-atomic="true"></p>
+        <noscript>Vui lòng bật JavaScript để đăng nhập.</noscript>
+      </div>
+    </section>
+  </main>
+  <main id="account" class="workspace" hidden>
+    <header class="workspace-header">
+      <div class="wordmark">KIM FLORA <span>Creative Lab</span></div>
+      <a href="/">Trang chính Creative Lab</a>
+      <nav class="lab-nav" aria-label="Creative Lab">
+        <button class="secondary" id="show-projects" type="button" aria-current="page">Dự án hoa</button>
+        <button class="secondary" id="show-color-studio" type="button">Floral Color Studio</button>
+        <button class="secondary" id="show-composition" type="button">Phân tích bố cục hoa</button>
+        <button class="secondary" id="open-settings" type="button">Cài đặt cá nhân</button>
+      </nav>
+    </header>
+    <div class="workspace-body" id="project-view">
+      <aside class="project-sidebar" aria-labelledby="project-list-title">
+        <h2 id="project-list-title">Dự án hoa</h2>
+        <button id="new-project" type="button" class="primary">Thêm dự án</button>
+        <ul id="project-list"></ul>
+        <p id="project-empty">Chưa có dự án trên thiết bị này.</p>
+      </aside>
+      <section class="project-content" aria-labelledby="workspace-title">
+        <h1 id="workspace-title" tabindex="-1">Xưởng thiết kế hoa</h1>
+        <p id="workspace-intro">Tạo dự án để lưu ý tưởng, nguyên liệu và bảng màu cho từng mẫu hoa.</p>
+        <form id="project-form" hidden>
+          <div class="project-fields">
+            <label>Tên dự án<input name="title" required maxlength="160"></label>
+            <label>Dịp hoặc khách hàng<input name="occasion" maxlength="160"></label>
+            <label>Ý tưởng thiết kế<textarea name="notes" rows="5"></textarea></label>
+            <label>Hoa và vật liệu<textarea name="materials" rows="5"></textarea></label>
+          </div>
+          <fieldset class="palette">
+            <legend>Bảng màu</legend>
+            <div id="project-colors"></div>
+            <button id="add-color" class="secondary" type="button">Thêm màu</button>
+          </fieldset>
+          <div class="project-actions">
+            <button type="submit" class="primary">Lưu dự án</button>
+            <button id="delete-project" type="button" class="secondary" hidden>Xóa dự án</button>
+          </div>
+        </form>
+        <p id="project-status" role="status"></p>
+      </section>
+    </div>
+    <section id="composition" class="studio" aria-labelledby="composition-title" hidden>
+      <header class="studio-heading"><h1 id="composition-title" tabindex="-1">Phòng nghiên cứu bố cục hoa</h1></header>
+      <nav class="comp-steps" aria-label="Quy trình phân tích">
+        <button type="button" data-comp-step="1" aria-current="step">1. Chọn ảnh</button>
+        <button type="button" data-comp-step="2" disabled>2. Chọn tiêu chí</button>
+        <button type="button" data-comp-step="3" disabled>3. Quan sát trên ảnh</button>
+        <button type="button" data-comp-step="4" disabled>4. Đọc kết quả</button>
+        <button type="button" data-comp-step="5" disabled>5. Đánh dấu &amp; đối chiếu</button>
+      </nav>
+      <p id="comp-status" role="status"></p>
+      <div class="comp-workspace">
+        <section class="studio-panel comp-photo" id="comp-photo" hidden>
+          <div class="comp-frame"><canvas id="comp-canvas" aria-label="Ảnh thiết kế và các lớp phân tích" hidden></canvas></div>
+          <div class="studio-controls" id="comp-layers" hidden>
+            <label><input type="checkbox" value="outline"> Hình bao</label>
+            <label><input type="checkbox" value="center"> Trọng tâm &amp; điểm hút mắt</label>
+            <label><input type="checkbox" value="axis"> Trục hình khối</label>
+            <label><input type="checkbox" value="rhythm"> Cụm chi tiết</label>
+            <label><input type="checkbox" value="grid"> Lưới ⅓</label>
+            <label><input type="checkbox" value="notes" checked> Dấu của bạn</label>
+          </div>
+        </section>
+        <div class="comp-sidebar">
+          <section class="studio-panel" data-comp-panel="1">
+            <h2>Chọn ảnh thiết kế</h2>
+            <label class="photo-drop" id="comp-drop">Chọn hoặc kéo thả ảnh bó hoa, bình hoa, tráp hoa hay decor<input id="comp-file" type="file" accept="image/*"></label>
+            <details id="comp-samples"><summary>Thử bố cục mẫu</summary>
+              <button class="secondary" type="button" data-sample="0">Bất đối xứng lệch trái</button>
+              <button class="secondary" type="button" data-sample="1">Vòm tròn cổ điển</button>
+              <button class="secondary" type="button" data-sample="2">Thác đổ</button>
+            </details>
+          </section>
+          <section class="studio-panel" data-comp-panel="2" hidden>
+            <h2>Bạn muốn xem điều gì?</h2>
+            <button type="button" class="secondary" id="comp-all" aria-pressed="true">Phân tích tổng thể</button>
+            <fieldset id="comp-criteria"><legend>Tiêu chí</legend>
+              <label><input type="checkbox" value="0" checked> Hình dáng và hình bao</label>
+              <label><input type="checkbox" value="4" checked> Tỷ lệ và cân bằng</label>
+              <label><input type="checkbox" value="1" checked> Điểm nhấn và thứ bậc</label>
+              <label><input type="checkbox" value="3" checked> Nhịp điệu</label>
+              <label><input type="checkbox" value="2" checked> Trục và dòng chảy thị giác</label>
+            </fieldset>
+            <button type="button" class="primary" data-comp-next="3">Xem phân tích trên ảnh</button>
+          </section>
+          <section class="studio-panel" data-comp-panel="3" hidden>
+            <h2>Quan sát trên ảnh</h2>
+            <p>Đường xanh ôm biên ước lượng. Vòng vàng chỉ trọng tâm theo tương phản. Dấu chữ thập chỉ vùng có thể hút mắt.</p>
+            <p>Trục nét đứt cho thấy hướng kéo dài của khối. Các vòng xanh nhỏ chỉ cụm nhiều chi tiết để bạn kiểm tra nhịp lặp.</p>
+            <button type="button" class="primary" data-comp-next="4">Đọc kết quả</button>
+          </section>
+          <section class="studio-panel" id="comp-result" data-comp-panel="4" hidden>
+            <h2>Nhận xét bố cục</h2>
+            <div id="comp-findings"></div>
+            <button type="button" class="primary" data-comp-next="5">Đánh dấu và đối chiếu</button>
+          </section>
+          <section class="studio-panel" data-comp-panel="5" hidden>
+            <h2>Đánh dấu nhận định của bạn</h2>
+            <div class="studio-controls">
+              <label>Kiểu đánh dấu<select id="comp-tool">
+                <option value="">Chỉ xem ảnh</option><option value="pen">Vẽ đường tự do</option>
+                <option value="box">Khoanh vùng</option><option value="pin">Ghim ghi chú</option>
+              </select></label>
+              <label id="comp-pin-field" hidden>Nội dung ghim<input id="comp-pin" maxlength="140"></label>
+              <button type="button" class="secondary" id="comp-undo" disabled>Hoàn tác dấu cuối</button>
+            </div>
+            <ol id="comp-marks"></ol>
+            <details><summary>Đối chiếu kết quả tự động</summary><div id="comp-compare"></div></details>
+            <label>Tên báo cáo<input id="comp-title" maxlength="160"></label>
+            <label>Ghi chú chỉnh sửa<textarea id="comp-note" rows="3"></textarea></label>
+            <div class="studio-controls">
+              <button type="button" class="primary" id="comp-save">Lưu báo cáo</button>
+              <button type="button" class="secondary" id="comp-export">Xuất HTML</button>
+            </div>
+          </section>
+        </div>
+      </div>
+      <details class="studio-panel comp-history"><summary>Hồ sơ trên thiết bị</summary><div id="comp-history"></div></details>
+    </section>
+    <section id="color-studio" class="studio" aria-labelledby="studio-title" hidden>
+      <header class="studio-heading">
+        <h1 id="studio-title" tabindex="-1">Floral Color Studio</h1>
+        <p>Phối màu hoa theo vai trò chủ đạo, hỗ trợ và điểm nhấn.</p>
+      </header>
+      <div class="studio-grid">
+        <section class="studio-panel studio-source" aria-labelledby="source-title">
+          <h2 id="source-title">Trích màu từ ảnh hoa</h2>
+          <label class="photo-drop" id="palette-drop">Chọn hoặc kéo thả ảnh hoa
+            <input id="palette-image" type="file" accept="image/*">
+          </label>
+          <p id="palette-status" role="status"></p>
+          <figure id="palette-source" class="palette-source" hidden>
+            <div class="photo-frame">
+              <img id="palette-photo" alt="Ảnh nguồn của bảng màu">
+              <div id="palette-markers" aria-hidden="true"></div>
+            </div>
+            <figcaption id="palette-photo-name"></figcaption>
+            <div class="studio-controls">
+              <label>Chấm vào ô màu<select id="palette-pick-slot"></select></label>
+              <button id="palette-pipette" class="secondary" type="button" aria-pressed="false">Chấm màu trên ảnh</button>
+            </div>
+            <output id="palette-sample"></output>
+          </figure>
+        </section>
+        <section class="studio-panel studio-palette" aria-labelledby="palette-title">
+          <h2 id="palette-title">Bảng phối</h2>
+          <form id="generate-palette" class="studio-controls">
+            <label>Màu gốc<input id="studio-base" type="color" value="#9a5064"></label>
+            <label>Mã HEX<input id="studio-hex" value="#9A5064" pattern="#?[0-9A-Fa-f]{6}" required></label>
+            <label>Số màu<select id="studio-count"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
+            <label>Kiểu phối<select id="studio-scheme"><option value="analogous">Tương đồng</option><option value="complementary">Bổ túc</option><option value="monochrome">Đơn sắc</option><option value="triadic">Bộ ba</option><option value="split">Bổ túc xen kẽ</option><option value="tetradic">Bộ bốn</option></select></label>
+            <button class="primary" type="submit">Tạo biến thể</button>
+          </form>
+          <div class="palette-toolbar">
+            <span>Dấu cách để thử biến thể</span>
+            <button id="undo-palette" class="secondary" type="button" disabled>Hoàn tác</button>
+            <button id="redo-palette" class="secondary" type="button" disabled>Làm lại</button>
+            <button id="copy-palette" class="secondary" type="button">Sao chép HEX</button>
+            <button id="palette-png" class="secondary" type="button">Xuất PNG</button>
+          </div>
+          <div id="studio-swatches" class="studio-swatches"></div>
+          <div class="ratio-panel">
+            <div class="studio-controls">
+              <label>Bảng màu tham khảo<select id="palette-preset">
+                <option value="">Chọn bảng màu</option>
+                <option value="#713948,#B77587,#EAC8C1,#727650">Hồng cổ điển</option>
+                <option value="#49583E,#849272,#DDDAC3,#A16B50">Olive và đất nung</option>
+                <option value="#342B48,#747498,#BBC1D4,#DDD1C8">Tím chạng vạng</option>
+              </select></label>
+            </div>
+            <div class="ratio-heading">
+              <h3>Phân bổ màu</h3>
+              <button id="reset-ratio" class="secondary" type="button">Áp dụng 60–30–10</button>
+            </div>
+            <div id="studio-ratio-bar" class="ratio-bar" aria-hidden="true"></div>
+            <p id="studio-ratio"></p>
+          </div>
+        </section>
+        <section class="studio-panel studio-analysis" aria-labelledby="analysis-title">
+          <h2 id="analysis-title">Phân tích bảng màu</h2>
+          <div class="studio-table"><table><thead><tr><th scope="col">Màu</th><th scope="col">RGB · CMYK ước tính</th><th scope="col">Thiên ấm/lạnh</th><th scope="col">Độ sáng HSL</th><th scope="col">Độ bão hòa HSL</th></tr></thead><tbody id="studio-analysis"></tbody></table></div>
+          <p id="studio-contrast"></p>
+          <div class="studio-controls">
+            <label>Màu chữ<select id="contrast-foreground"></select></label>
+            <label>Màu nền<select id="contrast-background"></select></label>
+          </div>
+          <p id="contrast-result" role="status"></p>
+          <p id="studio-harmony"></p>
+          <p id="studio-delta"></p>
+        </section>
+        <section class="studio-panel studio-mockup">
+          <h2>Mô phỏng phối hoa</h2>
+          <div class="studio-controls">
+            <label>Kiểu sản phẩm<select id="floral-product">
+              <option value="bouquet">Bó hoa</option><option value="vase">Bình hoa</option>
+              <option value="arch">Cổng hoa</option><option value="hatbox">Hộp hoa</option>
+            </select></label>
+            <button id="floral-swap" class="secondary" type="button">Đảo màu chính và màu nhấn</button>
+          </div>
+          <canvas id="floral-mockup" width="460" height="340" role="img" aria-label="Sơ đồ phối màu sản phẩm hoa"></canvas>
+        </section>
+        <section class="studio-panel studio-formulas" aria-labelledby="formula-title">
+          <h2 id="formula-title">Công thức phối màu</h2>
+          <form id="save-formula" class="studio-controls">
+            <label>Tên công thức<input id="formula-name" maxlength="120" required></label>
+            <label>Chủ đề / dịp sử dụng<input id="formula-occasion" maxlength="160"></label>
+            <label>Ghi chú nguyên liệu<textarea id="formula-notes" rows="3" maxlength="3000"></textarea></label>
+            <button class="primary" type="submit">Lưu công thức</button>
+          </form>
+          <div class="studio-controls">
+            <label>Tìm theo tên, chủ đề hoặc HEX<input id="formula-search" type="search"></label>
+            <label>Công thức đã lưu<select id="formula-list"><option value="">Chọn công thức</option></select></label>
+            <button class="secondary" id="open-formula" type="button" disabled>Mở công thức</button>
+            <button class="secondary" id="export-formula" type="button">Xuất CSV</button>
+            <button class="secondary" id="preview-dossier" type="button">Xem hồ sơ màu</button>
+            <button class="secondary" id="export-dossier" type="button">Xuất hồ sơ HTML</button>
+          </div>
+          <p id="studio-status" role="status"></p>
+        </section>
+      </div>
+      <dialog id="dossier-dialog" aria-labelledby="dossier-title">
+        <article id="dossier-preview"></article>
+        <form method="dialog"><button class="secondary">Đóng</button></form>
+      </dialog>
+    </section>
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <h2 id="settings-title" tabindex="-1">Cài đặt cá nhân</h2>
+      <div id="settings" hidden>
+        <button class="primary" id="open-change" type="button">Đổi mật khẩu</button>
+        <button class="secondary logout" type="button">Đăng xuất</button>
+        <button class="secondary" id="close-settings" type="button">Quay lại Creative Lab</button>
+      </div>
+      <form id="change" method="post" action="/api/auth" hidden>
+        <label for="current-password">Mật khẩu hiện tại</label>
+        <div class="field">
+          <input id="current-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+          <button class="visibility" type="button" aria-controls="current-password" aria-label="Hiện mật khẩu hiện tại">Hiện</button>
+        </div>
+        <label for="new-password">Mật khẩu mới</label>
+        <div class="field">
+          <input id="new-password" name="nextPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="password-hint" required>
+          <button class="visibility" type="button" aria-controls="new-password" aria-label="Hiện mật khẩu mới">Hiện</button>
+        </div>
+        <p class="hint" id="password-hint">Tối thiểu 12 ký tự.</p>
+        <label for="confirm-password">Xác nhận mật khẩu mới</label>
+        <div class="field">
+          <input id="confirm-password" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          <button class="visibility" type="button" aria-controls="confirm-password" aria-label="Hiện mật khẩu xác nhận">Hiện</button>
+        </div>
+        <button class="primary" type="submit">Lưu mật khẩu mới</button>
+        <button class="secondary" id="cancel" type="button">Quay lại cài đặt</button>
+      </form>
+      <p id="settings-message" role="status"></p>
+    </dialog>
+  </main>
+</body>
+</html>

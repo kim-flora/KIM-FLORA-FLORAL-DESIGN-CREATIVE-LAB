@@ -47,6 +47,7 @@ function screen(name, focus = true) {
     settingsDialog.close();
   }
   message('');
+  if (insideWorkspace && !configuring && new URLSearchParams(location.search).has('settings')) { history.replaceState(null,'',location.pathname+location.hash); screen('settings'); return; }
   if (insideWorkspace && !configuring) focusWorkspace(focus);
   else if (focus) (configuring ? settingsTitle : title).focus();
 }

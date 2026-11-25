@@ -1,5 +1,9 @@
 {
   "name": "kim-flora-creative-lab",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "tailwindcss": "3.4.17",
+    "lucide": "0.460.0"
+  }
 }

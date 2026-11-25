@@ -44,6 +44,36 @@ script[1]=script[1].slice(0,normalization)+`
       }
       `+script[1].slice(normalization);
 script[1]=script[1].replace('p.ratio = p.imgArea || 5','p.ratio = p.imgArea ?? 0');
+const analysisStart=script[1].indexOf('function analyzeFloralComposition()');
+const cardsEnd=script[1].indexOf("const container = document.getElementById('compDiagnosisCards')",analysisStart);
+if(analysisStart<0||cardsEnd<0)throw Error('Missing Composition Analyzer');
+script[1]=script[1].slice(0,analysisStart)+read('studio-composition-measure.js')+`
+    function analyzeFloralComposition(){
+      if(!compBgImg.complete||!compBgImg.naturalWidth)return;
+      const scale=Math.min(1,180/Math.max(compCanvas.width,compCanvas.height));
+      const off=document.createElement('canvas');
+      off.width=Math.max(1,Math.round(compCanvas.width*scale));
+      off.height=Math.max(1,Math.round(compCanvas.height*scale));
+      const ctx=off.getContext('2d');
+      ctx.drawImage(compBgImg,0,0,off.width,off.height);
+      compAutoResult=measureStudioComposition(ctx.getImageData(0,0,off.width,off.height).data,off.width,off.height);
+      renderCompDiagnosis();
+    }
+    function renderCompDiagnosis(){
+      if(!compAutoResult)return;
+      const selected=getSelectedCriteria();
+      document.getElementById('compFormBadge').textContent=selected.length===8?'Phân tích Tổng thể':selected.length+' tiêu chí';
+      if(!compAutoResult.bodies){
+        document.getElementById('compDiagnosisCards').textContent='Chưa tách được chủ thể đủ rõ. Thử ảnh thấy trọn dáng hoa với nền ít chi tiết.';
+        return;
+      }
+      const keys=['form','layout','ratio','focal','balance','rhythm','flow','space'];
+      const titles=['Hình dáng tổng thể','Bố cục','Tỷ lệ','Trọng tâm','Cân bằng','Nhịp điệu','Dòng chảy','Khoảng trống'];
+      const cards=Object.fromEntries(keys.map((key,i)=>[key,{title:(i+1)+'. '+titles[i],body:compAutoResult.bodies[i]}]));
+      `+script[1].slice(cardsEnd);
+script[1]=script[1].replace("if (selected.includes('flow')) {","if (selected.includes('flow') && r.flow) {");
+const arrow=script[1].indexOf('const ang = Math.atan2(ey - my, ex - mx);');
+if(arrow>=0)script[1]=script[1].slice(0,arrow)+script[1].slice(script[1].indexOf('compCtx.restore();',arrow));
 const start=script[1].indexOf('// ==================== AUTH & PASSWORD MANAGEMENT');
 const end=script[1].indexOf('// ==================== STORAGE & UTILITIES');
 if(start<0||end<start)throw Error('Unexpected Studio authentication layout');

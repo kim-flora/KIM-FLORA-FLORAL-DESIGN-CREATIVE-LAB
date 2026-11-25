@@ -1,6 +1,7 @@
 const login = document.querySelector('#login');
 const change = document.querySelector('#change');
 const account = document.querySelector('#account');
+const settings = document.querySelector('#settings');
 const title = document.querySelector('#screen-title');
 const intro = document.querySelector('#intro');
 const notice = document.querySelector('#message');
@@ -19,7 +20,7 @@ function togglePassword(button, visible) {
   button.setAttribute('aria-label', (visible ? 'Ẩn ' : 'Hiện ') + label);
 }
 
-function screen(name, mustRotate = false, focus = true) {
+function screen(name, focus = true) {
   for (const form of [login, change]) {
     form.reset();
     form.querySelectorAll('.visibility').forEach(button => togglePassword(button, false));
@@ -27,14 +28,12 @@ function screen(name, mustRotate = false, focus = true) {
   login.hidden = name !== 'login';
   change.hidden = name !== 'change';
   account.hidden = name !== 'account';
-  document.querySelector('#cancel').hidden = mustRotate;
-  document.querySelector('#rotate-logout').hidden = !mustRotate;
+  settings.hidden = name !== 'settings';
   const copy = {
     login: ['Đăng nhập', 'Nhập mật khẩu riêng của Kim Flora để vào Creative Lab.'],
     account: ['Tài khoản Kim Flora', 'Bạn đã đăng nhập vào Creative Lab.'],
-    change: ['Đổi mật khẩu', mustRotate
-      ? 'Đặt mật khẩu riêng của bạn để hoàn tất bàn giao.'
-      : 'Nhập mật khẩu hiện tại và xác nhận mật khẩu mới.']
+    settings: ['Cài đặt cá nhân', 'Quản lý mật khẩu tài khoản Kim Flora.'],
+    change: ['Đổi mật khẩu', 'Nhập mật khẩu hiện tại và xác nhận mật khẩu mới.']
   };
   [title.textContent, intro.textContent] = copy[name];
   message('');
@@ -60,8 +59,7 @@ async function request(body) {
 }
 
 function showState(data, focus = true) {
-  const name = data.signedIn ? (data.mustRotate ? 'change' : 'account') : 'login';
-  screen(name, data.signedIn && data.mustRotate, focus);
+  screen(data.signedIn ? 'account' : 'login', focus);
   if (data.message) message(data.message);
 }
 
@@ -99,8 +97,16 @@ document.querySelectorAll('.visibility').forEach(button => {
 document.querySelectorAll('.logout').forEach(button => {
   button.addEventListener('click', () => submit(button, { action: 'logout' }));
 });
-document.querySelector('#open-change').addEventListener('click', () => screen('change'));
-document.querySelector('#cancel').addEventListener('click', () => { if (!busy) screen('account'); });
+for (const [id, destination] of [
+  ['open-settings', 'settings'],
+  ['close-settings', 'account'],
+  ['open-change', 'change'],
+  ['cancel', 'settings']
+]) {
+  document.getElementById(id).addEventListener('click', () => {
+    if (!busy) screen(destination);
+  });
+}
 
 request().then(data => {
   if (!busy && data.signedIn) showState(data, false);

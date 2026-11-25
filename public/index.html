@@ -28,8 +28,12 @@
           <button class="primary" type="submit">Đăng nhập</button>
         </form>
         <div id="account" hidden>
-          <button class="primary" id="open-change" type="button">Đổi mật khẩu</button>
+          <button class="primary" id="open-settings" type="button">Cài đặt cá nhân</button>
           <button class="secondary logout" type="button">Đăng xuất</button>
+        </div>
+        <div id="settings" hidden>
+          <button class="primary" id="open-change" type="button">Đổi mật khẩu</button>
+          <button class="secondary" id="close-settings" type="button">Quay lại tài khoản</button>
         </div>
         <form id="change" method="post" action="/api/auth" hidden>
           <label for="current-password">Mật khẩu hiện tại</label>
@@ -49,8 +53,7 @@
             <button class="visibility" type="button" aria-controls="confirm-password" aria-label="Hiện mật khẩu xác nhận">Hiện</button>
           </div>
           <button class="primary" type="submit">Lưu mật khẩu mới</button>
-          <button class="secondary" id="cancel" type="button">Quay lại</button>
-          <button class="secondary logout" id="rotate-logout" type="button" hidden>Đăng xuất</button>
+          <button class="secondary" id="cancel" type="button">Quay lại cài đặt</button>
         </form>
         <p id="message" role="status" aria-live="polite" aria-atomic="true"></p>
         <noscript>Vui lòng bật JavaScript để đăng nhập.</noscript>

@@ -1,6 +1,6 @@
 # Kim Flora · Floral Design & Creative Lab
 
-Bản hiện tại cung cấp đăng nhập bằng mật khẩu riêng, đổi mật khẩu và đăng xuất. Logo chữ KF được thiết kế cho trang này. Khi đăng nhập lần đầu, màn hình yêu cầu chủ sở hữu đặt mật khẩu mới. Đổi mật khẩu sẽ kết thúc các phiên đã mở trên những thiết bị khác.
+Bản hiện tại cung cấp đăng nhập bằng mật khẩu riêng, đổi mật khẩu và đăng xuất. Logo chữ KF được thiết kế cho trang này. Sau khi đăng nhập, chủ sở hữu có thể đổi mật khẩu tại Cài đặt cá nhân. Đổi mật khẩu sẽ kết thúc các phiên đã mở trên những thiết bị khác.
 
 ## Kiến trúc hiện tại
 
@@ -10,9 +10,9 @@ Trình duyệt tải giao diện từ `public/` và gọi API cùng nguồn tạ
 
 - Kết nối Vercel với nhánh `main` của repo này. Đồng bộ sơ đồ cơ sở dữ liệu bằng `db/001-auth.sql`.
 - Đặt các biến sản xuất `LAB_DB_URL`, `LAB_DB_KEY` (khóa publishable) và `LAB_GATEWAY` (khóa ngẫu nhiên riêng cho máy chủ).
-- Tạo bản ghi duy nhất có `id=1`. Lưu mã SHA-256 dạng hex của `LAB_GATEWAY` vào `gateway_digest`. Lưu mật khẩu khởi tạo dưới dạng `saltHex.hashHex` với salt ngẫu nhiên 24 byte được truyền vào scrypt dưới dạng chuỗi hex, đầu ra 64 byte, N=131072, r=8, p=1. Giữ `must_rotate=true` cho lần bàn giao đầu tiên.
+- Tạo bản ghi duy nhất có `id=1`. Lưu mã SHA-256 dạng hex của `LAB_GATEWAY` vào `gateway_digest`. Lưu mật khẩu khởi tạo dưới dạng `saltHex.hashHex` với salt ngẫu nhiên 24 byte được truyền vào scrypt dưới dạng chuỗi hex, đầu ra 64 byte, N=131072, r=8, p=1. Cờ `must_rotate` trong sơ đồ hiện tại không điều khiển điều hướng giao diện.
 - Khi đổi mật khẩu trong giao diện, cơ sở dữ liệu lưu thông tin mới dùng chung trên máy tính và điện thoại.
-- Chủ tài khoản có thể phục hồi quyền truy cập qua quản trị Supabase nếu quên mật khẩu. Cập nhật bản băm, tăng `version` và đặt `must_rotate=true` để mật khẩu phục hồi chỉ dùng cho lần bàn giao mới.
+- Chủ tài khoản có thể phục hồi quyền truy cập qua quản trị Supabase nếu quên mật khẩu. Cập nhật bản băm, tăng `version` và hướng dẫn chủ sở hữu đổi mật khẩu phục hồi trong Cài đặt cá nhân.
 
 ## Thiết kế nền tảng cho năm mô-đun
 

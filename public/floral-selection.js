@@ -1,11 +1,12 @@
+import {growBrush} from './floral-quick-selection.js';
 import {layerRenderer,moved} from './floral-layer-render.js';
 import {objectTools} from './floral-layer-tools.js';
 // Masks use original-image coordinates so zoom, crops and rotations never resample a cutout.
 export function createSelection(aside, environment) {
   const panel=document.createElement('section');
-  panel.innerHTML=`<h3>Chọn và tách đối tượng</h3><fieldset><label>Công cụ <select class="tool"><option value="">Di chuyển vùng xem</option><option value="move">Kéo đối tượng</option><option value="smart">AI · Khoanh sơ bộ</option><option value="brush">Cọ chọn</option><option value="lasso">Khoanh vùng tự do</option><option value="wand">Chọn vùng màu liền nhau</option></select></label>
+  panel.innerHTML=`<h3>Chọn và tách đối tượng</h3><fieldset><label>Công cụ <select class="tool"><option value="">Di chuyển vùng xem</option><option value="move">Kéo đối tượng</option><option value="quick">Chọn nhanh bằng cọ (W)</option><option value="smart">AI · Khoanh sơ bộ</option><option value="brush">Cọ chọn</option><option value="lasso">Khoanh vùng tự do</option><option value="wand">Chọn vùng màu liền nhau</option></select></label>
   <label><input class="erase" type="checkbox"> Bớt khỏi vùng chọn</label>
-  <label class="size">Cỡ cọ (px) <input type="number" min="1" max="500" value="20"></label>
+  <label class="quick-mode" hidden>Chế độ <select><option value="add">Thêm vào vùng chọn</option><option value="new">Vùng chọn mới</option><option value="subtract">Trừ khỏi vùng chọn</option></select></label><label class="size">Cỡ cọ (px) <input type="number" min="1" max="500" value="20"></label>
   <label class="tolerance" hidden>Độ dung sai màu <input type="range" min="1" max="150" value="40"></label>
   <nav class="smart-actions"><button type="button" class="plus-mask">Thêm vùng</button><button type="button" class="minus-mask">Bớt vùng</button><button type="button" class="refine">Tinh chỉnh biên</button><button type="button" class="undo-mask">Hoàn tác vùng chọn</button><button type="button" class="similar">Chọn tương tự</button></nav><small class="smart-status" role="status"></small><label>Tên lớp <input class="name" placeholder="Ví dụ: Hoa hồng bên trái"></label>
   <nav><button type="button" class="save">Tách thành lớp</button><button type="button" class="clear">Hủy vùng chọn</button></nav><div class="layers"></div></fieldset>`;
@@ -56,7 +57,7 @@ export function createSelection(aside, environment) {
     finally{if(id===request){busy=false;paint();}}
   }
   for(const [selector,erase] of [['.plus-mask',false],['.minus-mask',true]])q(selector).onclick=()=>{
-    invalidate();tool.value='brush';q('.erase').checked=erase;environment().exitCrop();environment().paint();
+    invalidate();if(tool.value==='quick')mode.value=erase?'subtract':'add';else tool.value='brush';q('.erase').checked=erase;environment().exitCrop();environment().paint();
   };
   q('.undo-mask').onclick=()=>{invalidate();mask=undo.pop()||null;notice.textContent='';environment().paint();};
   q('.refine').onclick=async()=>{const id=++request;const {refine}=await import('./floral-smart-mask.js');if(id!==request||!mask)return;checkpoint();refine(environment().img,mask);environment().paint();};
@@ -91,9 +92,26 @@ export function createSelection(aside, environment) {
     visit(seed);for(let k=0;k<tail;k++){const n=queue[k],x=n%w;if(x)visit(n-1);if(x+1<w)visit(n+1);if(n>=w)visit(n-w);if(n<w*(h-1))visit(n+w);}
     sc.putImageData(region,0,0);ctx.save();ctx.globalCompositeOperation=q('.erase').checked?'destination-out':'source-over';ctx.drawImage(source,0,0);ctx.restore();
   }
-  function pointer(kind,p){
+  const mode=q('.quick-mode select');
+  let quickSubtract=false,lastUpdate=0,applied=0;
+  function quickPreview(){
+    const pts=stroke.slice(Math.max(0,applied-1));
+    const patch=growBrush(environment().img,pts,Math.max(1,Math.min(500,+q('.size input').value||20)));
+    applied=stroke.length;lastUpdate=performance.now();if(!patch)return;
+    const c=startMask();c.save();c.globalCompositeOperation=quickSubtract?'destination-out':'source-over';
+    c.drawImage(patch.tile,patch.x,patch.y,patch.w,patch.h);c.restore();outline=null;
+  }
+  function pointer(kind,p,event){
     if(!tool.value)return false;
     if(busy)return true;
+    if(tool.value==='quick'){
+      if(kind==='down'){checkpoint();stroke=[p];applied=0;quickSubtract=!!event?.altKey||mode.value==='subtract';
+        if(!quickSubtract&&mode.value==='new')mask=null;quickPreview();}
+      if(kind==='move'&&stroke){stroke.push(p);if(performance.now()-lastUpdate>=45)quickPreview();}
+      if(kind==='up'&&stroke){if(stroke.at(-1).x!==p.x||stroke.at(-1).y!==p.y)stroke.push(p);if(applied<stroke.length)quickPreview();stroke=null;}
+      if(kind==='cancel'&&stroke){mask=undo.pop()||null;outline=null;stroke=null;}
+      environment().schedule();return true;
+    }
     if(tool.value==='move')return objects.pointer(kind,p);
     const {schedule}=environment();
     if(kind==='down'){if(['brush','lasso','wand'].includes(tool.value))checkpoint();stroke=[p];if(tool.value==='brush')line(p,p);if(tool.value==='wand')wand(p);}
@@ -151,7 +169,7 @@ export function createSelection(aside, environment) {
   }
   function update(){
     const {s,before,img,commit,paint}=environment();q('fieldset').disabled=!img||before;
-    q('.size').hidden=tool.value!=='brush';q('.tolerance').hidden=tool.value!=='wand';
+    q('.quick-mode').hidden=tool.value!=='quick';q('.erase').parentElement.hidden=tool.value==='quick';q('.size').hidden=!['brush','quick'].includes(tool.value);q('.tolerance').hidden=tool.value!=='wand';
     q('.similar').disabled=q('.refine').disabled=!mask||busy;q('.undo-mask').disabled=!undo.length||busy;
     q('.save').disabled=!mask||busy;q('.save').textContent=editing?'Lưu vùng chọn':'Tách thành lớp';
     objects.refresh();
@@ -179,5 +197,6 @@ export function createSelection(aside, environment) {
     if(saved.mask)startMask().putImageData(saved.mask,0,0);
     objects.select(editing||environment().s.layers?.at(-1)?.id);
   }
-  return {parts:cache,snapshot,restore,pointer,overlay,source,update,reset,cancel,active:()=>!!tool.value,pan:()=>{tool.value='';stroke=null;}};
+  function quick(){tool.value='quick';tool.onchange();notice.textContent='Quét bên trong đối tượng. Giữ Alt để bớt vùng.';}
+  return {quick,parts:cache,snapshot,restore,pointer,overlay,source,update,reset,cancel,active:()=>!!tool.value,pan:()=>{tool.value='';stroke=null;}};
 }

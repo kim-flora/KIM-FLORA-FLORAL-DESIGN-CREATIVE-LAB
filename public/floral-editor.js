@@ -60,7 +60,11 @@ export function mountEditor(host) {
   for(const [title,panel] of panels){group.add(new Option(title));controls.append(panel);}
   side.replaceChildren(groupLabel,controls);
   function showGroup(){panels.forEach(([,panel],index)=>{panel.hidden=index!==group.selectedIndex;});controls.scrollTop=0;}
-  group.onchange=showGroup;showGroup();
+  group.onchange=()=>{showGroup();if(group.selectedIndex===1&&!layers.active())layers.quick();};
+  document.addEventListener('keydown',e=>{
+    if(e.key.toLowerCase()!=='w'||e.ctrlKey||e.metaKey||e.altKey||!root.isConnected||!root.getClientRects().length||!img||before||e.target.closest?.('input,select,textarea,[contenteditable=true]'))return;
+    e.preventDefault();group.selectedIndex=1;showGroup();layers.quick();
+  });showGroup();
   const labels={light:'Sáng / tối',contrast:'Tương phản',temp:'Nhiệt độ màu',sat:'Độ bão hòa'};
   const sliders={};
   for(const [key,title] of Object.entries(labels)){
@@ -136,14 +140,23 @@ export function mountEditor(host) {
   };
   function point(e){const r=canvas.getBoundingClientRect();return [(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height].map(n=>Math.max(0,Math.min(1,n)));}
   function originalPoint(e){const [x,y]=point(e);return new DOMPoint(x*state.w,y*state.h).matrixTransform(new DOMMatrix(state.m).inverse());}
+  const brushRing=document.createElement('span');brushRing.className='quick-brush-ring';brushRing.hidden=true;stage.append(brushRing);
+  function brushCursor(e){
+    brushRing.hidden=!img||before||q('.tool').value!=='quick'||(e.target!==canvas&&!drag?.select);
+    if(brushRing.hidden)return;
+    const rect=stage.getBoundingClientRect(),size=(+q('.size input').value||20)*canvas.getBoundingClientRect().width/state.w;
+    Object.assign(brushRing.style,{left:e.clientX-rect.left+'px',top:e.clientY-rect.top+'px',width:size+'px',height:size+'px'});
+  }
+  stage.onpointerleave=()=>{brushRing.hidden=true;};
   stage.onpointerdown=e=>{
     if(!img||drag||e.button!==0)return;
     if((crop||(!before&&layers.active()))&&e.target!==canvas)return;
     stage.setPointerCapture(e.pointerId);drag={id:e.pointerId,start:point(e),x:e.clientX-panX,y:e.clientY-panY};
-    if(!before&&layers.active()){drag.select=true;layers.pointer('down',originalPoint(e));return;}
+    if(!before&&layers.active()){drag.select=true;layers.pointer('down',originalPoint(e),e);return;}
     if(crop){selection=null;mark();update();}
   };
   stage.onpointermove=e=>{
+    brushCursor(e);
     if(drag?.id!==e.pointerId)return;
     if(drag.select){layers.pointer('move',originalPoint(e));return;}
     if(crop){const [x,y]=drag.start,[a,b]=point(e);selection=Math.abs(x-a)*state.w>=1&&Math.abs(y-b)*state.h>=1?[Math.min(x,a),Math.min(y,b),Math.abs(x-a),Math.abs(y-b)]:null;mark();update();}

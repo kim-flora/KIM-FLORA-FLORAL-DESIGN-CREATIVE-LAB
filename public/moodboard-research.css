@@ -41,3 +41,4 @@
 .flora-editor .editor-quick{display:flex;flex-wrap:nowrap;align-items:center;gap:.35rem;overflow-x:auto;overscroll-behavior-x:contain;padding:.45rem;margin:.3rem 0;background:white;border:1px solid #ded8c9;border-radius:.65rem}
 .flora-editor .editor-quick>*{flex:none;white-space:nowrap}
 @media(max-width:760px){.flora-editor .layout{grid-template-columns:minmax(0,1fr);gap:.35rem;--stage-height:clamp(150px,35dvh,360px)}.flora-editor .layout aside{height:clamp(150px,26dvh,250px);padding:.6rem}.flora-editor aside>label{display:flex;align-items:center;gap:.4rem;white-space:nowrap}.flora-editor aside>label select{min-width:0}.flora-editor .editor-quick{margin:0}}
+.flora-editor .quick-brush-ring{position:absolute;pointer-events:none;transform:translate(-50%,-50%);box-sizing:border-box;border:1px solid white;outline:1px solid #25362f;border-radius:50%}

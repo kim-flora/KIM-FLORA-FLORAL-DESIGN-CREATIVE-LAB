@@ -48,7 +48,11 @@ export function createSelection(aside, environment) {
       checkpoint();const c=startMask();c.save();c.globalCompositeOperation=erase?'destination-out':'source-over';
       for(const m of matches)c.drawImage(m.mask,m.x,m.y);c.restore();
       notice.textContent='Kiểm tra đường viền trước khi tách lớp.';
-    }catch(e){if(id===request)notice.textContent=e.message?.startsWith('AI chưa')?e.message:'Chưa chạy được AI. Kiểm tra kết nối và WebGL, rồi khoanh lại.';}
+    }catch(e){if(id===request){
+        const hint=/^(Khoanh |Vùng khoanh |AI chưa )/.test(e.message||'');
+        notice.textContent=hint?e.message:'Không tải hoặc khởi động được bộ nhận diện. Hãy thử lại.';
+        if(!hint)console.error('Floral object selection:',e);
+      }}
     finally{if(id===request){busy=false;paint();}}
   }
   for(const [selector,erase] of [['.plus-mask',false],['.minus-mask',true]])q(selector).onclick=()=>{

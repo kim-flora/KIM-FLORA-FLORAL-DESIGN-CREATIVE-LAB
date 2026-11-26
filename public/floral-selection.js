@@ -120,5 +120,15 @@ export function createSelection(aside, environment) {
   }
   tool.onchange=()=>{stroke=null;environment().exitCrop();environment().paint();};
   q('.save').onclick=commitMask;q('.clear').onclick=()=>{cancel();environment().paint();};
-  return {pointer,overlay,source,update,reset,cancel,active:()=>!!tool.value,pan:()=>{tool.value='';stroke=null;}};
+  function snapshot(){
+    return {parts:[...cache],version,editing,name:q('.name').value,tool:tool.value,
+      mask:mask?.getContext('2d').getImageData(0,0,mask.width,mask.height)};
+  }
+  function restore(saved){
+    reset();for(const [key,p] of saved.parts)cache.set(key,p);version=saved.version;
+    editing=saved.editing;q('.name').value=saved.name;tool.value=saved.tool;
+    if(saved.mask)startMask().putImageData(saved.mask,0,0);
+    objects.select(editing||environment().s.layers?.at(-1)?.id);
+  }
+  return {parts:cache,snapshot,restore,pointer,overlay,source,update,reset,cancel,active:()=>!!tool.value,pan:()=>{tool.value='';stroke=null;}};
 }

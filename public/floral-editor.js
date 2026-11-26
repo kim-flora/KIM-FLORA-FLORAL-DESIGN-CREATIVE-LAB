@@ -1,3 +1,5 @@
+import {effectControls,applyEffects} from './floral-effects.js';
+import {projectPanel} from './floral-projects.js';
 import {createSelection} from './floral-selection.js';
 export function mountEditor(host) {
   const root = document.createElement('section');
@@ -10,9 +12,37 @@ export function mountEditor(host) {
   host.append(root);
   const q = s => root.querySelector(s);
   const stage=q('.stage'), canvas=q('canvas'), box=q('i'), message=q('[role=status]');
-  let img, name, state, history=[], cursor=0, before=false, crop=false, selection, drag, ticket=0, pending=0;
+  let fileSource, img, name, state, history=[], cursor=0, before=false, crop=false, selection, drag, ticket=0, pending=0;
   let zoom=1, panX=0, panY=0;
   const layers=createSelection(q('aside'),()=>({img,s:state,before,schedule,commit,paint,message,exitCrop:stopCrop}));
+  const refreshEffects=effectControls(q('aside'),()=>({s:state,before,commit,paint,schedule}));
+  const projects=projectPanel(root,()=>({file:fileSource,name,message,begin:()=>++ticket,
+    snapshot:()=>({state:structuredClone(state),history:[...history],cursor,layers:layers.snapshot(),zoom,panX,panY}),
+    async restore(file,v,id){
+      const url=URL.createObjectURL(file),next=new Image();next.src=url;
+      try{await next.decode();if(id!==ticket)return false;
+        img=next;name=v.title;fileSource=file;state=v.state;history=v.history;cursor=v.cursor;layers.restore(v.layers);
+        before=false;stopCrop();zoom=v.zoom;panX=v.panX;panY=v.panY;
+        canvas.hidden=false;q('.empty').hidden=true;paint();return true;
+      }finally{URL.revokeObjectURL(url);}
+    }
+  }));
+  const exportBox=document.createElement('fieldset');exportBox.className='flower-output';
+  exportBox.innerHTML=`<legend>Xuất ảnh</legend><label>Định dạng <select><option>PNG</option><option>JPG</option></select></label>
+    <label>Kích thước <select class="dims"><option value="original">Theo ảnh đang chỉnh</option><option value="custom">Tùy chọn, giữ tỷ lệ</option></select></label>
+    <label class="width" hidden>Chiều rộng (px) <input type="number" min="1" step="1"></label><output></output>
+    <label class="quality" hidden>Chất lượng JPG (%) <input type="number" min="1" max="100" value="95"></label>`;
+  const download=q('[data-act=export]');download.after(exportBox);exportBox.append(download);
+  const format=exportBox.querySelector('select'),dims=exportBox.querySelector('.dims'),width=exportBox.querySelector('.width input'),quality=exportBox.querySelector('.quality input');
+  function exportOptions(){
+    const custom=dims.value==='custom';exportBox.disabled=!state||before;
+    width.parentElement.hidden=!custom;quality.parentElement.hidden=format.value!=='JPG';
+    if(!custom&&state)width.value=state.w;
+    const w=custom?width.valueAsNumber:state?.w,h=Math.max(1,Math.round(w*(state?.h/state?.w)));
+    exportBox.querySelector('output').value=w>0&&h>0?w+' × '+h+' px':'';
+    download.textContent='Tải ảnh '+format.value;return {w,h};
+  }
+  exportBox.oninput=exportOptions;
   const labels={light:'Sáng / tối',contrast:'Tương phản',temp:'Nhiệt độ màu',sat:'Độ bão hòa'};
   const sliders={};
   for(const [key,title] of Object.entries(labels)){
@@ -42,14 +72,14 @@ export function mountEditor(host) {
     q('[data-act=before]').textContent=before?'Trở về ảnh đang chỉnh':'Xem ảnh gốc';
     q('[data-act=crop]').textContent=crop?'Hủy chọn vùng':'Chọn vùng cắt';
     q('[data-act=apply]').hidden=!crop;
-    layers.update();stage.style.cursor=(crop||layers.active())?'crosshair':'grab';
+    projects.update();refreshEffects();exportOptions();layers.update();stage.style.cursor=(crop||layers.active())?'crosshair':'grab';
   }
-  function raster(target,s,limit){
+  function raster(target,s,limit,output){
     const scale=Math.min(1,limit/Math.max(s.w,s.h));
-    target.width=Math.max(1,Math.round(s.w*scale));target.height=Math.max(1,Math.round(s.h*scale));
+    target.width=output?.w??Math.max(1,Math.round(s.w*scale));target.height=output?.h??Math.max(1,Math.round(s.h*scale));
     const ctx=target.getContext('2d',{willReadFrequently:true});
     ctx.scale(target.width/s.w,target.height/s.h);ctx.transform(...s.m);ctx.drawImage(layers.source(img,s),0,0);
-    if(!(s.light||s.contrast||s.sat||s.temp))return;
+    if(!(s.light||s.contrast||s.sat||s.temp)){applyEffects(target,s,layers.parts);return;}
     const frame=ctx.getImageData(0,0,target.width,target.height), p=frame.data;
     const gain=2**(s.light/65), contrast=2**(s.contrast/65), saturation=1+s.sat/100, warm=s.temp/100;
     for(let i=0;i<p.length;i+=4){
@@ -58,7 +88,7 @@ export function mountEditor(host) {
       p[i+1]=128+((lum+(g-lum)*saturation)*gain-128)*contrast;
       p[i+2]=128+((lum+(b-lum)*saturation)*gain-128)*contrast;
     }
-    ctx.putImageData(frame,0,0);
+    ctx.putImageData(frame,0,0);applyEffects(target,s,layers.parts);
   }
   function view(){
     if(!img)return;
@@ -82,7 +112,7 @@ export function mountEditor(host) {
     const file=e.target.files[0];if(!file)return;
     const id=++ticket,url=URL.createObjectURL(file),next=new Image();next.src=url;e.target.value='';
     try{await next.decode();if(id!==ticket)return;
-      layers.reset();img=next;name=file.name.replace(/\.[^.]+$/,'');state=initial(img);history=[JSON.stringify(state)];cursor=0;
+      layers.reset();img=next;name=file.name.replace(/\.[^.]+$/,'');fileSource=file;projects.newImage(name);state=initial(img);history=[JSON.stringify(state)];cursor=0;
       before=false;stopCrop();canvas.hidden=false;q('.empty').hidden=true;message.textContent='';resetView();paint();
     }catch{if(id===ticket)message.textContent='Không đọc được ảnh. Hãy chọn ảnh khác.';}finally{URL.revokeObjectURL(url);}
   };
@@ -119,10 +149,16 @@ export function mountEditor(host) {
     if(a==='flipX')transform([-1,0,0,1,w,0],w,h);
     if(a==='flipY')transform([1,0,0,-1,0,h],w,h);
     if(a==='undo'||a==='redo'){cursor+=a==='undo'?-1:1;state=JSON.parse(history[cursor]);layers.cancel();stopCrop();resetView();paint();}
-    if(a==='export'){try{const out=document.createElement('canvas');raster(out,state,Infinity);out.toBlob(blob=>{
-      if(!blob){message.textContent='Không xuất được ảnh ở kích thước này.';return;}
-      const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name+'-kim-flora.png';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),30000);
-    },'image/png');}catch{message.textContent='Không xuất được ảnh ở kích thước này.';}}
+    if(a==='export'){try{
+      const size=exportOptions(),jpg=format.value==='JPG',filename=name;
+      if(!Number.isSafeInteger(size.w)||size.w<1||size.w>32767||size.h>32767||size.w*size.h>64000000||(jpg&&(!quality.value||!quality.validity.valid))){
+        message.textContent='Kiểm tra kích thước (tối đa 64 megapixel, 32767 px mỗi cạnh) và chất lượng JPG từ 1 đến 100.';return;}
+      const out=document.createElement('canvas');raster(out,state,Infinity,size);
+      if(jpg){const c=out.getContext('2d');c.resetTransform();c.globalCompositeOperation='destination-over';c.fillStyle='white';c.fillRect(0,0,size.w,size.h);}
+      out.toBlob(blob=>{if(!blob){message.textContent='Không xuất được ảnh ở kích thước này.';return;}
+        const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=filename+'-kim-flora.'+(jpg?'jpg':'png');link.click();setTimeout(()=>URL.revokeObjectURL(link.href),30000);
+      },jpg?'image/jpeg':'image/png',quality.valueAsNumber/100);
+    }catch{message.textContent='Không xuất được ảnh ở kích thước này.';}}
   };
   update();
 }

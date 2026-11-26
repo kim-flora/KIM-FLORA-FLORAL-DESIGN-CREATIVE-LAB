@@ -1,3 +1,4 @@
+import { mountEditor } from './floral-editor.js';
 import { sampleCanvas, sampledPalette } from './image-palette.js';
 
 export function mount(host,oldImages,actions){
@@ -16,6 +17,7 @@ export function mount(host,oldImages,actions){
   const library=el('details');library.append(el('summary','Nghiên cứu và phương án đã lưu trên thiết bị'));
   const list=el('div');library.append(list);
   const gallery=el('div','','mr-gallery'),workspace=el('div'),compare=el('section');
+  mountEditor(host);
   host.append(el('h2','Floral Design Moodboard'),fileLabel,status,gallery,workspace,compare,library);
   const putText=(parent,title,obj,key)=>{
     const label=el('label',title,'mr-field'),area=el('textarea');area.rows=2;area.value=obj[key]||'';

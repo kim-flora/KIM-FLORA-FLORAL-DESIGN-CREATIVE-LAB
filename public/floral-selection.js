@@ -1,7 +1,9 @@
+import {layerRenderer,moved} from './floral-layer-render.js';
+import {objectTools} from './floral-layer-tools.js';
 // Masks use original-image coordinates so zoom, crops and rotations never resample a cutout.
 export function createSelection(aside, environment) {
   const panel=document.createElement('section');
-  panel.innerHTML=`<h3>Chọn và tách đối tượng</h3><fieldset><label>Công cụ <select class="tool"><option value="">Di chuyển vùng xem</option><option value="brush">Cọ chọn</option><option value="lasso">Khoanh vùng tự do</option><option value="wand">Chọn vùng màu liền nhau</option></select></label>
+  panel.innerHTML=`<h3>Chọn và tách đối tượng</h3><fieldset><label>Công cụ <select class="tool"><option value="">Di chuyển vùng xem</option><option value="move">Kéo đối tượng</option><option value="brush">Cọ chọn</option><option value="lasso">Khoanh vùng tự do</option><option value="wand">Chọn vùng màu liền nhau</option></select></label>
   <label><input class="erase" type="checkbox"> Bớt khỏi vùng chọn</label>
   <label class="size">Cỡ cọ (px) <input type="number" min="1" max="500" value="20"></label>
   <label class="tolerance" hidden>Độ dung sai màu <input type="range" min="1" max="150" value="40"></label>
@@ -11,6 +13,8 @@ export function createSelection(aside, environment) {
   const q=s=>panel.querySelector(s),tool=q('.tool'),cache=new Map();
   let mask, editing, stroke, version=0, rendered='', cachedSource, listOwner, listKey='';
   const make=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+  const compose=layerRenderer(cache);
+  const objects=objectTools(panel,cache,environment,v=>{cancel();tool.value=v;environment().exitCrop();},()=>++version);
   function cancel(){mask=null;editing=null;stroke=null;q('.name').value='';}
   function reset(){cancel();tool.value='';cache.clear();rendered=listKey='';cachedSource=null;}
   function startMask(){
@@ -43,6 +47,7 @@ export function createSelection(aside, environment) {
   }
   function pointer(kind,p){
     if(!tool.value)return false;
+    if(tool.value==='move')return objects.pointer(kind,p);
     const {schedule}=environment();
     if(kind==='down'){stroke=[p];if(tool.value==='brush')line(p,p);if(tool.value==='wand')wand(p);}
     if(stroke&&kind==='move'){if(tool.value==='brush')line(stroke.at(-1),p);stroke.push(p);}
@@ -66,7 +71,7 @@ export function createSelection(aside, environment) {
     const layers=s.layers||[],target=layers.find(x=>x.id===editing);
     if(target?.locked)return;
     const ctx=mask.getContext('2d'),frame=ctx.getImageData(0,0,mask.width,mask.height),d=frame.data;
-    for(const layer of layers){if(layer.id===editing)continue;
+    for(const layer of layers){if(layer.id===editing||layer.copy)continue;
       const part=cache.get(layer.key);for(let y=0;y<part.h;y++)for(let x=0;x<part.w;x++){
         const i=4*((part.y+y)*mask.width+part.x+x)+3;
         d[i]=Math.max(0,d[i]-part.alpha[y*part.w+x]);
@@ -80,10 +85,13 @@ export function createSelection(aside, environment) {
     const key=++version;cache.set(key,{x:x0,y:y0,w,h,alpha});
     const name=q('.name').value.trim()||target?.name||'Đối tượng '+(layers.length+1);
     if(target)Object.assign(target,{key,name});else(s.layers??=[]).push({id:key,key,name,visible:true,locked:false});
-    cancel();message.textContent='';commit();paint();
+    cancel();objects.select(target?.id??key);message.textContent='';commit();paint();
   }
   function source(img,s){
     const layers=s.layers||[];
+    if(s.removed?.length||layers.some(l=>moved(l)||l.color||l.copy)){
+      const sig=JSON.stringify([s.hideBase,layers,s.removed]);if(rendered!==sig){cachedSource=compose(img,s);rendered=sig;}return cachedSource;
+    }
     if(!s.hideBase&&layers.every(l=>l.visible))return img;
     const sig=JSON.stringify([!!s.hideBase,layers.map(l=>[l.key,l.visible])]);if(sig===rendered)return cachedSource;
     const w=img.naturalWidth,h=img.naturalHeight,out=make(w,h),ctx=out.getContext('2d');ctx.drawImage(img,0,0);
@@ -97,14 +105,16 @@ export function createSelection(aside, environment) {
     const {s,before,img,commit,paint}=environment();q('fieldset').disabled=!img||before;
     q('.size').hidden=tool.value!=='brush';q('.tolerance').hidden=tool.value!=='wand';
     q('.save').disabled=!mask;q('.save').textContent=editing?'Lưu vùng chọn':'Tách thành lớp';
+    objects.refresh();
     const key=JSON.stringify([s?.layers,s?.hideBase]);if(key===listKey&&listOwner===s)return;listKey=key;listOwner=s;
     const list=q('.layers');list.replaceChildren();if(!s)return;
     function add(row,text,click,disabled=false){const b=document.createElement('button');b.type='button';b.textContent=text;b.disabled=disabled;b.onclick=click;row.append(b);}
     for(const layer of [...(s.layers||[])].reverse()){
       const row=document.createElement('nav'),title=document.createElement('strong');title.textContent=layer.name;row.append(title);list.append(row);
+      add(row,'Chỉnh lớp',()=>{cancel();objects.select(layer.id);paint();});
       add(row,layer.visible?'Ẩn':'Hiện',()=>{layer.visible=!layer.visible;commit();paint();});
       add(row,layer.locked?'Mở khóa':'Khóa',()=>{if(editing===layer.id)cancel();layer.locked=!layer.locked;commit();paint();});
-      add(row,'Sửa vùng',()=>{cancel();editing=layer.id;const ctx=startMask(),p=cache.get(layer.key),frame=ctx.createImageData(p.w,p.h);for(let i=0;i<p.alpha.length;i++)frame.data.set([16,167,144,p.alpha[i]],4*i);ctx.putImageData(frame,p.x,p.y);tool.value='brush';q('.name').value=layer.name;paint();},layer.locked);
+      add(row,'Sửa vùng',()=>{cancel();editing=layer.id;const ctx=startMask(),p=cache.get(layer.key),frame=ctx.createImageData(p.w,p.h);for(let i=0;i<p.alpha.length;i++)frame.data.set([16,167,144,p.alpha[i]],4*i);ctx.putImageData(frame,p.x,p.y);tool.value='brush';q('.name').value=layer.name;paint();},layer.locked||layer.copy||moved(layer));
     }
     if(s.layers?.length)add(list,s.hideBase?'Hiện nền':'Ẩn nền',()=>{s.hideBase=!s.hideBase;commit();paint();});
   }

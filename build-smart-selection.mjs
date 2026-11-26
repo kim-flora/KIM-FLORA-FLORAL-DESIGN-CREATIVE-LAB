@@ -1,0 +1,11 @@
+import {cpSync,mkdirSync,readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+const path='public/selection-ai';
+mkdirSync(path,{recursive:true});
+const pkg='node_modules/@mediapipe/tasks-vision';
+cpSync(pkg+'/vision_bundle.mjs',path+'/vision.mjs');
+cpSync(pkg+'/wasm',path+'/wasm',{recursive:true});
+const file=path+'/magic_touch.tflite';
+execFileSync('curl',['--fail','--location','--silent','--show-error','--retry','3','https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite','-o',file]);
+if(createHash('sha256').update(readFileSync(file)).digest('hex')!=='e24338a717c1b7ad8d159666677ef400babb7f33b8ad60c4d96db4ecf694cd25')throw Error('Invalid MagicTouch model');

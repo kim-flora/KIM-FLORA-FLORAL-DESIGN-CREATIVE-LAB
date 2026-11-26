@@ -3,11 +3,11 @@ import {objectTools} from './floral-layer-tools.js';
 // Masks use original-image coordinates so zoom, crops and rotations never resample a cutout.
 export function createSelection(aside, environment) {
   const panel=document.createElement('section');
-  panel.innerHTML=`<h3>Chọn và tách đối tượng</h3><fieldset><label>Công cụ <select class="tool"><option value="">Di chuyển vùng xem</option><option value="move">Kéo đối tượng</option><option value="brush">Cọ chọn</option><option value="lasso">Khoanh vùng tự do</option><option value="wand">Chọn vùng màu liền nhau</option></select></label>
+  panel.innerHTML=`<h3>Chọn và tách đối tượng</h3><fieldset><label>Công cụ <select class="tool"><option value="">Di chuyển vùng xem</option><option value="move">Kéo đối tượng</option><option value="smart">AI · Khoanh sơ bộ</option><option value="brush">Cọ chọn</option><option value="lasso">Khoanh vùng tự do</option><option value="wand">Chọn vùng màu liền nhau</option></select></label>
   <label><input class="erase" type="checkbox"> Bớt khỏi vùng chọn</label>
   <label class="size">Cỡ cọ (px) <input type="number" min="1" max="500" value="20"></label>
   <label class="tolerance" hidden>Độ dung sai màu <input type="range" min="1" max="150" value="40"></label>
-  <label>Tên lớp <input class="name" placeholder="Ví dụ: Hoa hồng bên trái"></label>
+  <nav class="smart-actions"><button type="button" class="plus-mask">Thêm vùng</button><button type="button" class="minus-mask">Bớt vùng</button><button type="button" class="refine">Tinh chỉnh biên</button><button type="button" class="undo-mask">Hoàn tác vùng chọn</button><button type="button" class="similar">Chọn tương tự</button></nav><small class="smart-status" role="status"></small><label>Tên lớp <input class="name" placeholder="Ví dụ: Hoa hồng bên trái"></label>
   <nav><button type="button" class="save">Tách thành lớp</button><button type="button" class="clear">Hủy vùng chọn</button></nav><div class="layers"></div></fieldset>`;
   aside.append(panel);
   const q=s=>panel.querySelector(s),tool=q('.tool'),cache=new Map();
@@ -15,7 +15,49 @@ export function createSelection(aside, environment) {
   const make=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
   const compose=layerRenderer(cache);
   const objects=objectTools(panel,cache,environment,v=>{cancel();tool.value=v;environment().exitCrop();},()=>++version);
-  function cancel(){mask=null;editing=null;stroke=null;q('.name').value='';}
+  const notice=q('.smart-status'),undo=[];
+  let request=0,busy=false,outline=null;
+  function invalidate(){request++;busy=false;outline=null;}
+  function checkpoint(){
+    const copy=mask?make(mask.width,mask.height):null;
+    if(copy)copy.getContext('2d').drawImage(mask,0,0);
+    const max=Math.min(12,Math.max(1,Math.floor(48000000/(4*(mask?.width||1)*(mask?.height||1)))));
+    while(undo.length>=max)undo.shift();undo.push(copy);outline=null;
+  }
+  function contour(){
+    if(!mask)return null;
+    if(!outline){
+      const w=mask.width,h=mask.height,d=mask.getContext('2d').getImageData(0,0,w,h).data;
+      outline=make(w,h);const c=outline.getContext('2d'),f=c.createImageData(w,h);
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=4*(y*w+x);
+        if(d[i+3]>=128&&(x===0||y===0||x+1===w||y+1===h||d[i-1]<128||d[i+7]<128||d[i-4*w+3]<128||d[i+4*w+3]<128)){
+          f.data[i]=255;f.data[i+1]=234;f.data[i+2]=93;f.data[i+3]=255;}}
+      c.putImageData(f,0,0);
+    }return outline;
+  }
+  async function smart(points,similar=false){
+    const id=++request,{img,paint}=environment(),erase=q('.erase').checked&&!similar;
+    busy=true;notice.textContent='AI đang xác định đường biên…';paint();
+    try{
+      const {infer,candidates}=await import('./floral-smart-mask.js');
+      if(id!==request)return;
+      const loops=similar?candidates(img,mask):[points],matches=[];
+      for(const loop of loops){if(id!==request)return;try{matches.push(await infer(img,loop));}catch(e){if(!similar)throw e;}}
+      if(id!==request)return;
+      if(!matches.length){notice.textContent='Chưa tìm thấy đối tượng tương tự.';return;}
+      checkpoint();const c=startMask();c.save();c.globalCompositeOperation=erase?'destination-out':'source-over';
+      for(const m of matches)c.drawImage(m.mask,m.x,m.y);c.restore();
+      notice.textContent='Kiểm tra đường viền trước khi tách lớp.';
+    }catch(e){if(id===request)notice.textContent=e.message?.startsWith('AI chưa')?e.message:'Chưa chạy được AI. Kiểm tra kết nối và WebGL, rồi khoanh lại.';}
+    finally{if(id===request){busy=false;paint();}}
+  }
+  for(const [selector,erase] of [['.plus-mask',false],['.minus-mask',true]])q(selector).onclick=()=>{
+    invalidate();tool.value='brush';q('.erase').checked=erase;environment().exitCrop();environment().paint();
+  };
+  q('.undo-mask').onclick=()=>{invalidate();mask=undo.pop()||null;notice.textContent='';environment().paint();};
+  q('.refine').onclick=async()=>{const id=++request;const {refine}=await import('./floral-smart-mask.js');if(id!==request||!mask)return;checkpoint();refine(environment().img,mask);environment().paint();};
+  q('.similar').onclick=()=>smart(null,true);
+  function cancel(){invalidate();undo.length=0;notice.textContent='';mask=null;editing=null;stroke=null;q('.name').value='';}
   function reset(){cancel();tool.value='';cache.clear();rendered=listKey='';cachedSource=null;}
   function startMask(){
     const {img}=environment();
@@ -47,11 +89,13 @@ export function createSelection(aside, environment) {
   }
   function pointer(kind,p){
     if(!tool.value)return false;
+    if(busy)return true;
     if(tool.value==='move')return objects.pointer(kind,p);
     const {schedule}=environment();
-    if(kind==='down'){stroke=[p];if(tool.value==='brush')line(p,p);if(tool.value==='wand')wand(p);}
+    if(kind==='down'){if(['brush','lasso','wand'].includes(tool.value))checkpoint();stroke=[p];if(tool.value==='brush')line(p,p);if(tool.value==='wand')wand(p);}
     if(stroke&&kind==='move'){if(tool.value==='brush')line(stroke.at(-1),p);stroke.push(p);}
     if(kind==='up'&&stroke){
+      if(tool.value==='smart'&&stroke.length>2)smart(stroke.slice());
       if(tool.value==='lasso'&&stroke.length>2){const ctx=startMask();ctx.save();ctx.globalCompositeOperation=q('.erase').checked?'destination-out':'source-over';ctx.fillStyle='#10a790';ctx.beginPath();for(const pt of stroke)ctx.lineTo(pt.x,pt.y);ctx.closePath();ctx.fill();ctx.restore();}
       stroke=null;
     }
@@ -61,8 +105,8 @@ export function createSelection(aside, environment) {
   function overlay(canvas,s){
     if(!mask&&!stroke)return;
     const c=canvas.getContext('2d');c.save();c.setTransform(canvas.width/s.w,0,0,canvas.height/s.h,0,0);c.transform(...s.m);
-    if(mask){c.globalAlpha=.48;c.drawImage(mask,0,0);c.globalAlpha=1;}
-    if(tool.value==='lasso'&&stroke?.length){c.strokeStyle='#08d1bc';c.lineWidth=2*s.w/canvas.width;c.beginPath();for(const p of stroke)c.lineTo(p.x,p.y);c.stroke();}
+    if(mask){c.globalAlpha=.48;c.drawImage(mask,0,0);c.globalAlpha=1;if(!stroke)c.drawImage(contour(),0,0);}
+    if((tool.value==='lasso'||tool.value==='smart')&&stroke?.length){c.strokeStyle='#08d1bc';c.lineWidth=2*s.w/canvas.width;c.beginPath();for(const p of stroke)c.lineTo(p.x,p.y);c.stroke();}
     c.restore();
   }
   function commitMask(){
@@ -104,7 +148,8 @@ export function createSelection(aside, environment) {
   function update(){
     const {s,before,img,commit,paint}=environment();q('fieldset').disabled=!img||before;
     q('.size').hidden=tool.value!=='brush';q('.tolerance').hidden=tool.value!=='wand';
-    q('.save').disabled=!mask;q('.save').textContent=editing?'Lưu vùng chọn':'Tách thành lớp';
+    q('.similar').disabled=q('.refine').disabled=!mask||busy;q('.undo-mask').disabled=!undo.length||busy;
+    q('.save').disabled=!mask||busy;q('.save').textContent=editing?'Lưu vùng chọn':'Tách thành lớp';
     objects.refresh();
     const key=JSON.stringify([s?.layers,s?.hideBase]);if(key===listKey&&listOwner===s)return;listKey=key;listOwner=s;
     const list=q('.layers');list.replaceChildren();if(!s)return;
@@ -118,8 +163,8 @@ export function createSelection(aside, environment) {
     }
     if(s.layers?.length)add(list,s.hideBase?'Hiện nền':'Ẩn nền',()=>{s.hideBase=!s.hideBase;commit();paint();});
   }
-  tool.onchange=()=>{stroke=null;environment().exitCrop();environment().paint();};
-  q('.save').onclick=commitMask;q('.clear').onclick=()=>{cancel();environment().paint();};
+  tool.onchange=()=>{invalidate();stroke=null;environment().exitCrop();environment().paint();};
+  q('.save').onclick=commitMask;q('.clear').onclick=()=>{invalidate();checkpoint();mask=null;stroke=null;notice.textContent='';environment().paint();};
   function snapshot(){
     return {parts:[...cache],version,editing,name:q('.name').value,tool:tool.value,
       mask:mask?.getContext('2d').getImageData(0,0,mask.width,mask.height)};

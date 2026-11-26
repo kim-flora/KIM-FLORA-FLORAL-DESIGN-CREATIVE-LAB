@@ -1,3 +1,4 @@
+import './build-smart-selection.mjs';
 import { readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 const read = path => readFileSync(path,'utf8');

@@ -14,11 +14,10 @@ export function mount(host,oldImages,actions){
   const fields={idea:'Ý tưởng và căn cứ',form:'Hình khối và tổ chức hoa',palette:'Bảng phối đề xuất',materials:'Hoa, vật liệu và ánh sáng',focus:'Điểm nhấn',make:'Triển khai',change:'Thay đổi so với mẫu'};
   const upload=el('input');upload.type='file';upload.multiple=true;upload.accept='image/*';
   const fileLabel=el('label','Tải ảnh nghiên cứu');fileLabel.append(upload);
-  const library=el('details');library.append(el('summary','Nghiên cứu và phương án đã lưu trên thiết bị'));
-  const list=el('div');library.append(list);
+  const list=el('div');
   const gallery=el('div','','mr-gallery'),workspace=el('div'),compare=el('section');
   mountEditor(host);
-  host.append(el('h2','Floral Design Moodboard'),fileLabel,status,gallery,workspace,compare,library);
+  host.append(el('h2','Floral Design Moodboard'),fileLabel,status,gallery,workspace,compare,list);
   const putText=(parent,title,obj,key)=>{
     const label=el('label',title,'mr-field'),area=el('textarea');area.rows=2;area.value=obj[key]||'';
     area.oninput=()=>{obj[key]=area.value;comparison='';};label.append(area);parent.append(label);
@@ -107,6 +106,5 @@ export function mount(host,oldImages,actions){
       }catch(e){status.textContent=e.message;}finally{drawCompare();}
     });run.disabled=chosen.size<2||chosen.size>4;compare.append(run);if(comparison)compare.append(el('p',comparison));
   }
-  if(oldImages?.length)host.insertBefore(button('Nghiên cứu ảnh trong Moodboard trước',()=>{for(const [i,src] of oldImages.entries())if(![...studies.values()].some(s=>s.source===src))add(src,'Ảnh đã lưu '+(i+1));}),gallery);
   restoreList();draw();
 }

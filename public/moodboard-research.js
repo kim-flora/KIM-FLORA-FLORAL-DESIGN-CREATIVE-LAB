@@ -1,5 +1,4 @@
-import { flowerLeafSamples } from './moodboard-mask.js';
-import { extractPalette } from './color-model.js';
+import { sampleCanvas, sampledPalette } from './image-palette.js';
 
 export function mount(host,oldImages,actions){
   const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;n.className=cls;return n;};
@@ -26,22 +25,8 @@ export function mount(host,oldImages,actions){
   function asData(blob){return new Promise((resolve,reject)=>{const f=new FileReader();f.onload=()=>resolve(f.result);f.onerror=reject;f.readAsDataURL(blob);});}
   async function imageInput(source){
     const img=new Image();img.src=source;await img.decode();
-    const canvas=document.createElement('canvas');const scale=Math.min(1,1200/Math.max(img.width,img.height));
-    canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
-    const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    const image=canvas.toDataURL('image/jpeg',.77);const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
-    const summarize=colors=>{const total=colors.reduce((n,c)=>n+c.weight,0);return colors.map(c=>({hex:c.hex,percent:Math.round(100*c.weight/total)}));};
-    const palette=summarize(extractPalette(pixels.data,7,pixels.width));
-    const thumb=document.createElement('canvas');const shrink=Math.min(1,180/Math.max(canvas.width,canvas.height));
-    thumb.width=Math.max(1,Math.round(canvas.width*shrink));thumb.height=Math.max(1,Math.round(canvas.height*shrink));
-    const small=thumb.getContext('2d');small.drawImage(canvas,0,0,thumb.width,thumb.height);
-    const samples=flowerLeafSamples(small.getImageData(0,0,thumb.width,thumb.height).data,thumb.width,thumb.height,1);
-    let subject=[];
-    if(samples.length>thumb.width*thumb.height*.02&&samples.length<thumb.width*thumb.height*.91){
-      const rgba=new Uint8ClampedArray(samples.length*4);
-      samples.forEach((c,i)=>rgba.set([...c,255],4*i));
-      subject=summarize(extractPalette(rgba,6,samples.length));
-    }
+    const canvas=sampleCanvas(img),image=canvas.toDataURL('image/jpeg',.77);
+    const palette=sampledPalette(canvas,7),subject=sampledPalette(canvas,6,true);
     return {image,palette,subject};
   }
   async function ask(body){

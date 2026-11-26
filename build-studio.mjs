@@ -9,40 +9,26 @@ const briefStart=script[1].indexOf('function generateDmDirectionText()');
 const briefEnd=script[1].indexOf('function buildDmThreeOptions()',briefStart);
 if(briefStart<0||briefEnd<0)throw Error('Unexpected Moodboard brief layout');
 script[1]=script[1].slice(0,briefStart)+read('moodboard-brief.js')+'\n'+script[1].slice(briefEnd);
-const focusStart=script[1].indexOf('const pixels = [];',script[1].indexOf('function extractColorsFromCanvas('));
-const focusEnd=script[1].indexOf('// Deterministic K-Means++ initialization',focusStart);
-if(focusStart<0||focusEnd<0)throw Error('Missing Color Studio extraction');
-script[1]=script[1].slice(0,focusStart)+`
-      const step=Math.max(1,Math.floor(w*h/6000));
-      const pixels=focusMode ? flowerLeafSamples(imgData,w,h,step) : [];
-      if(!focusMode)for(let p=0;p<w*h;p+=step){
-        const i=p*4;
-        if(imgData[i+3]>=128)pixels.push([imgData[i],imgData[i+1],imgData[i+2]]);
-      }
-      if(!pixels.length || (focusMode && pixels.length<Math.max(2,w*h/step*.002))){
-        showToast('Chưa tách được hoa và lá khỏi nền. Bảng màu hiện tại vẫn là kết quả trước đó.', 'info');
-        return;
-      }
-      `+script[1].slice(focusEnd);
-script[1]=script[1].replace('function extractColorsFromCanvas(k)',()=>read('flower-leaf-samples.js')+'\nfunction extractColorsFromCanvas(k)');
-const normalization=script[1].indexOf('// Normalize to 100%',focusStart);
-if(normalization<0)throw Error('Missing palette normalization');
-script[1]=script[1].slice(0,normalization)+`
-      if(focusMode){
-        for(let j=extracted.length-1;j>=0;j--){
-          const swatch=extracted[j];
-          const index=Number(swatch.id.split('-').pop());
-          if(!counts[index]){extracted.splice(j,1);continue;}
-          swatch.ratio=Math.floor(counts[index]*100/total);
-        }
-        const ranked=[...extracted].sort((a,b)=>{
-          const remainder=s=>counts[Number(s.id.split('-').pop())]*100/total-s.ratio;
-          return remainder(b)-remainder(a);
-        });
-        const missing=100-extracted.reduce((sum,s)=>sum+s.ratio,0);
-        for(let i=0;i<missing;i++)ranked[i].ratio++;
-      }
-      `+script[1].slice(normalization);
+const from=script[1].indexOf('function extractColorsFromCanvas(k)');
+const to=script[1].indexOf('state.palette = extracted;',from);
+if(from<0||to<0)throw Error('Missing Color Studio extraction');
+script[1]=script[1].slice(0,from)+read('flower-leaf-samples.js')+'\n'+`let paletteImage, paletteTicket=0;
+    async function extractColorsFromCanvas(k) {
+      const img=paletteImage, ticket=++paletteTicket;
+      if(!img)return;
+      const focus=document.getElementById('extractFocusMode').value==='focus';
+      try {
+        const {sampleCanvas,sampledPalette}=await import('/image-palette.js');
+        if(ticket!==paletteTicket||img!==paletteImage)return;
+        const colors=sampledPalette(sampleCanvas(img),k,focus);
+        if(!colors.length){showToast('Chưa lấy được màu ở chế độ này.', 'info');return;}
+        const extracted=colors.map((c,i)=>({id:crypto.randomUUID(),hex:c.hex,ratio:c.percent,imgArea:c.percent,locked:false,name:'Màu ảnh #'+(i+1)}));
+        `+script[1].slice(to);
+script[1]=script[1].replace('colorCtx.drawImage(img,','paletteImage=img; colorCtx.drawImage(img,')
+  .replace("showToast(`Đã trích xuất ${k} màu chủ đạo từ ảnh!`, 'success');","showToast(`Đã trích xuất ${extracted.length} màu chủ đạo từ ảnh!`, 'success'); } catch {showToast('Chưa đọc được màu ảnh.', 'error');}");
+html=html.replace('value="focus" selected','value="focus"').replace('<option value="full">Toàn bộ khung hình','<option value="full" selected>Toàn bộ khung hình')
+  .replace('id="extractCountRange" min="2" max="10" value="5"','id="extractCountRange" min="2" max="10" value="7"')
+  .replace(/(id="extractCountVal"[^>]*>)5</,(_,prefix)=>prefix+'7<');
 script[1]=script[1].replace('p.ratio = p.imgArea || 5','p.ratio = p.imgArea ?? 0');
 const analysisStart=script[1].indexOf('function analyzeFloralComposition()');
 const cardsEnd=script[1].indexOf("const container = document.getElementById('compDiagnosisCards')",analysisStart);

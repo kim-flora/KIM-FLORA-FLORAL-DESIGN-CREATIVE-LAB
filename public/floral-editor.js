@@ -1,3 +1,4 @@
+import {createSelection} from './floral-selection.js';
 export function mountEditor(host) {
   const root = document.createElement('section');
   root.className = 'flora-editor';
@@ -11,6 +12,7 @@ export function mountEditor(host) {
   const stage=q('.stage'), canvas=q('canvas'), box=q('i'), message=q('[role=status]');
   let img, name, state, history=[], cursor=0, before=false, crop=false, selection, drag, ticket=0, pending=0;
   let zoom=1, panX=0, panY=0;
+  const layers=createSelection(q('aside'),()=>({img,s:state,before,schedule,commit,paint,message,exitCrop:stopCrop}));
   const labels={light:'Sáng / tối',contrast:'Tương phản',temp:'Nhiệt độ màu',sat:'Độ bão hòa'};
   const sliders={};
   for(const [key,title] of Object.entries(labels)){
@@ -40,13 +42,13 @@ export function mountEditor(host) {
     q('[data-act=before]').textContent=before?'Trở về ảnh đang chỉnh':'Xem ảnh gốc';
     q('[data-act=crop]').textContent=crop?'Hủy chọn vùng':'Chọn vùng cắt';
     q('[data-act=apply]').hidden=!crop;
-    stage.style.cursor=crop?'crosshair':'grab';
+    layers.update();stage.style.cursor=(crop||layers.active())?'crosshair':'grab';
   }
   function raster(target,s,limit){
     const scale=Math.min(1,limit/Math.max(s.w,s.h));
     target.width=Math.max(1,Math.round(s.w*scale));target.height=Math.max(1,Math.round(s.h*scale));
     const ctx=target.getContext('2d',{willReadFrequently:true});
-    ctx.scale(target.width/s.w,target.height/s.h);ctx.transform(...s.m);ctx.drawImage(img,0,0);
+    ctx.scale(target.width/s.w,target.height/s.h);ctx.transform(...s.m);ctx.drawImage(layers.source(img,s),0,0);
     if(!(s.light||s.contrast||s.sat||s.temp))return;
     const frame=ctx.getImageData(0,0,target.width,target.height), p=frame.data;
     const gain=2**(s.light/65), contrast=2**(s.contrast/65), saturation=1+s.sat/100, warm=s.temp/100;
@@ -66,7 +68,7 @@ export function mountEditor(host) {
     canvas.style.transform='translate(calc(-50% + '+panX+'px),calc(-50% + '+panY+'px))';
     q('.zoom').value=Math.round(zoom*100)+'%';mark();
   }
-  function paint(){if(img){raster(canvas,before?initial(img):state,1800);view();}update();}
+  function paint(){if(img){raster(canvas,before?initial(img):state,1800);if(!before)layers.overlay(canvas,state);view();}update();}
   function schedule(){cancelAnimationFrame(pending);pending=requestAnimationFrame(paint);}
   function resetView(){zoom=1;panX=panY=0;view();}
   function stopCrop(){crop=false;selection=null;box.hidden=true;drag=null;}
@@ -80,23 +82,26 @@ export function mountEditor(host) {
     const file=e.target.files[0];if(!file)return;
     const id=++ticket,url=URL.createObjectURL(file),next=new Image();next.src=url;e.target.value='';
     try{await next.decode();if(id!==ticket)return;
-      img=next;name=file.name.replace(/\.[^.]+$/,'');state=initial(img);history=[JSON.stringify(state)];cursor=0;
+      layers.reset();img=next;name=file.name.replace(/\.[^.]+$/,'');state=initial(img);history=[JSON.stringify(state)];cursor=0;
       before=false;stopCrop();canvas.hidden=false;q('.empty').hidden=true;message.textContent='';resetView();paint();
     }catch{if(id===ticket)message.textContent='Không đọc được ảnh. Hãy chọn ảnh khác.';}finally{URL.revokeObjectURL(url);}
   };
   function point(e){const r=canvas.getBoundingClientRect();return [(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height].map(n=>Math.max(0,Math.min(1,n)));}
+  function originalPoint(e){const [x,y]=point(e);return new DOMPoint(x*state.w,y*state.h).matrixTransform(new DOMMatrix(state.m).inverse());}
   stage.onpointerdown=e=>{
     if(!img||drag||e.button!==0)return;
-    if(crop&&e.target!==canvas)return;
+    if((crop||(!before&&layers.active()))&&e.target!==canvas)return;
     stage.setPointerCapture(e.pointerId);drag={id:e.pointerId,start:point(e),x:e.clientX-panX,y:e.clientY-panY};
+    if(!before&&layers.active()){drag.select=true;layers.pointer('down',originalPoint(e));return;}
     if(crop){selection=null;mark();update();}
   };
   stage.onpointermove=e=>{
     if(drag?.id!==e.pointerId)return;
+    if(drag.select){layers.pointer('move',originalPoint(e));return;}
     if(crop){const [x,y]=drag.start,[a,b]=point(e);selection=Math.abs(x-a)*state.w>=1&&Math.abs(y-b)*state.h>=1?[Math.min(x,a),Math.min(y,b),Math.abs(x-a),Math.abs(y-b)]:null;mark();update();}
     else{panX=e.clientX-drag.x;panY=e.clientY-drag.y;view();}
   };
-  stage.onpointerup=stage.onpointercancel=e=>{if(drag?.id===e.pointerId)drag=null;};
+  stage.onpointerup=stage.onpointercancel=e=>{if(drag?.id===e.pointerId){if(drag.select)layers.pointer(e.type==='pointercancel'?'cancel':'up',originalPoint(e));drag=null;}};
   function transform(matrix,w,h){
     const m=new DOMMatrix(matrix).multiply(new DOMMatrix(state.m));
     Object.assign(state,{m:[m.a,m.b,m.c,m.d,m.e,m.f],w,h});stopCrop();resetView();commit();paint();
@@ -107,13 +112,13 @@ export function mountEditor(host) {
     if(a==='minus'||a==='plus'){zoom=Math.min(12,Math.max(.125,zoom*(a==='plus'?1.25:.8)));view();}
     if(a==='fit')resetView();
     if(a==='before'){before=!before;stopCrop();paint();}
-    if(a==='crop'){if(crop)stopCrop();else crop=true;message.textContent=crop?'Kéo trên ảnh để chọn vùng cần giữ.':'';update();}
+    if(a==='crop'){layers.pan();if(crop)stopCrop();else crop=true;message.textContent=crop?'Kéo trên ảnh để chọn vùng cần giữ.':'';update();}
     if(a==='apply'&&selection){const [x,y,cw,ch]=selection;transform([1,0,0,1,-Math.round(x*w),-Math.round(y*h)],Math.max(1,Math.round(cw*w)),Math.max(1,Math.round(ch*h)));message.textContent='';}
     if(a==='left')transform([0,-1,1,0,0,w],h,w);
     if(a==='right')transform([0,1,-1,0,h,0],h,w);
     if(a==='flipX')transform([-1,0,0,1,w,0],w,h);
     if(a==='flipY')transform([1,0,0,-1,0,h],w,h);
-    if(a==='undo'||a==='redo'){cursor+=a==='undo'?-1:1;state=JSON.parse(history[cursor]);stopCrop();resetView();paint();}
+    if(a==='undo'||a==='redo'){cursor+=a==='undo'?-1:1;state=JSON.parse(history[cursor]);layers.cancel();stopCrop();resetView();paint();}
     if(a==='export'){try{const out=document.createElement('canvas');raster(out,state,Infinity);out.toBlob(blob=>{
       if(!blob){message.textContent='Không xuất được ảnh ở kích thước này.';return;}
       const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name+'-kim-flora.png';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),30000);

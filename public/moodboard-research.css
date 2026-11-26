@@ -28,3 +28,16 @@
   font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
   line-height: 1.45;
 }
+
+.flora-editor .layout{--stage-height:clamp(220px,calc(100dvh - 340px),720px);grid-template-columns:minmax(0,1fr) clamp(240px,23vw,340px);align-items:start}
+.flora-editor .layout>div{min-width:0}
+.flora-editor .stage{height:var(--stage-height)}
+.flora-editor .layout aside{height:var(--stage-height);min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden}
+.flora-editor aside>label{display:grid;gap:.25rem;font-weight:600;margin-bottom:.6rem}
+.flora-editor aside>label select{width:100%;padding:.45rem;border:1px solid #ded8c9;border-radius:.5rem}
+.flora-editor .editor-controls{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.flora-editor .editor-controls label{min-width:0}
+.flora-editor .editor-controls input,.flora-editor .editor-controls select{max-width:100%;box-sizing:border-box}
+.flora-editor .editor-quick{display:flex;flex-wrap:nowrap;align-items:center;gap:.35rem;overflow-x:auto;overscroll-behavior-x:contain;padding:.45rem;margin:.3rem 0;background:white;border:1px solid #ded8c9;border-radius:.65rem}
+.flora-editor .editor-quick>*{flex:none;white-space:nowrap}
+@media(max-width:760px){.flora-editor .layout{grid-template-columns:minmax(0,1fr);gap:.35rem;--stage-height:clamp(150px,35dvh,360px)}.flora-editor .layout aside{height:clamp(150px,26dvh,250px);padding:.6rem}.flora-editor aside>label{display:flex;align-items:center;gap:.4rem;white-space:nowrap}.flora-editor aside>label select{min-width:0}.flora-editor .editor-quick{margin:0}}

@@ -43,6 +43,24 @@ export function mountEditor(host) {
     download.textContent='Tải ảnh '+format.value;return {w,h};
   }
   exportBox.oninput=exportOptions;
+  const side=q('aside'), quick=q('nav[aria-label="Vùng xem"]');
+  quick.classList.add('editor-quick');
+  const frameTools=q('[data-act=crop]').parentElement;
+  quick.append(...frameTools.children,q('[data-act=undo]'),q('[data-act=redo]'));
+  const controls=document.createElement('div');controls.className='editor-controls';
+  const groupLabel=document.createElement('label');groupLabel.textContent='Nhóm công cụ';
+  const group=document.createElement('select');groupLabel.append(group);
+  const panels=[
+    ['Ánh sáng và màu sắc',q('.sliders')],
+    ['Chọn, tách và chỉnh lớp',side.querySelector('section')],
+    ['Ánh sáng và hiệu ứng',q('.flower-fx')],
+    ['Lưu và mở dự án',q('.flower-projects')],
+    ['Xuất ảnh',exportBox]
+  ];
+  for(const [title,panel] of panels){group.add(new Option(title));controls.append(panel);}
+  side.replaceChildren(groupLabel,controls);
+  function showGroup(){panels.forEach(([,panel],index)=>{panel.hidden=index!==group.selectedIndex;});controls.scrollTop=0;}
+  group.onchange=showGroup;showGroup();
   const labels={light:'Sáng / tối',contrast:'Tương phản',temp:'Nhiệt độ màu',sat:'Độ bão hòa'};
   const sliders={};
   for(const [key,title] of Object.entries(labels)){

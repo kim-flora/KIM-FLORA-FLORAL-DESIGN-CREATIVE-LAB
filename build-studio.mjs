@@ -248,6 +248,7 @@ function preserveStudioState(source){
     .replace('const maxW = 540, maxH = 340;','if(request!==colorRequest)return;\n        const maxW = 540, maxH = 340;')
     .replace("state.currentImageDataUrl = colorCanvas.toDataURL","if(restore)return;\n        state.currentImageDataUrl = colorCanvas.toDataURL");
   source=source.replace('function loadCompImage(src) {','function loadCompImage(src,restore=false) {')
+    .replace('function loadCompImage(src,restore=false) { changeReviewSource(src);','function loadCompImage(src,restore=false) {')
     .replace('compBgImg.onload = () => {','const requestedImage=compBgImg;\n      compBgImg.onload = () => {\n        if(requestedImage!==compBgImg)return;')
     .replace('compCanvas.height = Math.round(compBgImg.height * scale);',`compCanvas.height = Math.round(compBgImg.height * scale);
         if(!restore){
@@ -255,7 +256,8 @@ function preserveStudioState(source){
           imageCopy.width=compCanvas.width;imageCopy.height=compCanvas.height;
           imageCopy.getContext('2d').drawImage(compBgImg,0,0,imageCopy.width,imageCopy.height);
           state.compSource=imageCopy.toDataURL('image/png');
-        }`)
+        }
+        changeReviewSource(src,restore);`)
     .replace("      compBgImg.src = src;", "      compBgImg.src = src;")
     .replace('        analyzeFloralComposition();\n        renderCompCanvas();','        analyzeFloralComposition();\n        renderCompCanvas();\n        if(!restore)persist();');
   section('// Load default sample image into Color Studio', 'if (window.lucide)',`const sample=document.getElementById('sampleImgBouquet');

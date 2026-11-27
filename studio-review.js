@@ -1,14 +1,28 @@
 const reviewLabels={form:'Hình dáng',layout:'Bố cục',ratio:'Tỷ lệ',focal:'Trọng tâm',balance:'Cân bằng',rhythm:'Nhịp điệu',flow:'Dòng chảy',space:'Khoảng trống'};
 const reviewDrafts=new Map();
 const generalNote=document.getElementById('compUserNotes');
-let draft={notes:{},general:'',id:null}, reviewSource='';
-function changeReviewSource(src){
+let draft=structuredClone(state.compReviewDraft??{notes:{},general:'',id:null}), reviewSource='';
+generalNote.value=draft.general;
+function rememberReviewDraft(){
+  if(reviewSource && (!compBgImg.complete || !compBgImg.naturalWidth))return;
+  state.compReviewDraft=structuredClone(draft);
+  try{persist();}catch{
+    reviewStatus.textContent='Chưa lưu được bản nháp trên trình duyệt. Chị vẫn có thể dùng nút Lưu nhận xét và ảnh.';
+  }
+}
+generalNote.oninput=()=>{
+  draft.general=generalNote.value;
+  rememberReviewDraft();
+};
+function changeReviewSource(src,restore){
+  if(restore){reviewSource=src;return;}
   if(src===reviewSource)return;
   draft.general=generalNote.value;
   if(reviewSource)reviewDrafts.set(reviewSource,draft);
   reviewSource=src;
   draft=reviewDrafts.get(src)||{notes:{},general:'',id:null};
   generalNote.value=draft.general;
+  state.compReviewDraft=structuredClone(draft);
   renderCompDiagnosis();
 }
 function reviewNode(tag,text,style){
@@ -25,7 +39,9 @@ reviewStatus.setAttribute('role','status');
 const reviewList=reviewNode('details');
 reviewList.append(reviewNode('summary','Hồ sơ đã lưu trên thiết bị'));
 const choices=reviewNode('div','','space-y-2');
-reviewList.append(choices);
+const olderReports=reviewNode('a','Mở báo cáo bố cục phiên bản trước','block text-xs underline');
+olderReports.href='/workspace.html#composition';
+reviewList.append(choices,olderReports);
 reviewFields.after(saveReview,reviewStatus,reviewList);
 function renderCompDiagnosis(){
   const selected=getSelectedCriteria();
@@ -34,7 +50,7 @@ function renderCompDiagnosis(){
     const label=reviewNode('label',reviewLabels[key],'block text-xs font-semibold');
     const area=reviewNode('textarea','','block w-full mt-1 rounded-lg border p-2 font-normal');
     area.rows=3;area.value=draft.notes[key]||'';
-    area.oninput=()=>{draft.notes[key]=area.value;};
+    area.oninput=()=>{draft.notes[key]=area.value;rememberReviewDraft();};
     label.append(area);return label;
   }));
 }
@@ -63,7 +79,18 @@ async function listReviews(){
           close.onclick=()=>dialog.close();
           const url=URL.createObjectURL(record.image);
           const image=reviewNode('img');image.src=url;image.alt='Ảnh nghiên cứu đã lưu';image.style.maxHeight='46vh';
-          dialog.append(close,image);
+          const reopen=reviewNode('button','Nạp nhận xét vào các ô đang mở',reviewButtonClass);
+          reopen.onclick=()=>{
+            if(Object.values(draft.notes).some(Boolean)||generalNote.value){
+              if(!window.confirm('Thay nhận xét đang mở bằng nhận xét trong hồ sơ này?'))return;
+            }
+            draft={notes:{...record.notes},general:record.general??'',id:null};
+            generalNote.value=draft.general;
+            renderCompDiagnosis();
+            rememberReviewDraft();
+            dialog.close();
+          };
+          dialog.append(close,reopen,image);
           for(const [key,text] of [...Object.entries(record.notes),['general',record.general]]){
             if(!text)continue;
             const p=reviewNode('p',text);p.style.whiteSpace='pre-wrap';
@@ -91,7 +118,9 @@ saveReview.onclick=async()=>{
     const record={id:current.id||Date.now(),notes:{...current.notes},general:current.general};
     record.image=await new Promise((resolve,reject)=>compCanvas.toBlob(blob=>blob?resolve(blob):reject(Error()),'image/png'));
     await reviewStore('readwrite',store=>store.put(record));
-    current.id=record.id;reviewStatus.textContent='Đã lưu nhận xét và ảnh trên thiết bị này.';
+    current.id=record.id;
+    if(current===draft)rememberReviewDraft();
+    reviewStatus.textContent='Đã lưu nhận xét và ảnh trên thiết bị này.';
     if(reviewList.open)await listReviews();
   }catch{reviewStatus.textContent='Chưa lưu được nhận xét và ảnh. Hãy kiểm tra dung lượng trình duyệt và thử lại.';}
   finally{saveReview.disabled=false;}

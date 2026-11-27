@@ -38,7 +38,7 @@ const reviewStatus=reviewNode('p','','text-xs');
 reviewStatus.setAttribute('role','status');
 const reviewList=document.getElementById('compSavedReviews');
 const reviewHeading=reviewNode('h3','Hồ sơ bố cục đã lưu','text-sm font-semibold');
-const choices=reviewNode('div','Đang đọc hồ sơ…','flex flex-wrap gap-2 max-h-40 overflow-auto text-xs');
+const choices=reviewNode('div','Đang đọc hồ sơ…','flex flex-col gap-2 max-h-60 overflow-auto text-xs');
 reviewList.append(reviewHeading);
 const olderReports=reviewNode('details','','text-xs space-y-2');
 olderReports.append(reviewNode('summary','Báo cáo bố cục phiên bản trước'));
@@ -86,7 +86,7 @@ async function listReviews(){
   try{
     const keys=await reviewStore('readonly',store=>store.getAllKeys());
     choices.replaceChildren(...keys.reverse().map(id=>{
-      const button=reviewNode('button',reviewCode(id),reviewButtonClass+' mono-num');
+      const button=reviewNode('button',reviewCode(id),reviewButtonClass+' mono-num text-left w-full');
       button.type='button';
       button.title=new Date(id).toLocaleString('vi-VN');
       button.onclick=async()=>{
@@ -149,6 +149,7 @@ async function listReviews(){
 }
 listReviews();
 window.addEventListener('focus',listReviews);
+document.querySelector('[data-tab="composition"]')?.addEventListener('click',listReviews);
 saveReview.onclick=async()=>{
   if(saveReview.disabled)return;
   if(!compBgImg.complete||!compBgImg.naturalWidth){reviewStatus.textContent='Chọn ảnh trước khi lưu.';return;}

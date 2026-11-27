@@ -4,8 +4,38 @@ import { execFileSync } from 'node:child_process';
 const read = path => readFileSync(path,'utf8');
 const save = (path,data) => writeFileSync('public/'+path,data);
 let html = read('index.txt');
+html = html.replace(
+  'id="savedProjectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>',
+  `id="savedProjectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+            <ul id="workspaceProjectLinks" class="space-y-2 text-xs"></ul>`
+);
+html = html.replace(
+  /(<div id="inlineSavedColorsGrid"[^>]*><\/div>)/,
+  `$1
+    <div class="mt-3 space-y-2 text-xs">
+      <h3 class="font-semibold">Kho bảng màu phiên bản trước</h3>
+      <ul id="legacyPaletteList" class="space-y-2"></ul>
+      <p id="legacyPaletteStatus" role="status"></p>
+    </div>`
+);
+html = html.replace('</nav>', `
+  <button type="button" id="openContentBackups" class="px-3 py-2 text-xs font-semibold">Kho lưu trực tuyến</button>
+  <span id="contentBackupStatus" class="px-2 text-xs" role="status"></span>
+</nav>`);
+html = html.replace(/<\/body>(?=\s*<\/html>\s*$)/, `
+<dialog id="contentBackupDialog" class="m-auto w-11/12 max-w-md rounded-xl bg-white p-5">
+  <form method="dialog"><button class="float-right underline">Đóng</button></form>
+  <h2 class="mb-3 text-lg font-semibold">Kho lưu trực tuyến</h2>
+  <button type="button" id="saveContentBackup" class="mb-3 underline">Sao lưu ngay</button>
+  <ul id="contentBackupHistory" class="max-h-80 space-y-2 overflow-auto"></ul>
+</dialog></body>`);
 const script = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!script) throw Error('Missing Studio application');
+const archiveStart = script[1].indexOf('// ==================== MODULE 6: PROJECT ARCHIVE');
+const archiveEnd = script[1].indexOf('// ==================== MODULE 2B:', archiveStart);
+if (archiveStart < 0 || archiveEnd < 0) throw Error('Missing project archive');
+script[1] = script[1].slice(0, archiveStart) + read('studio-project-archive.js').trimStart() + '      ' + script[1].slice(archiveEnd);
+
 const briefStart=script[1].indexOf('function generateDmDirectionText()');
 const briefEnd=script[1].indexOf('function buildDmThreeOptions()',briefStart);
 if(briefStart<0||briefEnd<0)throw Error('Unexpected Moodboard brief layout');
@@ -87,15 +117,27 @@ script[1]=penPage.script;
 html=penPage.html;
 script[1]=preserveStudioState(script[1].replace(/\r\n/g,'\n'));
 script[1]=script[1].replace("if (target === 'designmood') renderDesignMoodboard();","if (target === 'designmood') openDesignResearch();").replace('function renderDesignMoodboard()',()=>"async function openDesignResearch(){\n    const host=document.getElementById('tab-designmood');\n    if(host.dataset.research)return;\n    host.dataset.research='loading';\n    try{\n      const {mount}=await import('/moodboard-research.js');\n      host.replaceChildren();\n      mount(host,state.designMoodboard?.images,{\n        palette(colors){\n          state.palette=colors.map((c,i)=>({id:crypto.randomUUID(),hex:c.hex,ratio:c.percent,imgArea:c.percent,locked:false,name:'Màu ảnh '+(i+1)}));\n          normalizeRatios();renderColorStudio();persist();document.querySelector('[data-tab=\"color\"]').click();\n        },\n        recipe(plan){state.recipe.name=plan.name;state.recipe.steps=[plan.idea,plan.form,plan.materials,plan.make].join('\\n');persist();renderRecipe();document.querySelector('[data-tab=\"recipe\"]').click();}\n      });\n      host.dataset.research='ready';\n    }catch{delete host.dataset.research;showToast('Chưa mở được phòng nghiên cứu. Hãy mở lại tab.','error');}\n  }\n"+'function renderDesignMoodboard()');
+script[1]=script[1].replace('function renderInlineSavedColors() {', () => `
+    window.addEventListener('studio:load-saved-palette', event => {
+      const {palette,image}=event.detail;
+      state.palette=palette.map(color=>({
+        id:crypto.randomUUID(),hex:color.hex,ratio:color.weight,locked:!!color.locked,name:color.name||color.hex
+      }));
+      normalizeRatios();
+      if(image)loadImageToColorStudio(image);
+      renderColorStudio();
+      try{persist();}catch{}
+    });
+    function renderInlineSavedColors() {
+`);
 const start=script[1].indexOf('// ==================== AUTH & PASSWORD MANAGEMENT');
 const end=script[1].indexOf('// ==================== STORAGE & UTILITIES');
 if(start<0||end<start)throw Error('Unexpected Studio authentication layout');
-save('studio-main.js',script[1].slice(0,start)+"const gate = document.getElementById('authGateOverlay');\n    const error = document.getElementById('loginErrorMsg');\n    async function session(body) {\n      const response = await fetch('/api/auth', body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {cache:'no-store'});\n      const data = await response.json();\n      if (!response.ok) throw new Error(data.message || 'Chưa kết nối được Creative Lab.');\n      return data;\n    }\n    function unlock() {\n      gate.hidden = true;\n      gate.classList.add('hidden');\n      if (['#projects','#composition','#color-studio'].includes(location.hash)) location.replace('/workspace.html'+location.hash);\n    }\n    session().then(data=>{if(data.signedIn) unlock();}).catch(()=>{});\n    document.getElementById('loginForm').onsubmit=async event=>{\n      event.preventDefault();\n      try {\n        const input=document.getElementById('loginPasswordInput');\n        const data=await session({action:'login',password:input.value});\n        if(data.signedIn){input.value='';unlock();}\n      }catch(e){error.textContent=e.message;error.classList.remove('hidden');}\n    };\n    document.getElementById('btnToggleLoginPw').onclick=()=>{\n      const input=document.getElementById('loginPasswordInput');\n      input.type=input.type==='password'?'text':'password';\n    };\n    (function setupStudioPasswordDialog(){\n  const dialog=document.createElement('dialog');\n  dialog.setAttribute('aria-labelledby','studio-password-heading');\n  dialog.className='rounded-xl border border-[#E4DFD5] bg-[#F7F4EF] p-5 text-[#1A2621] shadow-xl';\n  dialog.style.cssText='margin:auto;width:min(26rem,calc(100% - 2rem))';\n  dialog.innerHTML=`<form class=\"space-y-3\"><h2 id=\"studio-password-heading\" class=\"text-xl font-semibold\">Đổi mật khẩu</h2>\n    <label class=\"block text-sm\">Mật khẩu hiện tại<input class=\"block w-full rounded border p-2\" name=\"password\" type=\"password\" autocomplete=\"current-password\" required maxlength=\"128\"></label>\n    <label class=\"block text-sm\">Mật khẩu mới (tối thiểu 12 ký tự)<input class=\"block w-full rounded border p-2\" name=\"nextPassword\" type=\"password\" autocomplete=\"new-password\" required minlength=\"12\" maxlength=\"128\"></label>\n    <label class=\"block text-sm\">Nhập lại mật khẩu mới<input class=\"block w-full rounded border p-2\" name=\"confirmation\" type=\"password\" autocomplete=\"new-password\" required minlength=\"12\" maxlength=\"128\"></label>\n    <label class=\"flex gap-2 text-sm\"><input type=\"checkbox\">Hiện mật khẩu</label>\n    <p role=\"status\" aria-live=\"polite\"></p><div class=\"flex justify-end gap-2\">\n    <button type=\"button\" class=\"rounded border px-3 py-2\">Hủy</button><button type=\"submit\" class=\"rounded bg-[#1A2621] px-3 py-2 text-white\">Lưu mật khẩu</button></div></form>`;\n  document.body.append(dialog);\n  const form=dialog.querySelector('form'), message=form.querySelector('[role=status]');\n  const fields=[...form.querySelectorAll('input[name]')], toggle=form.querySelector('[type=checkbox]');\n  const submit=form.querySelector('[type=submit]'),cancel=form.querySelector('[type=button]');\n  toggle.onchange=()=>fields.forEach(input=>input.type=toggle.checked?'text':'password');\n  cancel.onclick=()=>dialog.close();\n  dialog.oncancel=event=>{if(submit.disabled)event.preventDefault();};\n  dialog.onclose=()=>{form.reset();toggle.onchange();message.textContent='';};\n  for(const id of ['btnHeaderManagePw','btnLoginOpenChangePw']){\n    document.getElementById(id).onclick=()=>{dialog.showModal();fields[0].focus();};\n  }\n  form.onsubmit=async event=>{\n    event.preventDefault();\n    if(submit.disabled)return;\n    const [password,nextPassword,confirmation]=fields.map(f=>f.value);\n    if(nextPassword!==confirmation){message.textContent='Hai lần nhập mật khẩu mới chưa khớp.';fields[2].focus();return;}\n    submit.disabled=cancel.disabled=true;\n    try{\n      if(!(await session()).signedIn)await session({action:'login',password});\n      const data=await session({action:'change',password,nextPassword,confirmation});\n      dialog.close();\n      gate.hidden=false;gate.classList.remove('hidden');\n      error.textContent=data.message;error.classList.remove('hidden');\n      const input=document.getElementById('loginPasswordInput');input.value='';input.focus();\n    }catch(e){message.textContent=e.message;}\n    finally{submit.disabled=cancel.disabled=false;}\n  };\n})();\n    document.getElementById('btnLoginResetPw').remove();\n    document.getElementById('btnHeaderLogout').onclick=async ()=>{\n      try {await session({action:'logout'});location.reload();}\n      catch(e){showToast(e.message,'error');}\n    };\n"+script[1].slice(end));
-html=html.replace(script[0],'<script src="/studio-main.js"></script>')
+save('studio-main.js',script[1].slice(0,start)+"const gate = document.getElementById('authGateOverlay');\n    const error = document.getElementById('loginErrorMsg');\n    async function session(body) {\n      const response = await fetch('/api/auth', body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {cache:'no-store'});\n      const data = await response.json();\n      if (!response.ok) throw new Error(data.message || 'Chưa kết nối được Creative Lab.');\n      return data;\n    }\n    function unlock() {\n      gate.hidden = true;\n      gate.classList.add('hidden');\n      window.dispatchEvent(new Event('studio:ready'));\n      const tab = new Map([['#projects','projects'],['#du-an-luu-tru','projects'],['#composition','composition'],['#color-studio','color']]).get(location.hash);\n      if(tab) document.querySelector('[data-tab='+tab+']').click();\n    }\n    session().then(data=>{if(data.signedIn) unlock();}).catch(()=>{});\n    document.getElementById('loginForm').onsubmit=async event=>{\n      event.preventDefault();\n      try {\n        const input=document.getElementById('loginPasswordInput');\n        const data=await session({action:'login',password:input.value});\n        if(data.signedIn){input.value='';unlock();}\n      }catch(e){error.textContent=e.message;error.classList.remove('hidden');}\n    };\n    document.getElementById('btnToggleLoginPw').onclick=()=>{\n      const input=document.getElementById('loginPasswordInput');\n      input.type=input.type==='password'?'text':'password';\n    };\n    (function setupStudioPasswordDialog(){\n  const dialog=document.createElement('dialog');\n  dialog.setAttribute('aria-labelledby','studio-password-heading');\n  dialog.className='rounded-xl border border-[#E4DFD5] bg-[#F7F4EF] p-5 text-[#1A2621] shadow-xl';\n  dialog.style.cssText='margin:auto;width:min(26rem,calc(100% - 2rem))';\n  dialog.innerHTML=`<form class=\"space-y-3\"><h2 id=\"studio-password-heading\" class=\"text-xl font-semibold\">Đổi mật khẩu</h2>\n    <label class=\"block text-sm\">Mật khẩu hiện tại<input class=\"block w-full rounded border p-2\" name=\"password\" type=\"password\" autocomplete=\"current-password\" required maxlength=\"128\"></label>\n    <label class=\"block text-sm\">Mật khẩu mới (tối thiểu 12 ký tự)<input class=\"block w-full rounded border p-2\" name=\"nextPassword\" type=\"password\" autocomplete=\"new-password\" required minlength=\"12\" maxlength=\"128\"></label>\n    <label class=\"block text-sm\">Nhập lại mật khẩu mới<input class=\"block w-full rounded border p-2\" name=\"confirmation\" type=\"password\" autocomplete=\"new-password\" required minlength=\"12\" maxlength=\"128\"></label>\n    <label class=\"flex gap-2 text-sm\"><input type=\"checkbox\">Hiện mật khẩu</label>\n    <p role=\"status\" aria-live=\"polite\"></p><div class=\"flex justify-end gap-2\">\n    <button type=\"button\" class=\"rounded border px-3 py-2\">Hủy</button><button type=\"submit\" class=\"rounded bg-[#1A2621] px-3 py-2 text-white\">Lưu mật khẩu</button></div></form>`;\n  document.body.append(dialog);\n  const form=dialog.querySelector('form'), message=form.querySelector('[role=status]');\n  const fields=[...form.querySelectorAll('input[name]')], toggle=form.querySelector('[type=checkbox]');\n  const submit=form.querySelector('[type=submit]'),cancel=form.querySelector('[type=button]');\n  toggle.onchange=()=>fields.forEach(input=>input.type=toggle.checked?'text':'password');\n  cancel.onclick=()=>dialog.close();\n  dialog.oncancel=event=>{if(submit.disabled)event.preventDefault();};\n  dialog.onclose=()=>{form.reset();toggle.onchange();message.textContent='';};\n  for(const id of ['btnHeaderManagePw','btnLoginOpenChangePw']){\n    document.getElementById(id).onclick=()=>{dialog.showModal();fields[0].focus();};\n  }\n  form.onsubmit=async event=>{\n    event.preventDefault();\n    if(submit.disabled)return;\n    const [password,nextPassword,confirmation]=fields.map(f=>f.value);\n    if(nextPassword!==confirmation){message.textContent='Hai lần nhập mật khẩu mới chưa khớp.';fields[2].focus();return;}\n    submit.disabled=cancel.disabled=true;\n    try{\n      if(!(await session()).signedIn)await session({action:'login',password});\n      const data=await session({action:'change',password,nextPassword,confirmation});\n      dialog.close();\n      gate.hidden=false;gate.classList.remove('hidden');\n      error.textContent=data.message;error.classList.remove('hidden');\n      const input=document.getElementById('loginPasswordInput');input.value='';input.focus();\n    }catch(e){message.textContent=e.message;}\n    finally{submit.disabled=cancel.disabled=false;}\n  };\n})();\n    document.getElementById('btnLoginResetPw').remove();\n    document.getElementById('btnHeaderLogout').onclick=async ()=>{\n      try {const pending=[];window.dispatchEvent(new CustomEvent('studio:before-logout',{detail:pending}));await Promise.allSettled(pending);await session({action:'logout'});location.reload();}\n      catch(e){showToast(e.message,'error');}\n    };\n"+script[1].slice(end));
+html=html.replace(script[0],'<script src="/studio-main.js"></script><script type="module" src="/legacy-palette-archive.js"></script><script type="module" src="/content-backups.js"></script>')
   .replace('<script src="https://cdn.tailwindcss.com/3.4.17"></script>','<link rel="stylesheet" href="/studio-layout.css">')
   .replace('https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js','/studio-icons.js')
-  .replace('<p class="text-xs text-[#5F6B64]">Tách màu hoa chính xác từ ảnh thật, tùy chỉnh 2–10 màu, chia tỷ lệ 60–30–10 và mô phỏng thực tế trên sản phẩm hoa.</p>', '')
-  .replace('</nav>','<a class="whitespace-nowrap px-3 py-2 text-xs font-semibold" href="/workspace.html">Công cụ &amp; hồ sơ đã lưu</a></nav>');
+  .replace('<p class="text-xs text-[#5F6B64]">Tách màu hoa chính xác từ ảnh thật, tùy chỉnh 2–10 màu, chia tỷ lệ 60–30–10 và mô phỏng thực tế trên sản phẩm hoa.</p>', '');
 html=html.replace('Bước 4 – Kết quả Phân tích','Bước 4 – Nhận xét của bạn').replace('Bước 4: Đọc kết quả','Bước 4: Ghi nhận xét').replace('Ẩn/Hiện Nhận xét Tự động','Ẩn/Hiện nhận xét').replace('Nhận định nghiên cứu của bạn (So sánh với máy):','Nhận định nghiên cứu của bạn:');
 html=html.replace('</head>','<link rel="stylesheet" href="/moodboard-research.css"></head>');
 save('moodboard-mask.js','export '+read('flower-leaf-samples.js'));
@@ -203,6 +245,7 @@ function preserveStudioState(source){
         const next=JSON.stringify(value);
         localStorage.setItem(STORAGE_KEY,next);
         savedRaw=next;
+        window.dispatchEvent(new Event('studio:storage-saved'));
       }catch(error){
         showToast(error.name==='Error'?error.message:'Chưa lưu được thay đổi. Bộ nhớ trình duyệt có thể đã đầy.', 'error');
         throw error;
@@ -228,6 +271,7 @@ function preserveStudioState(source){
     .replace('const maxW = 540, maxH = 340;','if(request!==colorRequest)return;\n        const maxW = 540, maxH = 340;')
     .replace("state.currentImageDataUrl = colorCanvas.toDataURL","if(restore)return;\n        state.currentImageDataUrl = colorCanvas.toDataURL");
   source=source.replace('function loadCompImage(src) {','function loadCompImage(src,restore=false) {')
+    .replace('function loadCompImage(src,restore=false) { changeReviewSource(src);','function loadCompImage(src,restore=false,onReady) {')
     .replace('compBgImg.onload = () => {','const requestedImage=compBgImg;\n      compBgImg.onload = () => {\n        if(requestedImage!==compBgImg)return;')
     .replace('compCanvas.height = Math.round(compBgImg.height * scale);',`compCanvas.height = Math.round(compBgImg.height * scale);
         if(!restore){
@@ -235,7 +279,9 @@ function preserveStudioState(source){
           imageCopy.width=compCanvas.width;imageCopy.height=compCanvas.height;
           imageCopy.getContext('2d').drawImage(compBgImg,0,0,imageCopy.width,imageCopy.height);
           state.compSource=imageCopy.toDataURL('image/png');
-        }`)
+        }
+        changeReviewSource(src,restore);
+        onReady?.();`)
     .replace("      compBgImg.src = src;", "      compBgImg.src = src;")
     .replace('        analyzeFloralComposition();\n        renderCompCanvas();','        analyzeFloralComposition();\n        renderCompCanvas();\n        if(!restore)persist();');
   section('// Load default sample image into Color Studio', 'if (window.lucide)',`const sample=document.getElementById('sampleImgBouquet');

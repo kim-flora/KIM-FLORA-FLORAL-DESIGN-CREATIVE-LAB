@@ -22,7 +22,9 @@ export function projectPanel(root,env){
     try{const shot=e.snapshot(),conn=await ready(),tx=conn.transaction(['originals','versions','catalog'],'readwrite');
       const originals=tx.objectStore('originals'),request=originals.getKey(pid);request.onsuccess=()=>{if(request.result===undefined)originals.add(e.file,pid);};
       tx.objectStore('versions').add({id,pid,title,...shot});tx.objectStore('catalog').add({id,name:title,time});
-      await new Promise((ok,no)=>{tx.oncomplete=ok;tx.onabort=()=>no(tx.error);});await refresh(id);e.message.textContent='Đã lưu phiên bản dự án trên thiết bị.';
+      await new Promise((ok,no)=>{tx.oncomplete=ok;tx.onabort=()=>no(tx.error);});
+      window.dispatchEvent(new Event('studio:storage-saved'));
+      await refresh(id);e.message.textContent='Đã lưu phiên bản dự án trên thiết bị.';
     }catch{e.message.textContent='Chưa lưu được phiên bản. Kiểm tra dung lượng hoặc quyền lưu của trình duyệt.';}
     finally{pending=false;update();}
   };

@@ -38,11 +38,18 @@
         for (const project of projects) {
           if (typeof project?.id !== 'string' || typeof project.title !== 'string') continue;
           const row = document.createElement('li');
-          const link = document.createElement('a');
-          link.href = '/workspace.html?project=' + encodeURIComponent(project.id) + '#projects';
-          link.className = 'underline';
-          link.textContent = project.title;
-          row.append(link);
+          const details = document.createElement('details');
+          const title = document.createElement('summary');
+          title.textContent = project.title;
+          details.append(title);
+          for (const value of [project.occasion, project.notes, project.materials, Array.isArray(project.colors) ? project.colors.join(', ') : '']) {
+            if (typeof value !== 'string' || !value) continue;
+            const text = document.createElement('p');
+            text.className = 'whitespace-pre-wrap';
+            text.textContent = value;
+            details.append(text);
+          }
+          row.append(details);
           list.append(row);
         }
       } catch {

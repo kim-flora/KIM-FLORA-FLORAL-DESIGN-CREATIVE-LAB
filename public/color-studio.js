@@ -528,12 +528,7 @@ export function setupColorStudio() {
     return true;
   }
 
-  const requestedPalette = new URLSearchParams(location.search).get('palette');
-  allFormulas().then(entries => {
-    if (list.value) return;
-    updateList(entries, requestedPalette ?? '');
-    if (list.value && requestedPalette) get('open-formula').click();
-  })
+  allFormulas().then(entries => { if (!list.value) updateList(entries); })
     .catch(() => { status.textContent = 'Chưa đọc được công thức trên trình duyệt này.'; });
 
   get('save-formula').onsubmit = async event => {

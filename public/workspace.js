@@ -10,10 +10,8 @@ export function setupWorkspace() {
   let selected = null;
   let dirty = false;
   let readable = true;
-  let savedRaw = null;
   try {
-    savedRaw = localStorage.getItem(storageKey);
-    const saved = JSON.parse(savedRaw ?? '[]');
+    const saved = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
     if (!Array.isArray(saved)) throw new Error();
     projects = saved;
   } catch {
@@ -24,13 +22,7 @@ export function setupWorkspace() {
   function persist(next, message) {
     try {
       if (!readable) throw new Error();
-      if (localStorage.getItem(storageKey) !== savedRaw) {
-        status.textContent = 'Kho dự án đã thay đổi ở tab khác. Hãy sao chép nội dung đang sửa rồi tải lại trang.';
-        return false;
-      }
-      const raw = JSON.stringify(next);
-      localStorage.setItem(storageKey, raw);
-      savedRaw = raw;
+      localStorage.setItem(storageKey, JSON.stringify(next));
     } catch {
       status.textContent = 'Chưa lưu được. Hãy giữ trang này mở để sao chép nội dung.';
       return false;
@@ -129,8 +121,5 @@ export function setupWorkspace() {
     event.preventDefault();
     event.returnValue = '';
   });
-  const requestedId = new URLSearchParams(location.search).get('project');
-  const requested = projects.find(project => project.id === requestedId);
-  if (requested) open(requested);
-  else renderList();
+  renderList();
 }

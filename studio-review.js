@@ -39,8 +39,23 @@ reviewStatus.setAttribute('role','status');
 const reviewList=reviewNode('details');
 reviewList.append(reviewNode('summary','Hồ sơ đã lưu trên thiết bị'));
 const choices=reviewNode('div','','space-y-2');
-const olderReports=reviewNode('a','Mở báo cáo bố cục phiên bản trước','block text-xs underline');
-olderReports.href='/workspace.html#composition';
+const olderReports=reviewNode('details','','text-xs space-y-2');
+olderReports.append(reviewNode('summary','Báo cáo bố cục phiên bản trước'));
+const olderReportList=reviewNode('div','','space-y-2');
+olderReports.append(olderReportList);
+olderReports.ontoggle=()=>{
+  if(!olderReports.open)return;
+  olderReportList.replaceChildren();
+  try{
+    const reports=JSON.parse(localStorage.getItem('kim_flora_composition_reports_v1')??'[]');
+    for(const report of reports){
+      const row=reviewNode('details');
+      row.append(reviewNode('summary',report.title),reviewNode('p',report.summary,'whitespace-pre-wrap'));
+      olderReportList.append(row);
+    }
+    if(!reports.length)olderReportList.textContent='Chưa có báo cáo.';
+  }catch{olderReportList.textContent='Chưa đọc được báo cáo trên trình duyệt này.';}
+};
 reviewList.append(choices,olderReports);
 reviewFields.after(saveReview,reviewStatus,reviewList);
 function renderCompDiagnosis(){

@@ -36,7 +36,7 @@ const reviewFields=document.getElementById('compDiagnosisCards');
 const saveReview=reviewNode('button','Lưu nhận xét và ảnh',reviewButtonClass+' bg-[#1A2621] text-white');
 const reviewStatus=reviewNode('p','','text-xs');
 reviewStatus.setAttribute('role','status');
-const reviewList=reviewNode('section','','panel-card p-4 space-y-2');
+const reviewList=document.getElementById('compSavedReviews');
 const reviewHeading=reviewNode('h3','Hồ sơ bố cục đã lưu','text-sm font-semibold');
 const choices=reviewNode('div','Đang đọc hồ sơ…','flex flex-wrap gap-2 max-h-40 overflow-auto text-xs');
 reviewList.append(reviewHeading);
@@ -58,7 +58,6 @@ olderReports.ontoggle=()=>{
   }catch{olderReportList.textContent='Chưa đọc được báo cáo trên trình duyệt này.';}
 };
 reviewList.append(choices,olderReports);
-document.querySelector('#tab-composition > div').after(reviewList);
 reviewFields.after(saveReview,reviewStatus);
 function renderCompDiagnosis(){
   const selected=getSelectedCriteria();
@@ -82,16 +81,22 @@ async function reviewStore(mode,operation){
     tx.oncomplete=()=>resolve(request.result);tx.onabort=()=>reject(tx.error);tx.onerror=()=>reject(tx.error);
   });}finally{db.close();}
 }
+function reviewCode(id){return 'BC-'+id;}
 async function listReviews(){
   try{
     const keys=await reviewStore('readonly',store=>store.getAllKeys());
     choices.replaceChildren(...keys.reverse().map(id=>{
-      const button=reviewNode('button',new Date(id).toLocaleString('vi-VN'),reviewButtonClass);
+      const button=reviewNode('button',reviewCode(id),reviewButtonClass+' mono-num');
+      button.type='button';
+      button.title=new Date(id).toLocaleString('vi-VN');
       button.onclick=async()=>{
         try{
           const record=await reviewStore('readonly',store=>store.get(id));
           const dialog=reviewNode('dialog','','rounded-xl border p-4 space-y-2');
           dialog.style.cssText='margin:auto;width:min(38rem,95vw);max-height:85vh;overflow:auto';
+          const title=reviewNode('h3',reviewCode(id),'text-sm font-semibold mono-num');
+          title.id='compReviewTitle';
+          dialog.setAttribute('aria-labelledby',title.id);
           const close=reviewNode('button','Đóng',reviewButtonClass);
           close.onclick=()=>dialog.close();
           const url=URL.createObjectURL(record.image);
@@ -115,7 +120,7 @@ async function listReviews(){
               if(!dialog.open)return;
               loadCompImage(source,false,()=>{
                 state.compAnnotations=structuredClone(record.annotations??[]);
-                draft={notes:{...record.notes},general:record.general??'',id:null};
+                draft={notes:{...record.notes},general:record.general??'',id:record.id};
                 generalNote.value=draft.general;
                 state.compReviewDraft=structuredClone(draft);
                 renderCompDiagnosis();
@@ -127,7 +132,7 @@ async function listReviews(){
               reopen.after(error);
             }finally{reopen.disabled=false;}
           };
-          dialog.append(close,reopen,image);
+          dialog.append(title,close,reopen,image);
           for(const [key,text] of [...Object.entries(record.notes),['general',record.general]]){
             if(!text)continue;
             const p=reviewNode('p',text);p.style.whiteSpace='pre-wrap';
@@ -162,7 +167,7 @@ saveReview.onclick=async()=>{
     window.dispatchEvent(new Event('studio:storage-saved'));
     current.id=record.id;
     if(current===draft)rememberReviewDraft();
-    reviewStatus.textContent='Đã lưu nhận xét và ảnh trên thiết bị này.';
+    reviewStatus.textContent='Đã lưu hồ sơ '+reviewCode(record.id)+'.';
     await listReviews();
   }catch{reviewStatus.textContent='Chưa lưu được nhận xét và ảnh. Hãy kiểm tra dung lượng trình duyệt và thử lại.';}
   finally{saveReview.disabled=false;}

@@ -36,10 +36,6 @@ const archiveEnd = script[1].indexOf('// ==================== MODULE 2B:', archi
 if (archiveStart < 0 || archiveEnd < 0) throw Error('Missing project archive');
 script[1] = script[1].slice(0, archiveStart) + read('studio-project-archive.js').trimStart() + '      ' + script[1].slice(archiveEnd);
 
-const briefStart=script[1].indexOf('function generateDmDirectionText()');
-const briefEnd=script[1].indexOf('function buildDmThreeOptions()',briefStart);
-if(briefStart<0||briefEnd<0)throw Error('Unexpected Moodboard brief layout');
-script[1]=script[1].slice(0,briefStart)+read('moodboard-brief.js')+'\n'+script[1].slice(briefEnd);
 const from=script[1].indexOf('function extractColorsFromCanvas(k)');
 const to=script[1].indexOf('state.palette = extracted;',from);
 if(from<0||to<0)throw Error('Missing Color Studio extraction');
@@ -116,7 +112,6 @@ const penPage=freehandStudio(script[1],html);
 script[1]=penPage.script;
 html=penPage.html;
 script[1]=preserveStudioState(script[1].replace(/\r\n/g,'\n'));
-script[1]=script[1].replace("if (target === 'designmood') renderDesignMoodboard();","if (target === 'designmood') openDesignResearch();").replace('function renderDesignMoodboard()',()=>"async function openDesignResearch(){\n    const host=document.getElementById('tab-designmood');\n    if(host.dataset.research)return;\n    host.dataset.research='loading';\n    try{\n      const {mount}=await import('/moodboard-research.js');\n      host.replaceChildren();\n      mount(host,state.designMoodboard?.images,{\n        palette(colors){\n          state.palette=colors.map((c,i)=>({id:crypto.randomUUID(),hex:c.hex,ratio:c.percent,imgArea:c.percent,locked:false,name:'Màu ảnh '+(i+1)}));\n          normalizeRatios();renderColorStudio();persist();document.querySelector('[data-tab=\"color\"]').click();\n        },\n        recipe(plan){state.recipe.name=plan.name;state.recipe.steps=[plan.idea,plan.form,plan.materials,plan.make].join('\\n');persist();renderRecipe();document.querySelector('[data-tab=\"recipe\"]').click();}\n      });\n      host.dataset.research='ready';\n    }catch{delete host.dataset.research;showToast('Chưa mở được phòng nghiên cứu. Hãy mở lại tab.','error');}\n  }\n"+'function renderDesignMoodboard()');
 script[1]=script[1].replace('function renderInlineSavedColors() {', () => `
     window.addEventListener('studio:load-saved-palette', event => {
       const {palette,image}=event.detail;

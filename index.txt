@@ -522,6 +522,7 @@
               <textarea id="compUserNotes" rows="2" class="w-full mt-1 px-2.5 py-1.5 text-xs border border-[#E4DFD5] rounded-lg bg-[#F7F4EF]" placeholder="Ghi lại cảm nhận của bạn về dáng hoa, trọng tâm, điểm cần chỉnh..."></textarea>
             </div>
           </div>
+          <section id="compSavedReviews" class="panel-card p-4 space-y-2"></section>
         </div>
 
         <!-- Center & Right: Zoomable Canvas (Step 3) + Readable Results Drawer (Step 4) -->
@@ -565,138 +566,7 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 2B: FLORAL DESIGN MOODBOARD (CONCEPT LAB) ==================== -->
-    <section id="tab-designmood" class="tab-panel hidden space-y-5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 class="font-editorial text-2xl font-semibold text-[#1A2621]">Floral Design Moodboard – Xưởng Ý Tưởng Thiết Kế Hoa</h2>
-          <p class="text-xs text-[#5F6B64]">Phân tích ảnh cảm hứng thực tế (màu sắc, hình khối, chất liệu), kết hợp Hội họa – Kiến trúc – Thời trang để tạo định hướng và phát triển nhiều phương án.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="btnDmGenerateDirection" class="px-3 py-1.5 rounded-lg bg-[#A65A42] hover:bg-[#8E4A35] text-white text-xs font-medium flex items-center gap-1.5">
-            <i data-lucide="wand-2" class="w-3.5 h-3.5"></i> Phân tích &amp; Tạo Định Hướng
-          </button>
-          <button id="btnDmSaveConcept" class="px-3 py-1.5 rounded-lg bg-[#1A2621] hover:bg-[#2E3F37] text-white text-xs font-medium flex items-center gap-1.5">
-            <i data-lucide="bookmark-plus" class="w-3.5 h-3.5"></i> Lưu Concept Chủ Đạo
-          </button>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
-        <!-- Left Column: Images + Auto Color/Shape/Texture + Art/Arch/Fashion -->
-        <div class="xl:col-span-5 space-y-4">
-          <div class="panel-card p-4 space-y-3">
-            <div class="flex items-center justify-between">
-              <h3 class="text-sm font-semibold">1. Bảng Cảm Hứng Từ Hình Ảnh Tải Lên</h3>
-              <button id="btnDmUploadImg" class="px-2.5 py-1 rounded-lg bg-[#1A2621] text-white text-xs font-medium hover:bg-[#2E3F37]">+ Tải ảnh cảm hứng</button>
-              <input type="file" id="dmImageInput" accept="image/*" multiple class="hidden" />
-            </div>
-            <div id="dmImageGrid" class="grid grid-cols-3 gap-2 min-h-[110px] p-2 rounded-xl bg-[#F7F4EF] border border-dashed border-[#CFC8BC]"></div>
-
-            <div class="space-y-1.5">
-              <div class="flex items-center justify-between text-[11px]">
-                <span class="font-medium text-[#5F6B64]">Màu sắc phân tích trực tiếp từ ảnh cảm hứng:</span>
-                <button id="btnDmSyncToColor" class="text-[#A65A42] font-semibold hover:underline">Đồng bộ sang Color Studio</button>
-              </div>
-              <div id="dmExtractedColors" class="flex h-7 rounded-lg overflow-hidden border border-[#E4DFD5]"></div>
-              <div id="dmExtractedHexList" class="flex flex-wrap gap-2 text-[10px] mono-num text-[#5F6B64]"></div>
-            </div>
-
-            <div id="dmAutoImageInsight" class="p-2.5 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] text-xs text-[#1A2621] space-y-1"></div>
-          </div>
-
-          <div class="panel-card p-4 space-y-3">
-            <h3 class="text-sm font-semibold">2. Hình Khối, Chất Liệu &amp; Chủ Đề</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div>
-                <label class="text-[#5F6B64] font-medium">Chủ đề thiết kế (Theme)</label>
-                <input type="text" id="dmThemeInput" value="Vườn Thu Á Đông Đương Đại" class="w-full mt-1 px-2.5 py-1.5 border border-[#E4DFD5] rounded-lg bg-[#F7F4EF]" />
-              </div>
-              <div>
-                <label class="text-[#5F6B64] font-medium">Hình khối chủ đạo (Form)</label>
-                <select id="dmShapeSelect" class="w-full mt-1 px-2.5 py-1.5 border border-[#E4DFD5] rounded-lg bg-white">
-                  <option>Bất đối xứng vươn tự do (Organic Asymmetric)</option>
-                  <option>Vòm tròn cổ điển (Classic Dome)</option>
-                  <option>Dáng cao điêu khắc (Sculptural Vertical)</option>
-                  <option>Dáng thác đổ mềm mại (Cascade)</option>
-                  <option>Dáng ngang trải bàn (Horizontal Meadow)</option>
-                </select>
-              </div>
-              <div class="sm:col-span-2">
-                <label class="text-[#5F6B64] font-medium">Chất liệu bình &amp; phụ kiện (Chọn nhiều)</label>
-                <div class="flex flex-wrap gap-1.5 mt-1" id="dmTextureChips">
-                  <button type="button" data-tex="Gốm thô mộc (Matte Ceramic)" class="dm-tex-btn px-2.5 py-1 rounded-full text-[11px] bg-[#1A2621] text-white">Gốm thô mộc</button>
-                  <button type="button" data-tex="Lụa tơ tằm nhuộm tay" class="dm-tex-btn px-2.5 py-1 rounded-full text-[11px] bg-[#1A2621] text-white">Lụa tơ tằm</button>
-                  <button type="button" data-tex="Thủy tinh trong suốt" class="dm-tex-btn px-2.5 py-1 rounded-full text-[11px] bg-[#F7F4EF] border border-[#E4DFD5]">Thủy tinh trong</button>
-                  <button type="button" data-tex="Mây tre đan tự nhiên" class="dm-tex-btn px-2.5 py-1 rounded-full text-[11px] bg-[#F7F4EF] border border-[#E4DFD5]">Mây tre đan</button>
-                  <button type="button" data-tex="Đồng xước / Kim loại mờ" class="dm-tex-btn px-2.5 py-1 rounded-full text-[11px] bg-[#F7F4EF] border border-[#E4DFD5]">Đồng / Kim loại mờ</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel-card p-4 space-y-3">
-            <h3 class="text-sm font-semibold">3. Kết Hợp Hội Họa · Kiến Trúc · Thời Trang</h3>
-            <div class="space-y-2.5 text-xs">
-              <div class="p-2.5 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-1">
-                <label class="text-[11px] text-[#A65A42] font-semibold">Hội họa (Màu sắc &amp; Ánh sáng)</label>
-                <select id="dmArtSelect" class="w-full px-2 py-1.5 border border-[#E4DFD5] rounded-lg bg-white">
-                  <option value="impressionism">Ấn tượng (Impressionism – ánh sáng &amp; chuyển sắc mềm)</option>
-                  <option value="dutch">Tĩnh vật Hà Lan (Moody Chiaroscuro – tương phản sâu)</option>
-                  <option value="wabisabi">Tối giản Nhật Bản (Wabi-Sabi – khoảng trống &amp; nét mộc)</option>
-                  <option value="modern">Đương đại (Color Blocking – mảng màu khối lớn)</option>
-                </select>
-                <p id="dmArtCue" class="text-[11px] text-[#5F6B64]"></p>
-              </div>
-              <div class="p-2.5 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-1">
-                <label class="text-[11px] text-[#A65A42] font-semibold">Kiến trúc (Cấu trúc &amp; Không gian)</label>
-                <select id="dmArchSelect" class="w-full px-2 py-1.5 border border-[#E4DFD5] rounded-lg bg-white">
-                  <option value="indochine">Indochine (Gỗ trầm, mây tre &amp; nét Á Đông)</option>
-                  <option value="brutalist">Brutalist / Đá thô tối giản</option>
-                  <option value="mediterranean">Mediterranean (Vòm cong, đất nung &amp; nắng ấm)</option>
-                  <option value="artdeco">Art Deco (Hình học đối xứng &amp; ánh kim)</option>
-                </select>
-                <p id="dmArchCue" class="text-[11px] text-[#5F6B64]"></p>
-              </div>
-              <div class="p-2.5 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-1">
-                <label class="text-[11px] text-[#A65A42] font-semibold">Thời trang (Phom dáng &amp; Chất liệu vải)</label>
-                <select id="dmFashionSelect" class="w-full px-2 py-1.5 border border-[#E4DFD5] rounded-lg bg-white">
-                  <option value="quiet">Quiet Luxury (Tinh giản, ít loại hoa nhưng cao cấp)</option>
-                  <option value="couture">Haute Couture (Phom dáng kịch tính, cành vươn mạnh)</option>
-                  <option value="boho">Bohemian Romantic (Bay bổng, ruy băng rủ tự nhiên)</option>
-                  <option value="avant">Avant-Garde (Phá cách, phối chất liệu lạ)</option>
-                </select>
-                <p id="dmFashionCue" class="text-[11px] text-[#5F6B64]"></p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column: Rich Design Direction + 3 Detailed Options + Saved Concepts -->
-        <div class="xl:col-span-7 space-y-4">
-          <div class="panel-card p-4 space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <h3 class="text-sm font-semibold">4. Định Hướng Thiết Kế Theo Chủ Đề (Concept Brief)</h3>
-              <button id="btnDmExpandOptions" class="px-3 py-1.5 rounded-lg bg-[#5A7364] hover:bg-[#495F52] text-white text-xs font-medium">Phát triển 3 Phương án Thiết kế</button>
-            </div>
-            <div id="dmDirectionBox" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs"></div>
-          </div>
-
-          <div class="panel-card p-4 space-y-3">
-            <h3 class="text-sm font-semibold">5. Phát Triển Từ 1 Ý Tưởng Thành Nhiều Phương Án</h3>
-            <div id="dmOptionsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
-          </div>
-
-          <div class="panel-card p-4 space-y-3">
-            <div class="flex items-center justify-between">
-              <h3 class="text-sm font-semibold">6. Kho Concept Chủ Đạo Đã Lưu</h3>
-              <span id="dmConceptCount" class="mono-num text-[11px] px-2 py-0.5 rounded-full bg-[#F7F4EF] border border-[#E4DFD5]">0 concept</span>
-            </div>
-            <div id="dmSavedConceptsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <section id="tab-designmood" class="tab-panel hidden space-y-3"></section>
 
     <!-- ==================== TAB 3: RECIPE BUILDER & COSTING ==================== -->
     <section id="tab-recipe" class="tab-panel hidden space-y-5">
@@ -1447,7 +1317,7 @@
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
         document.getElementById('tab-' + target).classList.remove('hidden');
         if (target === 'composition') renderCompCanvas();
-        if (target === 'designmood') renderDesignMoodboard();
+        if (target === 'designmood') openDesignResearch();
         if (target === 'moodboard') renderMoodboard();
         if (target === 'recipe') renderRecipe();
         if (target === 'inventory') renderInventory();
@@ -3319,361 +3189,50 @@
     };
 
     // ==================== MODULE 2B: FLORAL DESIGN MOODBOARD ====================
-    const DM_ART_CUES = {
-      impressionism: 'Áp dụng: Phối nhiều sắc độ gần nhau để hoa chuyển màu mềm như nét cọ, tránh cắt khối cứng.',
-      dutch: 'Áp dụng: Dùng nền lá tối hoặc bình sẫm màu để đẩy cụm hoa sáng rực lên phía trước.',
-      wabisabi: 'Áp dụng: Giữ 40–50% khoảng trống, chọn cành dáng cong tự nhiên và bình gốm mộc.',
-      modern: 'Áp dụng: Gom từng loại hoa thành mảng khối màu rõ rệt (color-block) để tạo ấn tượng thị giác mạnh.'
-    };
-    const DM_ARCH_CUES = {
-      indochine: 'Không gian: Hợp sảnh gỗ trầm, mây tre, gạch bông; ưu tiên bình gốm men rạn hoặc đồng.',
-      brutalist: 'Không gian: Hợp tường bê tông, đá thô; chọn hoa phom điêu khắc rõ nét, ít chi tiết rườm rà.',
-      mediterranean: 'Không gian: Hợp ánh nắng tự nhiên, tường vôi, đất nung terracotta và hoa cỏ bay bổng.',
-      artdeco: 'Không gian: Hợp tiệc tối sang trọng, ánh kim/pha lê; ưu tiên bố cục vươn cao, cân xứng.'
-    };
-    const DM_FASHION_CUES = {
-      quiet: 'Chất liệu & Tỉ lệ: Ít chủng loại nhưng hoa cao cấp (hồng nhập, lan hồ điệp), quấn ruy băng lụa trơn.',
-      couture: 'Chất liệu & Tỉ lệ: Tạo đường nét cành vươn kịch tính, bất đối xứng rõ rệt.',
-      boho: 'Chất liệu & Tỉ lệ: Thêm cỏ lau, hoa nhỏ bay bổng và dây ruy băng rủ dài tự nhiên.',
-      avant: 'Chất liệu & Tỉ lệ: Kết hợp thêm cành khô, lá nhuộm hoặc cấu trúc bình lạ mắt.'
-    };
+    async function openDesignResearch() {
+      const host = document.getElementById('tab-designmood');
+      if (host.dataset.research) return;
+      host.dataset.research = 'loading';
 
-    function analyzeDmImagePixels(src, cb) {
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement('canvas');
-        const scale = Math.min(260 / img.width, 260 / img.height, 1);
-        c.width = Math.max(40, Math.round(img.width * scale));
-        c.height = Math.max(40, Math.round(img.height * scale));
-        const ctx = c.getContext('2d', { willReadFrequently: true });
-        ctx.drawImage(img, 0, 0, c.width, c.height);
-        const data = ctx.getImageData(0, 0, c.width, c.height).data;
-        const pixels = [];
-        for (let i = 0; i < data.length; i += 8) {
-          const r = data[i], g = data[i+1], b = data[i+2];
-          const maxC = Math.max(r,g,b)/255, minC = Math.min(r,g,b)/255;
-          const l = (maxC + minC)/2, d = maxC - minC;
-          const sat = d === 0 ? 0 : d / (1 - Math.abs(2*l - 1));
-          if (l < 0.14 && sat < 0.35) continue;
-          if (sat < 0.11 && l < 0.84) continue;
-          const reps = sat > 0.3 ? 3 : 1;
-          for (let k = 0; k < reps; k++) pixels.push([r, g, b]);
-        }
-        if (pixels.length < 20) {
-          for (let i = 0; i < data.length; i += 16) pixels.push([data[i], data[i+1], data[i+2]]);
-        }
-        // 5-cluster K-means
-        const k = 5;
-        const cents = [pixels[0]];
-        while (cents.length < k && cents.length < pixels.length) {
-          cents.push(pixels[Math.floor((cents.length / k) * pixels.length)]);
-        }
-        const counts = new Array(k).fill(0);
-        for (let it = 0; it < 8; it++) {
-          const sums = Array.from({length:k}, () => [0,0,0,0]);
-          counts.fill(0);
-          pixels.forEach(p => {
-            let bi = 0, bd = Infinity;
-            cents.forEach((cn, idx) => {
-              const dist = (p[0]-cn[0])**2 + (p[1]-cn[1])**2 + (p[2]-cn[2])**2;
-              if (dist < bd) { bd = dist; bi = idx; }
-            });
-            sums[bi][0]+=p[0]; sums[bi][1]+=p[1]; sums[bi][2]+=p[2]; sums[bi][3]++; counts[bi]++;
-          });
-          for (let j=0; j<k; j++) if (sums[j][3]) cents[j] = [sums[j][0]/sums[j][3], sums[j][1]/sums[j][3], sums[j][2]/sums[j][3]];
-        }
-        const tot = pixels.length || 1;
-        const extracted = cents.map((cn, idx) => ({
-          hex: rgbToHex(cn[0], cn[1], cn[2]),
-          ratio: Math.max(5, Math.round((counts[idx] / tot) * 100))
-        })).sort((a,b) => b.ratio - a.ratio);
-        cb(extracted, img.width, img.height);
-      };
-      img.src = src;
-    }
+      const status = document.createElement('p');
+      status.setAttribute('role', 'status');
+      status.textContent = 'Đang mở trình chỉnh ảnh…';
+      host.replaceChildren(status);
 
-    function renderDesignMoodboard() {
-      const dm = state.designMoodboard || (state.designMoodboard = DEFAULT_STATE.designMoodboard);
-      const grid = document.getElementById('dmImageGrid');
-      const imgs = dm.images || [];
-      grid.innerHTML = imgs.length ? imgs.map((src, i) => `
-        <div class="relative group rounded-lg overflow-hidden border border-[#E4DFD5] bg-white flex items-center justify-center p-1">
-          <img src="${src}" class="w-full h-auto max-h-40 object-contain" />
-          <button data-idx="${i}" class="dm-img-del absolute top-1 right-1 bg-black/65 text-white text-[10px] px-1.5 py-0.5 rounded">×</button>
-        </div>
-      `).join('') : '<p class="col-span-3 text-xs text-[#5F6B64] text-center py-6">Chưa có ảnh cảm hứng. Nhấn "+ Tải ảnh cảm hứng" để hệ thống tự đọc màu sắc &amp; hình khối.</p>';
-
-      grid.querySelectorAll('.dm-img-del').forEach(b => {
-        b.onclick = () => { dm.images.splice(+b.dataset.idx, 1); persist(); renderDesignMoodboard(); };
-      });
-
-      const dmCols = (dm.extractedColors && dm.extractedColors.length)
-        ? dm.extractedColors
-        : (state.palette || []).map(p => ({ hex: p.hex, ratio: p.ratio }));
-
-      document.getElementById('dmExtractedColors').innerHTML = dmCols.map(c => `<div style="width:${c.ratio}%;background:${c.hex}" title="${c.hex} (${c.ratio}%)"></div>`).join('');
-      document.getElementById('dmExtractedHexList').innerHTML = dmCols.map(c => `<span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm border border-black/15" style="background:${c.hex}"></span>${c.hex} (${c.ratio}%)</span>`).join('');
-
-      document.getElementById('dmAutoImageInsight').innerHTML = dm.imageInsight
-        ? `<strong>Nhận diện từ ảnh cảm hứng:</strong> ${dm.imageInsight}`
-        : 'Tải ảnh cảm hứng lên để hệ thống tự động đọc sắc tố hoa, độ ấm/mát và gợi ý phom dáng phù hợp.';
-
-      document.getElementById('dmThemeInput').value = dm.theme || '';
-      document.getElementById('dmShapeSelect').value = dm.shape || 'Bất đối xứng vươn tự do (Organic Asymmetric)';
-      document.getElementById('dmArtSelect').value = ['impressionism','dutch','wabisabi','modern'].includes(dm.art) ? dm.art : 'impressionism';
-      document.getElementById('dmArchSelect').value = ['indochine','brutalist','mediterranean','artdeco'].includes(dm.arch) ? dm.arch : 'indochine';
-      document.getElementById('dmFashionSelect').value = ['quiet','couture','boho','avant'].includes(dm.fashion) ? dm.fashion : 'quiet';
-      dm.art = document.getElementById('dmArtSelect').value;
-      dm.arch = document.getElementById('dmArchSelect').value;
-      dm.fashion = document.getElementById('dmFashionSelect').value;
-
-      document.getElementById('dmArtCue').textContent = DM_ART_CUES[dm.art] || DM_ART_CUES.impressionism;
-      document.getElementById('dmArchCue').textContent = DM_ARCH_CUES[dm.arch] || DM_ARCH_CUES.indochine;
-      document.getElementById('dmFashionCue').textContent = DM_FASHION_CUES[dm.fashion] || DM_FASHION_CUES.quiet;
-
-      document.querySelectorAll('.dm-tex-btn').forEach(b => {
-        const active = (dm.textures || []).includes(b.dataset.tex);
-        b.className = active
-          ? 'dm-tex-btn px-2.5 py-1 rounded-full text-[11px] bg-[#1A2621] text-white'
-          : 'dm-tex-btn px-2.5 py-1 rounded-full text-[11px] bg-[#F7F4EF] border border-[#E4DFD5]';
-      });
-
-      generateDmDirectionText();
-      if (!dm.options || !dm.options.length) buildDmThreeOptions();
-      renderDmOptions();
-      renderDmSavedConcepts();
-    }
-
-    function generateDmDirectionText() {
-      const dm = state.designMoodboard;
-      const cols = (dm.extractedColors && dm.extractedColors.length) ? dm.extractedColors : (state.palette || []);
-      const topHex = cols.slice(0, 3).map(c => c.hex).join(' · ');
-      const firstRgb = hexToRgb(cols[0]?.hex || '#D8B79E');
-      const firstLab = rgbToLab(firstRgb.r, firstRgb.g, firstRgb.b);
-      const isWarm = (firstLab.b * 0.7 + firstLab.a * 0.3) > 6;
-      const botanicalRec = isWarm
-        ? 'Hồng Juliet / Ecuador cam đỏ, Mao lương Ranunculus, Thược dược, Đậu thơm & Lá Eucalyptus.'
-        : 'Cẩm tú cầu xanh/tím, Hồng kem phấn, Cát tường, Cúc Bướm Cosmos & Lá Bạc.';
-      const tex = (dm.textures || []).join(', ') || 'Gốm thô mộc, Lụa tơ tằm';
-
-      document.getElementById('dmDirectionBox').innerHTML = `
-        <div class="p-3 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-1">
-          <div class="font-semibold text-[#A65A42]">Tinh thần &amp; Chủ đề</div>
-          <p><strong>${dm.theme}</strong> — phát triển theo ngôn ngữ ${DM_FASHION_CUES[dm.fashion] || ''}</p>
-        </div>
-        <div class="p-3 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-1">
-          <div class="font-semibold text-[#A65A42]">Bảng màu &amp; Tỉ lệ đề xuất</div>
-          <p>Màu chủ đạo <span class="mono-num font-semibold">${topHex}</span>. Chia tỉ lệ 60% hoa nền – 30% hoa trọng tâm – 10% lá/nhấn.</p>
-        </div>
-        <div class="p-3 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-1">
-          <div class="font-semibold text-[#A65A42]">Hình khối &amp; Chất liệu</div>
-          <p>Phom <strong>${dm.shape}</strong> kết hợp vật liệu: <strong>${tex}</strong>. ${DM_ARCH_CUES[dm.arch] || ''}</p>
-        </div>
-        <div class="p-3 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-1">
-          <div class="font-semibold text-[#A65A42]">Gợi ý Loài hoa &amp; Ánh sáng</div>
-          <p>${botanicalRec} ${DM_ART_CUES[dm.art] || ''}</p>
-        </div>
-      `;
-    }
-
-    function buildDmThreeOptions() {
-      const dm = state.designMoodboard;
-      const tex0 = (dm.textures && dm.textures[0]) || 'Bình gốm mộc';
-      dm.options = [
-        {
-          title: 'Phương án A · Tinh giản (Tiết kiệm)',
-          size: 'Size S–M · ~15–18 cành',
-          summary: `${dm.shape} gọn gàng`,
-          detail: `Tập trung 2 loại hoa chính + 1 loại lá tạo dáng. Dùng ${tex0}, phù hợp bàn tiệc nhỏ hoặc quà tặng hàng ngày.`,
-          cat: 'Bó hoa tròn cổ điển',
-          budget: 950000
-        },
-        {
-          title: 'Phương án B · Tiêu chuẩn (Signature)',
-          size: 'Size M–L · ~25–30 cành',
-          summary: `${dm.theme} cân bằng`,
-          detail: `Phối đầy đủ 60% hoa nền – 30% hoa trọng tâm – 10% hoa phụ bay bổng và ${tex0}. Tỉ lệ chuẩn đẹp khi lên ảnh.`,
-          cat: 'Bình hoa bàn tiệc',
-          budget: 1800000
-        },
-        {
-          title: 'Phương án C · Cao cấp (Editorial)',
-          size: 'Size L–XL · ~45+ cành',
-          summary: 'Mở rộng điêu khắc &amp; Không gian',
-          detail: `Phát triển cành vươn cao/rủ phóng khoáng theo tinh thần ${dm.arch || 'Indochine'}, dùng hoa nhập cao cấp làm điểm nhấn sảnh.`,
-          cat: 'Bình cao nghệ thuật',
-          budget: 3500000
-        }
-      ];
-    }
-
-    function renderDmOptions() {
-      const dm = state.designMoodboard;
-      const opts = dm.options || [];
-      const el = document.getElementById('dmOptionsGrid');
-      el.innerHTML = opts.map((o, idx) => `
-        <div class="p-3 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] flex flex-col justify-between gap-2 text-xs">
-          <div class="space-y-1">
-            <div class="font-bold text-[#A65A42]">${o.title}</div>
-            <div class="text-[11px] font-semibold text-[#1A2621]">${o.summary} · ${o.size}</div>
-            <p class="text-[11px] text-[#5F6B64] leading-relaxed">${o.detail}</p>
-          </div>
-          <button data-idx="${idx}" class="dm-opt-to-recipe w-full py-1.5 rounded-lg bg-[#1A2621] hover:bg-[#2E3F37] text-white text-[11px] font-medium">Đưa sang Recipe Builder →</button>
-        </div>
-      `).join('');
-
-      el.querySelectorAll('.dm-opt-to-recipe').forEach(b => {
-        b.onclick = () => {
-          const o = dm.options[+b.dataset.idx];
-          state.recipe.name = `${dm.theme} (${o.title.split('·')[0].trim()})`;
-          state.recipe.category = o.cat;
-          state.recipe.budget = o.budget;
-          persist();
-          renderRecipe();
-          document.querySelector('[data-tab="recipe"]').click();
-          showToast('Đã chuyển phương án sang Recipe Builder!', 'success');
-        };
-      });
-    }
-
-    function renderDmSavedConcepts() {
-      const list = state.savedConcepts || [];
-      document.getElementById('dmConceptCount').textContent = `${list.length} concept`;
-      const grid = document.getElementById('dmSavedConceptsGrid');
-      grid.innerHTML = list.length ? list.map((c, idx) => `
-        <div class="p-3 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-2 text-xs">
-          <div class="flex justify-between items-start gap-2">
-            <div class="min-w-0">
-              <div class="font-semibold truncate">${c.theme}</div>
-              <div class="text-[10px] text-[#5F6B64] truncate">${c.shape} · ${c.createdAt}</div>
-            </div>
-            <div class="flex gap-1 shrink-0">
-              <button data-idx="${idx}" class="dm-c-load px-2 py-1 rounded bg-[#1A2621] text-white text-[11px]">Mở</button>
-              <button data-idx="${idx}" class="dm-c-del px-2 py-1 rounded bg-red-50 text-red-700 text-[11px]">Xóa</button>
-            </div>
-          </div>
-          <div class="flex h-3.5 rounded overflow-hidden border border-black/10">${(c.colors || []).map(h => `<div class="flex-1" style="background:${h}"></div>`).join('')}</div>
-        </div>
-      `).join('') : '<p class="sm:col-span-2 text-xs text-[#5F6B64]">Chưa có concept nào được lưu.</p>';
-
-      grid.querySelectorAll('.dm-c-load').forEach(b => {
-        b.onclick = () => {
-          const c = state.savedConcepts[+b.dataset.idx];
-          if (!c) return;
-          state.designMoodboard = JSON.parse(JSON.stringify(c));
-          persist(); renderDesignMoodboard();
-          showToast(`Đã nạp concept "${c.theme}"!`, 'success');
-        };
-      });
-      grid.querySelectorAll('.dm-c-del').forEach(b => {
-        b.onclick = () => {
-          state.savedConcepts.splice(+b.dataset.idx, 1);
-          persist(); renderDmSavedConcepts();
-        };
-      });
-    }
-
-    document.getElementById('btnDmUploadImg').onclick = () => document.getElementById('dmImageInput').click();
-    document.getElementById('dmImageInput').onchange = (e) => {
-      const files = Array.from(e.target.files || []);
-      if (!files.length) return;
-      files.forEach((file, fIdx) => {
-        const r = new FileReader();
-        r.onload = ev => {
-          const src = ev.target.result;
-          state.designMoodboard.images.push(src);
-          if (fIdx === 0) {
-            analyzeDmImagePixels(src, (extracted, iw, ih) => {
-              state.designMoodboard.extractedColors = extracted;
-              const ratio = ih / Math.max(1, iw);
-              const formHint = ratio > 1.15 ? 'Khung đứng (hợp dáng cao / bất đối xứng)' : ratio < 0.85 ? 'Khung ngang (hợp bình trải bàn)' : 'Khung cân đối (hợp bó tròn / vòm)';
-              state.designMoodboard.imageInsight = `Tách được ${extracted.length} sắc độ hoa chính (${extracted.slice(0,3).map(x=>x.hex).join(', ')}). ${formHint}.`;
-              persist();
-              renderDesignMoodboard();
-              showToast('Đã phân tích màu sắc & hình khối từ ảnh cảm hứng!', 'success');
-            });
-          } else {
-            persist(); renderDesignMoodboard();
+      try {
+        const { mount } = await import('/moodboard-research.js');
+        host.replaceChildren();
+        mount(host, state.designMoodboard?.images, {
+          palette(colors) {
+            state.palette = colors.map((color, index) => ({
+              id: crypto.randomUUID(),
+              hex: color.hex,
+              ratio: color.percent,
+              imgArea: color.percent,
+              locked: false,
+              name: 'Màu ảnh ' + (index + 1)
+            }));
+            normalizeRatios();
+            renderColorStudio();
+            persist();
+            document.querySelector('[data-tab="color"]').click();
+          },
+          recipe(plan) {
+            state.recipe.name = plan.name;
+            state.recipe.steps = [plan.idea, plan.form, plan.materials, plan.make].join('\n');
+            persist();
+            renderRecipe();
+            document.querySelector('[data-tab="recipe"]').click();
           }
-        };
-        r.readAsDataURL(file);
-      });
-    };
-
-    document.getElementById('btnDmSyncToColor').onclick = () => {
-      const cols = state.designMoodboard.extractedColors;
-      if (!cols || !cols.length) return showToast('Hãy tải ảnh cảm hứng lên trước để tách màu.', 'error');
-      state.palette = cols.map((c, idx) => ({ id: 'sw-dm-' + Date.now() + '-' + idx, hex: c.hex, ratio: c.ratio, imgArea: c.ratio, locked: false, name: `Cảm hứng #${idx+1}` }));
-      normalizeRatios();
-      renderColorStudio();
-      persist();
-      document.querySelector('[data-tab="color"]').click();
-      showToast('Đã đồng bộ bảng màu từ Moodboard sang Color Studio!', 'success');
-    };
-
-    document.querySelectorAll('.dm-tex-btn').forEach(b => {
-      b.onclick = () => {
-        const arr = state.designMoodboard.textures || (state.designMoodboard.textures = []);
-        const idx = arr.indexOf(b.dataset.tex);
-        if (idx >= 0) arr.splice(idx, 1); else arr.push(b.dataset.tex);
-        persist(); renderDesignMoodboard();
-      };
-    });
-
-    ['dmThemeInput', 'dmShapeSelect', 'dmArtSelect', 'dmArchSelect', 'dmFashionSelect'].forEach(id => {
-      const handler = () => {
-        const dm = state.designMoodboard;
-        dm.theme = document.getElementById('dmThemeInput').value;
-        dm.shape = document.getElementById('dmShapeSelect').value;
-        dm.art = document.getElementById('dmArtSelect').value;
-        dm.arch = document.getElementById('dmArchSelect').value;
-        dm.fashion = document.getElementById('dmFashionSelect').value;
-        buildDmThreeOptions();
-        persist();
-        renderDesignMoodboard();
-      };
-      document.getElementById(id).onchange = handler;
-      if (id === 'dmThemeInput') document.getElementById(id).oninput = () => {
-        state.designMoodboard.theme = document.getElementById('dmThemeInput').value;
-        generateDmDirectionText(); persist();
-      };
-    });
-
-    document.getElementById('btnDmGenerateDirection').onclick = () => {
-      const imgs = state.designMoodboard.images || [];
-      if (imgs.length) {
-        analyzeDmImagePixels(imgs[imgs.length - 1], (extracted) => {
-          state.designMoodboard.extractedColors = extracted;
-          buildDmThreeOptions();
-          persist();
-          renderDesignMoodboard();
-          showToast('Đã phân tích ảnh & tạo định hướng thiết kế!', 'success');
         });
-      } else {
-        buildDmThreeOptions();
-        persist();
-        renderDesignMoodboard();
-        showToast('Đã cập nhật định hướng thiết kế!', 'success');
+        host.dataset.research = 'ready';
+      } catch (error) {
+        delete host.dataset.research;
+        status.textContent = 'Chưa mở được trình chỉnh ảnh. Hãy chọn lại tab để thử lại.';
+        host.replaceChildren(status);
+        console.error('Floral Design Moodboard', error);
       }
-    };
-
-    document.getElementById('btnDmExpandOptions').onclick = () => {
-      buildDmThreeOptions();
-      persist();
-      renderDmOptions();
-      showToast('Đã phát triển 3 phương án thiết kế từ concept!', 'success');
-    };
-
-    document.getElementById('btnDmSaveConcept').onclick = () => {
-      const dm = state.designMoodboard;
-      const snap = JSON.parse(JSON.stringify(dm));
-      snap.createdAt = new Date().toLocaleString('vi-VN');
-      snap.colors = (dm.extractedColors && dm.extractedColors.length ? dm.extractedColors : state.palette).map(p => p.hex);
-      state.savedConcepts.unshift(snap);
-      persist();
-      renderDmSavedConcepts();
-      showToast('Đã lưu Concept chủ đạo!', 'success');
-    };
+    }
 
     // ==================== ENHANCED RECIPE BUILDER HELPERS ====================
     function updateRecipeProportionsAndBudget(totalCogs, suggestedPrice) {

@@ -161,6 +161,38 @@ async function restore(snapshot) {
   }
 }
 
+// Import missing composition records from completed, integrity-checked shared backups.
+const reviewedSnapshots=new Set();
+async function mergeSharedReviews(){
+  let changed=false;
+  for(let offset=0;;offset+=50){
+    const rows=await call('?offset='+offset);
+    for(const row of rows){
+      if(reviewedSnapshots.has(row.id))continue;
+      const snapshot=await download(row);
+      if(snapshot.version!==1)throw Error('Unsupported backup');
+      const records=snapshot.stores?.['kim-flora-composition-notes']?.reviews??[];
+      const db=await connect('kim-flora-composition-notes',databases['kim-flora-composition-notes']);
+      try{
+        const tx=db.transaction('reviews','readwrite'),done=transactionDone(tx),store=tx.objectStore('reviews');
+        const keys=await requestValue(store.getAllKeys()),existing=new Set(keys);
+        for(const [key,record] of records){
+          if(existing.has(key)||record.id!==key)continue;
+          const binary=snapshot.binaries[record.image?.__kimFloraBackupBinary];
+          if(!binary)continue;
+          store.add({...record,image:new Blob([bytesOf(binary.content)],{type:binary.type})});
+          existing.add(key);changed=true;
+        }
+        await done;
+      }finally{db.close();}
+      reviewedSnapshots.add(row.id);
+    }
+    if(rows.length<50)break;
+  }
+  if(changed)window.dispatchEvent(new Event('studio:reviews-synced'));
+  return changed;
+}
+
 const button=document.getElementById('openContentBackups');
 const status=document.getElementById('contentBackupStatus');
 const dialog=document.getElementById('contentBackupDialog');
@@ -179,8 +211,12 @@ function sync() {
   active=(async()=>{
     status.textContent='Đang lưu trực tuyến…';
     const snapshot=await capture();
-    if(snapshot)lastId=await upload(snapshot,lastId);
-    status.textContent=snapshot?'Đã lưu trực tuyến.':'Chưa có nội dung để sao lưu.';
+    if(snapshot){lastId=await upload(snapshot,lastId);reviewedSnapshots.add(lastId);}
+    if(await mergeSharedReviews()){
+      const merged=await capture();
+      if(merged){lastId=await upload(merged,lastId);reviewedSnapshots.add(lastId);}
+    }
+    status.textContent=lastId?'Đã lưu trực tuyến.':'Chưa có nội dung để sao lưu.';
   })().catch(error=>{
     dirty=true;
     status.textContent='Chưa lưu trực tuyến. Dữ liệu vẫn ở trình duyệt này.';

@@ -159,6 +159,7 @@ saveReview.onclick=async()=>{
     };
     record.image=await new Promise((resolve,reject)=>compCanvas.toBlob(blob=>blob?resolve(blob):reject(Error()),'image/png'));
     await reviewStore('readwrite',store=>store.put(record));
+    window.dispatchEvent(new Event('studio:storage-saved'));
     current.id=record.id;
     if(current===draft)rememberReviewDraft();
     reviewStatus.textContent='Đã lưu nhận xét và ảnh trên thiết bị này.';

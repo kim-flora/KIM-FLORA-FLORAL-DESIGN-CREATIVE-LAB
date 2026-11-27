@@ -39,19 +39,20 @@ function sessionVersion(req) {
   return Number(version);
 }
 
-async function database(path, method = 'GET', body) {
+export async function database(path, method = 'GET', body, preference = 'return=representation') {
   const result = await fetch(process.env.LAB_DB_URL + '/rest/v1/' + path, {
     method,
     headers: {
       apikey: process.env.LAB_DB_KEY,
       'x-lab-gateway': key,
       'content-type': 'application/json',
-      prefer: 'return=representation'
+      prefer: preference
     },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(8000)
   });
   if (!result.ok) throw new Error('Database request failed');
+  if (result.status === 204 || preference.includes('return=minimal')) return null;
   return result.json();
 }
 

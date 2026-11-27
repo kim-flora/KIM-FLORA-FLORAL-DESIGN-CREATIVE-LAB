@@ -89,7 +89,7 @@
           if (!p) return;
           state.projectName = p.name; state.projectClient = p.client; state.projectBrief = p.brief;
           state.palette = structuredClone(p.palette ?? state.palette);
-          state.recipe = structuredClone(p.recipe ?? state.recipe);
+          state.recipe = structuredClone(applyDefaults(DEFAULT_STATE.recipe, p.recipe ?? state.recipe));
           state.compAnnotations = structuredClone(p.compAnnotations ?? []);
           renderProjectsArchive();
           renderColorStudio(); renderRecipe(); renderCompCanvas();

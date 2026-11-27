@@ -149,6 +149,7 @@ async function listReviews(){
 }
 listReviews();
 window.addEventListener('focus',listReviews);
+window.addEventListener('studio:reviews-synced',listReviews);
 document.querySelector('[data-tab="composition"]')?.addEventListener('click',listReviews);
 saveReview.onclick=async()=>{
   if(saveReview.disabled)return;

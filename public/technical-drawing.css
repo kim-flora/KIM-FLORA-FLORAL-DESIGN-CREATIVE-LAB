@@ -1,0 +1,20 @@
+.technical-mode,.technical-drawing label{display:grid;gap:.3rem;font-size:.86rem;font-weight:600}
+.technical-mode select,.technical-drawing input,.technical-drawing select,.technical-drawing textarea{width:100%;min-width:0;border:1px solid #d9d1c2;border-radius:7px;background:#fff;padding:.45rem .55rem;font-size:.9rem}
+#recipeCostingWorkspace[hidden],#recipeCostingActions[hidden],.technical-drawing [hidden]{display:none!important}
+.technical-drawing{background:#fffdf8;border:1px solid #e5dccf;border-radius:14px;padding:clamp(.8rem,2.3vw,1.5rem)}
+.technical-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.7rem;margin-bottom:1rem}
+.technical-header h3{font-size:1.65rem;font-weight:650;color:#23382e}
+.technical-header p,.technical-dimensions,#technicalEmpty,#technicalStatus{font-size:.85rem;color:#526258;overflow-wrap:anywhere}
+.technical-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(230px,1fr);gap:1rem;align-items:start}
+.technical-board-wrap,.technical-inspector{min-width:0;background:#f4f0e7;border:1px solid #e2dacc;border-radius:10px;padding:.75rem}
+.technical-toolbar,.technical-coordinate{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem}
+.technical-board{position:relative;margin:.8rem auto .45rem;width:100%;height:auto;aspect-ratio:var(--technical-ratio);max-width:var(--technical-max);border:1px solid #7f9286;background-color:#fcfaf5;background-image:linear-gradient(#526b5a25 1px,transparent 1px),linear-gradient(90deg,#526b5a25 1px,transparent 1px);background-size:10% 10%;overflow:hidden}
+.technical-cluster{position:absolute;transform:translate(-50%,-50%);border:1px solid #637a6c;border-radius:50%;background:#e1e9de;color:#223b30;min-width:14px;min-height:14px;font-size:.78rem;font-weight:700;touch-action:none}
+.technical-cluster[aria-pressed=true]{background:#314d3f;color:white;outline:2px solid #a65a42;outline-offset:1px}
+.technical-inspector fieldset{display:grid;gap:.6rem;margin-top:.65rem}
+.technical-inspector legend{font-size:.9rem;font-weight:700}
+.technical-primary,.technical-remove{border-radius:7px;padding:.55rem .8rem;font-size:.88rem}
+.technical-primary{background:#2b4438;color:#fff}
+.technical-remove{border:1px solid #d8b9ad;color:#873d30}
+#technicalEmpty,#technicalStatus{margin-top:.55rem}
+@media(max-width:760px){.technical-layout{grid-template-columns:1fr}}

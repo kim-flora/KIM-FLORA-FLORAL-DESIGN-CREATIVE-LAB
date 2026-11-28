@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/floral-proof.css">
   <link rel="stylesheet" href="/color-assessment.css">
   <link rel="stylesheet" href="/studio-operations.css">
+  <link rel="stylesheet" href="/technical-drawing.css">
   <title>KIM FLORA – Floral Design & Creative Lab</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -573,7 +574,8 @@
           <h2 class="font-editorial text-2xl font-semibold text-[#1A2621]">Recipe &amp; Costing</h2>
           <p class="text-xs text-[#5F6B64]">Lập định mức, kiểm tra vật tư và định giá theo lô sản xuất.</p>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
+        <label class="technical-mode">Không gian làm việc <select id="recipeWorkspaceMode"><option value="costing">Định mức &amp; giá thành</option><option value="drawing">Bản vẽ kỹ thuật</option></select></label>
+        <div id="recipeCostingActions" class="flex flex-wrap items-center gap-2">
           <button id="btnSaveRecipeSample" class="px-3 py-1.5 rounded-lg bg-[#5A7364] hover:bg-[#495F52] text-white text-xs font-medium flex items-center gap-1.5">
             <i data-lucide="bookmark-plus" class="w-3.5 h-3.5"></i> Lưu Công Thức Mẫu
           </button>
@@ -586,7 +588,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+      <div id="recipeCostingWorkspace" class="grid grid-cols-1 xl:grid-cols-12 gap-5">
         <!-- Recipe Ingredients Table -->
         <div class="xl:col-span-8 space-y-4">
           <div class="panel-card p-4 space-y-3">
@@ -750,6 +752,40 @@
           </div>
         </div>
       </div>
+      <section id="technicalDrawing" class="technical-drawing" aria-labelledby="technicalDrawingHeading" hidden>
+        <header class="technical-header">
+          <div><h3 id="technicalDrawingHeading" class="font-editorial">Bản vẽ kỹ thuật</h3><p id="technicalRecipeName"></p></div>
+          <button id="technicalExport" type="button" class="technical-primary">Tải PNG</button>
+        </header>
+        <div class="technical-layout">
+          <div class="technical-board-wrap">
+            <div class="technical-toolbar">
+              <label>Góc nhìn <select id="technicalView"><option value="front">Chính diện</option><option value="plan">Mặt bằng</option></select></label>
+              <label>Rộng (cm) <input id="technicalWidth" type="number" min="10" max="5000" step="1"></label>
+              <label><span id="technicalHeightLabel">Cao (cm)</span> <input id="technicalHeight" type="number" min="10" max="5000" step="1"></label>
+            </div>
+            <div id="technicalBoard" class="technical-board" aria-label="Lưới bản vẽ theo kích thước"></div>
+            <p id="technicalDimensions" class="technical-dimensions"></p>
+          </div>
+          <div class="technical-inspector">
+            <button id="technicalAdd" type="button" class="technical-primary">Thêm cụm hoa</button>
+            <p id="technicalEmpty">Thêm một cụm hoa để đặt vị trí trên bản vẽ.</p>
+            <fieldset id="technicalFields" hidden>
+              <legend>Cụm đang chọn</legend>
+              <label>Tên cụm <input id="technicalName" type="text" maxlength="50"></label>
+              <label>Vật tư trong công thức <select id="technicalMaterial"></select></label>
+              <div class="technical-coordinate">
+                <label>X (cm) <input id="technicalX" type="number" min="0" step="1"></label>
+                <label>Y (cm) <input id="technicalY" type="number" min="0" step="1"></label>
+                <label>Đường kính (cm) <input id="technicalDiameter" type="number" min="1" step="1"></label>
+              </div>
+              <label>Ghi chú thi công <textarea id="technicalNotes" rows="3" maxlength="160"></textarea></label>
+              <button id="technicalDelete" type="button" class="technical-remove">Xóa cụm</button>
+            </fieldset>
+            <p id="technicalStatus" role="status"></p>
+          </div>
+        </div>
+      </section>
     </section>
 
     <!-- ==================== TAB 4: INVENTORY MANAGEMENT ==================== -->
@@ -2558,6 +2594,7 @@
       }
       updateRecipeProportionsAndBudget(cogs, suggestedPrice);
       renderSavedRecipesList();
+      refreshTechnicalDrawing();
       if(missing.length){
         for(const id of ['costMaterials','costTotalCogs','costSuggestedPrice','costNetProfit','costTotalOrderRevenue'])document.getElementById(id).textContent='—';
         document.getElementById('recipeBudgetStatus').textContent='Chưa đủ dữ liệu để đối chiếu ngân sách.';
@@ -2632,6 +2669,8 @@
       downloadFile('phieu_mua_hang_kim_flora.txt', lines.join('\n'));
       showToast('Đã xuất phiếu mua hàng!', 'success');
     };
+
+    // Recipe technical drawing renderer
 
     // ==================== MODULE 5: FREEFORM MOODBOARD ====================
     const mbViewport = document.getElementById('mbViewport');

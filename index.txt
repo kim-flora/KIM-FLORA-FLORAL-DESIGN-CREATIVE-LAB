@@ -332,11 +332,6 @@
               <div id="imageProportionBar" class="color-stack"></div>
               <div id="imageProportionLegend" class="color-legend"></div>
             </div>
-            <div class="color-track">
-              <div><strong>Bản phối hiện tại</strong><span id="designProportionTotal"></span></div>
-              <div id="proportionBar" class="color-stack"></div>
-              <div id="proportionLegend" class="color-legend"></div>
-            </div>
           </section>
 
           <section class="color-assessment panel-card" aria-labelledby="colorAssessmentTitle">
@@ -1670,7 +1665,7 @@
             <input type="color" value="${sw.hex}" data-idx="${idx}" class="sw-picker w-8 h-8 rounded-lg cursor-pointer border border-black/10 p-0 bg-transparent shrink-0" />
             <div class="flex-1 min-w-0 grid grid-cols-12 gap-1.5 items-center">
               <input type="text" value="${sw.hex}" maxlength="7" data-idx="${idx}" class="sw-hex mono-num col-span-4 px-2 py-1 text-xs bg-white border border-[#E4DFD5] rounded-md uppercase" />
-              <input type="text" value="${sw.name || ''}" data-idx="${idx}" class="sw-name col-span-5 px-2 py-1 text-xs bg-white border border-[#E4DFD5] rounded-md" placeholder="Tên màu" />
+              <input type="text" value="${escapeColorReportText(displayStudioColorName(sw))}" data-idx="${idx}" class="sw-name col-span-5 px-2 py-1 text-xs bg-white border border-[#E4DFD5] rounded-md" placeholder="Tên màu" />
               <div class="col-span-3 flex items-center gap-1">
                 <input type="number" min="0" max="100" value="${sw.ratio}" data-idx="${idx}" class="sw-ratio mono-num w-full px-1 py-1 text-xs bg-white border border-[#E4DFD5] rounded-md text-right" />
                 <span class="text-[11px] text-[#5F6B64]">%</span>

@@ -26,16 +26,32 @@ export function sampledPalette(img, count, flowers) {
       if (data[i + 3] >= 128 && !background[i / 4]) foreground++;
     }
     if (foreground < Math.max(1, thumb.width * thumb.height * .008)) return [];
+    const darkNeutral = (data, index) => {
+      const r=data[index],g=data[index+1],b=data[index+2];
+      return Math.max(r,g,b)<68 && Math.max(r,g,b)-Math.min(r,g,b)<19;
+    };
+    let edge=0,darkEdge=0;
+    for(let y=0;y<thumb.height;y++)for(let x=0;x<thumb.width;x++){
+      if(x&&y&&x<thumb.width-1&&y<thumb.height-1)continue;
+      const i=4*(y*thumb.width+x);
+      edge++;
+      if(data[i+3]>=128&&darkNeutral(data,i))darkEdge++;
+    }
+    const darkBackdrop=darkEdge>edge*.55;
     for (let y = 0; y < canvas.height; y++) {
       const row = Math.floor(y * thumb.height / canvas.height) * thumb.width;
       for (let x = 0; x < canvas.width; x++) {
-        if (background[row + Math.floor(x * thumb.width / canvas.width)]) {
-          pixels.data[(y * canvas.width + x) * 4 + 3] = 0;
-        }
+        const column=Math.floor(x*thumb.width/canvas.width), index=(y*canvas.width+x)*4;
+        const nearBackdrop=darkBackdrop&&darkNeutral(pixels.data,index)&&(
+          (column>0&&background[row+column-1])||(column+1<thumb.width&&background[row+column+1])||
+          (row>0&&background[row+column-thumb.width])||
+          (row+thumb.width<background.length&&background[row+column+thumb.width])
+        );
+        if(background[row+column]||nearBackdrop)pixels.data[index+3]=0;
       }
     }
   }
-  const colors = extractPalette(pixels.data, count, pixels.width);
+  const colors = extractPalette(pixels.data, count, pixels.width, flowers);
   const percentages = allocate(colors.map(color => color.weight), 100);
   return colors.map(({hex}, index) => ({hex, percent:percentages[index]}));
 }

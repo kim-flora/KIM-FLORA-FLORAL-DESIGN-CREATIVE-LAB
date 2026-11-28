@@ -120,7 +120,7 @@ export function contrastRatio(foreground, background) {
   return (Math.max(...values) + .05) / (Math.min(...values) + .05);
 }
 
-export function extractPalette(pixels, count, width = pixels.length / 4) {
+export function extractPalette(pixels, count, width = pixels.length / 4, preserveHues = false) {
   const samples = [];
   const stride = Math.max(1, Math.floor(pixels.length / (4 * 4800)));
   const height = pixels.length / (4 * width);
@@ -135,16 +135,40 @@ export function extractPalette(pixels, count, width = pixels.length / 4) {
   }
   if (!samples.length) return [];
   const distance = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
-  const centers = [samples[Math.floor(samples.length / 2)].rgb];
+  const centers = [];
+  const anchors = [];
+  if (preserveHues) {
+    const families = Array.from({length:6}, () => []);
+    for (const sample of samples) {
+      const [r,g,b] = sample.rgb;
+      const high=Math.max(r,g,b),low=Math.min(r,g,b),chroma=high-low;
+      if(chroma<17||high<45)continue;
+      const hue=high===r?(g-b)/chroma:high===g?(b-r)/chroma+2:(r-g)/chroma+4;
+      sample.family=Math.floor((hue+6.5)%6);
+      families[sample.family].push(sample);
+    }
+    const minimum=Math.max(5,Math.ceil(samples.length*.006));
+    const groups=families.filter(group=>group.length>=minimum).sort((a,b)=>b.length-a.length);
+    for(const group of groups.slice(0,count)){
+      const mean=[0,1,2].map(channel=>group.reduce((sum,sample)=>sum+sample.rgb[channel],0)/group.length);
+      centers.push(group.reduce((best,sample)=>distance(sample.rgb,mean)<distance(best.rgb,mean)?sample:best).rgb);
+      anchors.push(group[0].family);
+    }
+  }
+  if (!centers.length) centers.push(samples[Math.floor(samples.length / 2)].rgb);
+  const isAnchored=sample=>sample.family!==undefined&&anchors.includes(sample.family);
+  const assignmentDistance=(sample,center,index)=>distance(sample.rgb,center)+
+    (isAnchored(sample)&&anchors[index]!==sample.family?200000:0);
   while (centers.length < count) {
     let farthest;
     let best = 0;
-    for (const { rgb } of samples) {
-      const nearest = Math.min(...centers.map(center => distance(rgb, center)));
-      if (nearest > best) { best = nearest; farthest = rgb; }
+    for (const sample of samples) {
+      const nearest = Math.min(...centers.map((center,index) => assignmentDistance(sample,center,index)));
+      if (nearest > best) { best = nearest; farthest = sample; }
     }
     if (!farthest) break;
-    centers.push(farthest);
+    anchors[centers.length]=isAnchored(farthest)?farthest.family:undefined;
+    centers.push(farthest.rgb);
   }
   let groups;
   for (let round = 0; round < 12; round++) {
@@ -153,7 +177,7 @@ export function extractPalette(pixels, count, width = pixels.length / 4) {
       let closest = 0;
       let best = Infinity;
       centers.forEach((center, i) => {
-        const d = distance(sample.rgb, center);
+        const d = assignmentDistance(sample,center,i);
         if (d < best) { best = d; closest = i; }
       });
       groups[closest].push(sample);
@@ -168,7 +192,8 @@ export function extractPalette(pixels, count, width = pixels.length / 4) {
   return groups.flatMap((group, index) => {
     if (!group.length) return [];
     const center = centers[index];
-    const nearest = group.reduce((a, b) => distance(b.rgb, center) < distance(a.rgb, center) ? b : a);
+    const candidates = anchors[index]===undefined ? group : group.filter(sample=>sample.family===anchors[index]);
+    const nearest = (candidates.length?candidates:group).reduce((a, b) => distance(b.rgb, center) < distance(a.rgb, center) ? b : a);
     const hex = '#' + nearest.rgb.map(value => value.toString(16).padStart(2, '0')).join('').toUpperCase();
     return [{ hex, weight: group.length, point: { x: nearest.x, y: nearest.y } }];
   }).sort((a, b) => b.weight - a.weight);

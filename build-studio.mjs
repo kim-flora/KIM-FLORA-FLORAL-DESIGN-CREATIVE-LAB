@@ -57,7 +57,7 @@ script[1]=script[1].slice(0,from)+read('flower-leaf-samples.js')+'\n'+`let palet
           return;
         }
         state.colorMeasurement={scope:focus?'focus':'full',colors:structuredClone(colors)};
-        const extracted=colors.map((c,i)=>({id:crypto.randomUUID(),hex:c.hex,ratio:c.percent,imgArea:c.percent,locked:false,name:'Màu ảnh #'+(i+1)}));
+        const extracted=colors.map(c=>({id:crypto.randomUUID(),hex:c.hex,ratio:c.percent,imgArea:c.percent,locked:false,name:studioColorName(c.hex)}));
         `+script[1].slice(to);
 script[1]=script[1].replace('colorCtx.drawImage(img,','paletteRequest?.abort(); paletteImage=img; colorCtx.drawImage(img,')
   .replace("showToast(`Đã trích xuất ${k} màu chủ đạo từ ảnh!`, 'success');","showToast(`Đã trích xuất ${extracted.length} màu chủ đạo từ ảnh!`, 'success'); } catch {if(!request.signal.aborted)showToast('Chưa đọc được màu ảnh.', 'error');}");
@@ -271,7 +271,11 @@ function preserveStudioState(source){
   source=source.replace('function loadImageToColorStudio(src)', 'let colorRequest=0;\n    function loadImageToColorStudio(src,restore=false)')
     .replace("function loadImageToColorStudio(src,restore=false) {","function loadImageToColorStudio(src,restore=false) {\n      const request=++colorRequest;")
     .replace('const maxW = 540, maxH = 340;','if(request!==colorRequest)return;\n        const maxW = 540, maxH = 340;')
-    .replace("state.currentImageDataUrl = colorCanvas.toDataURL('image/jpeg', 0.85);",`if(restore)return;
+    .replace("state.currentImageDataUrl = colorCanvas.toDataURL('image/jpeg', 0.85);",`if(restore){
+          const scope=state.colorMeasurement?.scope;
+          if(scope==='focus'||scope==='full')document.getElementById('extractFocusMode').value=scope;
+          return;
+        }
         state.colorMeasurement=null;
         renderColorAnalysisAndMockup();
         const pixels=colorCtx.getImageData(0,0,colorCanvas.width,colorCanvas.height).data;

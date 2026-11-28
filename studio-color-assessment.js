@@ -68,6 +68,17 @@
       return {hex,name,family,tone,character,elegant,lab:rgbToLab(r,g,b)};
     });
     const academyDistance=(a,b)=>Math.hypot(a.L-b.L,a.a-b.a,a.b-b.b);
+    function studioColorName(hex) {
+      const {r,g,b}=hexToRgb(hex),lab=rgbToLab(r,g,b);
+      if(lab.C<8)return lab.L<23?'Đen than':lab.L<48?'Xám đậm':lab.L<75?'Xám trung tính':lab.L<94?'Xám sáng':'Trắng';
+      return academyCatalog.reduce((best,sample)=>
+        academyDistance(sample.lab,lab)<academyDistance(best.lab,lab)?sample:best).name;
+    }
+    function displayStudioColorName(swatch) {
+      return /^Màu ảnh #?\d+$/i.test(swatch.name??'')&&assessmentHex(swatch.hex)
+        ? studioColorName(swatch.hex) : swatch.name??'';
+    }
+
     const academyGoals=[
       ['Dịu hơn',(sample,lab)=>sample.character==='Dịu'&&sample.lab.C<lab.C-2&&sample.lab.L>=lab.L-4],
       ['Trầm hơn',(sample,lab)=>sample.character==='Trầm'&&sample.lab.L<lab.L-3],
@@ -105,7 +116,7 @@
       const entries=palette.map((swatch,index)=>{
         const rgb=hexToRgb(swatch.hex), lab=rgbToLab(rgb.r,rgb.g,rgb.b);
         const role=ranked[0]===index?'Chủ đạo':ranked[1]===index?'Màu phụ chính':weights[index]?'Bổ trợ':'Chưa phân bổ';
-        return {hex:swatch.hex,name:swatch.name,academy:academyAssessment(swatch.hex,lab),ratio:proportions[index],inputRatio:weights[index],
+        return {hex:swatch.hex,name:displayStudioColorName(swatch),academy:academyAssessment(swatch.hex,lab),ratio:proportions[index],inputRatio:weights[index],
           imagePercent:imageWeights[index],rgb,lab,role};
       });
       const lead=entries[ranked[0]],secondary=entries[ranked[1]];
@@ -220,15 +231,12 @@
 
     function renderColorAnalysisAndMockup() {
       const result=currentColorAssessment();
-      const {measured,entries,total,scope,difference}=result;
+      const {measured,entries,scope,difference}=result;
       assessmentNode('imageProportionScope').textContent=scope
         ? measurementScopeText(scope)+' · Ước tính theo điểm ảnh'
         :'Chưa có số đo xác nhận. Hãy tách lại màu.';
-      assessmentNode('designProportionTotal').textContent=!total?'Chưa phân bổ tỷ lệ'
-        :Math.abs(total-100)<.0001?'Tổng 100%':'Nhập '+assessmentPercent(total)+' · Hiển thị quy về 100%';
       document.querySelector('[data-ratio="image"]').disabled=!entries.some(entry=>entry.imagePercent>0);
       drawColorTrack('imageProportionBar','imageProportionLegend',measured);
-      drawColorTrack('proportionBar','proportionLegend',total?entries.map(entry=>({hex:entry.hex,percent:entry.ratio})):[]);
       const metrics=assessmentNode('mathKpiGrid');
       metrics.replaceChildren();
       for(const [name,value,help] of [

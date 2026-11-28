@@ -229,7 +229,7 @@ function schedule() {
   timer=setTimeout(()=>sync().catch(()=>{}),1800);
 }
 
-function sync(hydrate=false) {
+function sync(hydration) {
   clearTimeout(timer);
   if(active)return active;
   dirty=false;
@@ -238,8 +238,11 @@ function sync(hydrate=false) {
     status.textContent='Đang lưu trực tuyến…';
     const recoveryId=localStorage.getItem(recovery);
     if(recoveryId){
-      if(!hydrate)throw Error('Reload required to finish restoration');
-      await applySnapshot(recoveryId,await readSnapshot(recoveryId));
+      if(!hydration?.allowed)throw Error('Reload required to finish restoration');
+      const snapshot=await readSnapshot(recoveryId);
+      if(!hydration.allowed)throw Error('Reload required to finish restoration');
+      hydration.applying=true;
+      await applySnapshot(recoveryId,snapshot);
       location.reload();
       return true;
     }
@@ -272,11 +275,12 @@ function sync(hydrate=false) {
           continue;
         }
       }
-      if(hydrate && id!==localId && !sameContent(snapshot,local)){
+      if(hydration?.allowed && id!==localId && !sameContent(snapshot,local)){
         // Keep edits made in another tab during the network requests.
         if(!sameContent(await capture(),local)){
           dirty=true;
-        }else{
+        }else if(hydration.allowed){
+          hydration.applying=true;
           await applySnapshot(id,snapshot);
           location.reload();
           return true;
@@ -349,9 +353,23 @@ async function showHistory(offset=0) {
 button.onclick=()=>{dialog.showModal();showHistory();};
 document.getElementById('saveContentBackup').onclick=()=>sync().then(()=>showHistory()).catch(()=>{});
 window.addEventListener('studio:before-ready',event=>{
-  event.detail.push(sync(true).catch(()=>{
-    if(localStorage.getItem(recovery))throw Error('Hãy tải lại trang để hoàn tất khôi phục.');
-    return false;
+  const hydration={allowed:true,applying:false};
+  event.detail.push(new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{
+      if(hydration.applying)return;
+      hydration.allowed=false;
+      if(localStorage.getItem(recovery)){
+        reject(Error('Đã đăng nhập. Hãy tải lại trang để hoàn tất khôi phục dữ liệu.'));
+      }else{
+        status.textContent='Đã đăng nhập. Dữ liệu trực tuyến đang được đồng bộ…';
+        resolve(false);
+      }
+    },6000);
+    sync(hydration).then(resolve,()=>{
+      if(localStorage.getItem(recovery)){
+        reject(Error('Đã đăng nhập. Hãy tải lại trang để hoàn tất khôi phục dữ liệu.'));
+      }else resolve(false);
+    }).finally(()=>clearTimeout(timer));
   }));
 });
 window.addEventListener('studio:ready',()=>{enabled=true;if(dirty)schedule();});

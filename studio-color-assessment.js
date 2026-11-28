@@ -173,45 +173,6 @@
       return chip;
     }
 
-    function renderAcademySuggestions(entries) {
-      const panel=assessmentNode('academyColorSuggestions');
-      const swatches=state.palette.filter(item=>assessmentHex(item.hex));
-      panel.replaceChildren(...entries.map((entry,index)=>{
-        const swatch=swatches[index];
-        const row=assessmentElement('article');
-        row.className='academy-alternative-row';
-        const source=assessmentElement('h5',entry.hex+' · '+assessmentPercent(entry.ratio));
-        source.prepend(academyChip(entry.hex));
-        const options=assessmentElement('div');
-        options.className='academy-color-suggestions';
-        for(const suggestion of entry.academy.suggestions){
-          const option=assessmentElement('div');
-          option.append(assessmentElement('strong',suggestion.goal));
-          if(!suggestion.hex){
-            option.append(assessmentElement('p','Chưa có màu phù hợp.'));
-          }else{
-            const sample=assessmentElement('p',suggestion.name+' · '+suggestion.hex);
-            sample.prepend(academyChip(suggestion.hex));
-            const apply=assessmentElement('button','Áp dụng');
-            apply.type='button';
-            apply.setAttribute('aria-label','Thay '+entry.hex+' bằng '+suggestion.hex+' · '+suggestion.goal);
-            apply.disabled=!!swatch.locked;
-            if(apply.disabled)apply.title='Mở khóa ô màu để áp dụng';
-            apply.onclick=()=>{
-              const previous=swatch.hex;
-              swatch.hex=suggestion.hex;
-              try{persist();}catch{swatch.hex=previous;return;}
-              renderColorStudio();
-            };
-            option.append(sample,apply);
-          }
-          options.append(option);
-        }
-        row.append(source,options);
-        return row;
-      }));
-    }
-
     function renderAcademyTones(entries) {
       const ordered=[...entries].sort((a,b)=>b.lab.L-a.lab.L);
       const strongest=[...entries].sort((a,b)=>b.lab.C-a.lab.C)[0];
@@ -227,7 +188,6 @@
         card.append(assessmentElement('strong',label),swatch);
         panel.append(card);
       }
-      renderAcademySuggestions(entries);
     }
 
     function renderColorAnalysisAndMockup() {

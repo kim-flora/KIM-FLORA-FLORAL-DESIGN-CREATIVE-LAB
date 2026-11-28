@@ -351,10 +351,6 @@
               <p id="aestheticSummary"></p>
               <p id="practicalPairingTip"></p>
             </div>
-            <section class="academy-alternatives" aria-labelledby="academyAlternativesTitle">
-              <h4 id="academyAlternativesTitle">Mã màu thay thế cho từng ô</h4>
-              <div id="academyColorSuggestions"></div>
-            </section>
             <div class="color-metrics-scroll" tabindex="0" role="region" aria-label="Chỉ số từng màu">
               <table>
                 <thead><tr><th>Mã HEX</th><th>Đo từ ảnh</th><th>Tỷ lệ phối</th><th>L*</th><th>C*</th><th>Sắc độ tham chiếu</th><th>Vai trò gợi ý</th></tr></thead>

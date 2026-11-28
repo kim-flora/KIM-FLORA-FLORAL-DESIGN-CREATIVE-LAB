@@ -343,17 +343,16 @@
             <header><h3 id="colorAssessmentTitle" class="font-editorial">4. Đánh giá sắc độ &amp; ứng dụng</h3>
               <p>Phân tích theo tỷ lệ bản phối hiện tại.</p></header>
             <div id="academyToneHighlights" class="academy-tone-highlights"></div>
-            <div class="academy-alternatives">
-              <label for="academyColorTarget">Màu cần thay</label>
-              <select id="academyColorTarget"></select>
-              <div id="academyColorSuggestions" class="academy-color-suggestions"></div>
-            </div>
             <dl id="mathKpiGrid" class="color-kpis"></dl>
             <div class="color-advice">
-              <h4>Gợi ý bố trí màu</h4>
+              <h4>Nhận xét tổng thể</h4>
               <p id="aestheticSummary"></p>
               <p id="practicalPairingTip"></p>
             </div>
+            <section class="academy-alternatives" aria-labelledby="academyAlternativesTitle">
+              <h4 id="academyAlternativesTitle">Mã màu thay thế cho từng ô</h4>
+              <div id="academyColorSuggestions"></div>
+            </section>
             <div class="color-metrics-scroll" tabindex="0" role="region" aria-label="Chỉ số từng màu">
               <table>
                 <thead><tr><th>Mã HEX</th><th>Đo từ ảnh</th><th>Tỷ lệ phối</th><th>L*</th><th>C*</th><th>Sắc độ tham chiếu</th><th>Vai trò gợi ý</th></tr></thead>

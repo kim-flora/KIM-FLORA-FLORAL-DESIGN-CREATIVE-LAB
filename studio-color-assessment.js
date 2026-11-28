@@ -110,9 +110,12 @@
       });
       const lead=entries[ranked[0]],secondary=entries[ranked[1]];
       const average=key=>total?entries.reduce((sum,item)=>sum+item.lab[key]*item.inputRatio,0)/total:null;
+      const averageLightness=average('L'),averageChroma=average('C');
+      const tone=averageLightness>=68?'thiên sáng':averageLightness<43?'thiên trầm':'có độ sáng trung bình';
+      const vividness=averageChroma>=45?'khá rực':averageChroma<24?'dịu và ít chói':'có độ rực vừa phải';
       const difference=secondary?Math.abs(lead.lab.L-secondary.lab.L):null;
       const summary=lead
-        ? 'Dùng '+lead.hex+' ('+assessmentPercent(lead.ratio)+') làm mảng màu chính.'+
+        ? 'Tổng thể bản phối '+tone+', '+vividness+'. Dùng '+lead.hex+' ('+assessmentPercent(lead.ratio)+') làm mảng màu chính.'+
           (secondary?' Dùng '+secondary.hex+' ('+assessmentPercent(secondary.ratio)+') để nối hoặc làm nổi bật mảng chính.':'')
         :'Đặt tỷ lệ lớn hơn 0 để đánh giá bản phối.';
       const advice=difference==null?'Cần ít nhất hai màu có tỷ lệ dương để so sánh độ sáng.'
@@ -120,7 +123,7 @@
         :difference>=25?'Hai màu lớn nhất có độ sáng cách xa nhau. Đặt chúng cạnh nhau ở vùng muốn hút mắt và dùng màu phụ để chuyển sắc.'
         :'Hai màu lớn nhất có chênh lệch độ sáng vừa phải. Thử nhắc lại màu phụ ở vài điểm để tạo nhịp.';
       return {measured,academySource,scope:measured.length?state.colorMeasurement.scope:null,total,entries,
-        averageLightness:average('L'),averageChroma:average('C'),difference,summary,advice};
+        averageLightness,averageChroma,difference,summary,advice};
     }
 
     const measurementScopeText = scope => scope==='focus'?'Vùng ưu tiên hoa':'Toàn bộ khung hình';
@@ -159,42 +162,42 @@
     }
 
     function renderAcademySuggestions(entries) {
-      const select=assessmentNode('academyColorTarget');
-      const selected=Number(select.value);
-      const signature=entries.map(entry=>entry.hex).join(',');
-      if(select.dataset.colors!==signature){
-        select.dataset.colors=signature;
-        select.replaceChildren(...entries.map((entry,index)=>new Option(entry.hex,index)));
-        if(entries[selected])select.value=String(selected);
-      }
-      const index=Number(select.value),entry=entries[index];
       const panel=assessmentNode('academyColorSuggestions');
-      panel.replaceChildren();
-      if(!entry)return;
-      for(const suggestion of entry.academy.suggestions){
-        const card=assessmentElement('article');
-        card.append(assessmentElement('strong',suggestion.goal));
-        if(!suggestion.hex){
-          card.append(assessmentElement('p','Chưa có màu phù hợp trong thư viện.'));
-        }else{
-          const option=assessmentElement('p',suggestion.name+' · '+suggestion.hex);
-          option.prepend(academyChip(suggestion.hex));
-          const apply=assessmentElement('button','Áp dụng');
-          apply.type='button';
-          const swatch=state.palette.filter(item=>assessmentHex(item.hex))[index];
-          apply.disabled=!!swatch?.locked;
-          if(apply.disabled)apply.title='Mở khóa ô màu để áp dụng';
-          apply.onclick=()=>{
-            if(!swatch||swatch.locked)return;
-            const previous=swatch.hex;
-            swatch.hex=suggestion.hex;
-            try{persist();}catch{swatch.hex=previous;return;}
-            renderColorStudio();
-          };
-          card.append(option,apply);
+      const swatches=state.palette.filter(item=>assessmentHex(item.hex));
+      panel.replaceChildren(...entries.map((entry,index)=>{
+        const swatch=swatches[index];
+        const row=assessmentElement('article');
+        row.className='academy-alternative-row';
+        const source=assessmentElement('h5',entry.hex+' · '+assessmentPercent(entry.ratio));
+        source.prepend(academyChip(entry.hex));
+        const options=assessmentElement('div');
+        options.className='academy-color-suggestions';
+        for(const suggestion of entry.academy.suggestions){
+          const option=assessmentElement('div');
+          option.append(assessmentElement('strong',suggestion.goal));
+          if(!suggestion.hex){
+            option.append(assessmentElement('p','Chưa có màu phù hợp.'));
+          }else{
+            const sample=assessmentElement('p',suggestion.name+' · '+suggestion.hex);
+            sample.prepend(academyChip(suggestion.hex));
+            const apply=assessmentElement('button','Áp dụng');
+            apply.type='button';
+            apply.setAttribute('aria-label','Thay '+entry.hex+' bằng '+suggestion.hex+' · '+suggestion.goal);
+            apply.disabled=!!swatch.locked;
+            if(apply.disabled)apply.title='Mở khóa ô màu để áp dụng';
+            apply.onclick=()=>{
+              const previous=swatch.hex;
+              swatch.hex=suggestion.hex;
+              try{persist();}catch{swatch.hex=previous;return;}
+              renderColorStudio();
+            };
+            option.append(sample,apply);
+          }
+          options.append(option);
         }
-        panel.append(card);
-      }
+        row.append(source,options);
+        return row;
+      }));
     }
 
     function renderAcademyTones(entries) {
@@ -212,7 +215,6 @@
         card.append(assessmentElement('strong',label),swatch);
         panel.append(card);
       }
-      assessmentNode('academyColorTarget').onchange=()=>renderAcademySuggestions(entries);
       renderAcademySuggestions(entries);
     }
 

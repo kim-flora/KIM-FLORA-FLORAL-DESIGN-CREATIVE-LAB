@@ -223,13 +223,20 @@
             </div>
 
             <div id="colorDropZone" class="relative border-2 border-dashed border-[#CFC8BC] rounded-xl bg-[#F7F4EF]/60 overflow-hidden flex flex-col items-center justify-center min-h-[240px] cursor-pointer hover:border-[#A65A42] transition">
-              <canvas id="colorExtractCanvas" class="max-w-full max-h-[300px] object-contain hidden cursor-crosshair"></canvas>
+              <div id="colorImageViewport" class="w-full overflow-auto max-h-[480px]" tabindex="0" aria-label="Vùng xem ảnh thu phóng"><canvas id="colorExtractCanvas" class="block mx-auto hidden cursor-crosshair"></canvas></div>
               <div id="colorUploadPrompt" class="p-6 text-center space-y-2">
                 <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto text-[#A65A42]"></i>
                 <p class="text-xs font-medium">Kéo thả ảnh hoa vào đây hoặc nhấn để tải ảnh lên</p>
                 <p class="text-[11px] text-[#5F6B64]">Hỗ trợ JPG, PNG, WEBP. Click trực tiếp lên ảnh để chấm màu (Eyedropper).</p>
               </div>
               <input type="file" id="colorImageInput" accept="image/*" class="hidden" />
+            </div>
+
+            <div id="colorZoomTools" class="hidden flex flex-wrap items-center gap-2 text-xs" role="group" aria-label="Thu phóng ảnh">
+              <button id="colorZoomOut" type="button" class="rounded border px-3 py-1.5" aria-label="Thu nhỏ ảnh">−</button>
+              <output id="colorZoomValue" class="mono-num min-w-12 text-center" aria-live="polite">100%</output>
+              <button id="colorZoomIn" type="button" class="rounded border px-3 py-1.5" aria-label="Phóng to ảnh">+</button>
+              <button id="colorZoomFit" type="button" class="rounded border px-3 py-1.5">Vừa khung</button>
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
@@ -1330,6 +1337,46 @@
     const colorCtx = colorCanvas.getContext('2d', { willReadFrequently: true });
     let lastEyedropperHex = null;
 
+    const colorViewport=document.getElementById('colorImageViewport');
+    const colorZoomTools=document.getElementById('colorZoomTools');
+    let colorZoom=1;
+
+    function updateColorZoom(next=colorZoom, preserveCenter=true) {
+      if(!paletteImage || !colorViewport.clientWidth)return;
+      const centerX=(colorViewport.scrollLeft+colorViewport.clientWidth/2)/Math.max(colorCanvas.clientWidth,colorViewport.clientWidth);
+      const centerY=(colorViewport.scrollTop+colorViewport.clientHeight/2)/Math.max(colorCanvas.clientHeight,colorViewport.clientHeight);
+      colorZoom=clamp(next,1,4);
+      const {naturalWidth:w,naturalHeight:h}=paletteImage;
+      const fit=Math.min(1,colorViewport.clientWidth/w,460/h);
+      const displayWidth=Math.max(1,Math.round(w*fit*colorZoom));
+      const displayHeight=Math.max(1,Math.round(h*fit*colorZoom));
+      colorCanvas.style.width=displayWidth+'px';
+      colorCanvas.style.height=displayHeight+'px';
+      const rasterScale=Math.min(1,fit*colorZoom*devicePixelRatio,1800/Math.max(w,h));
+      const width=Math.max(1,Math.round(w*rasterScale)),height=Math.max(1,Math.round(h*rasterScale));
+      if(colorCanvas.width!==width||colorCanvas.height!==height){
+        colorCanvas.width=width;
+        colorCanvas.height=height;
+        colorCtx.drawImage(paletteImage,0,0,width,height);
+      }
+      colorViewport.scrollLeft=preserveCenter?centerX*Math.max(displayWidth,colorViewport.clientWidth)-colorViewport.clientWidth/2:0;
+      colorViewport.scrollTop=preserveCenter?centerY*Math.max(displayHeight,colorViewport.clientHeight)-colorViewport.clientHeight/2:0;
+      document.getElementById('colorZoomValue').value=Math.round(colorZoom*100)+'%';
+      document.getElementById('colorZoomIn').disabled=colorZoom>=4;
+      document.getElementById('colorZoomOut').disabled=colorZoom<=1;
+    }
+
+    document.getElementById('colorZoomIn').onclick=()=>updateColorZoom(colorZoom+.5);
+    document.getElementById('colorZoomOut').onclick=()=>updateColorZoom(colorZoom-.5);
+    document.getElementById('colorZoomFit').onclick=()=>updateColorZoom(1,false);
+    let observedColorWidth=0;
+    new ResizeObserver(([entry])=>{
+      const width=entry.contentRect.width;
+      if(width===observedColorWidth)return;
+      observedColorWidth=width;
+      updateColorZoom();
+    }).observe(colorViewport);
+
     function loadImageToColorStudio(src) {
       const img = new Image();
       img.onload = () => {
@@ -1339,6 +1386,8 @@
         colorCanvas.height = Math.round(img.height * scale);
         colorCtx.drawImage(img, 0, 0, colorCanvas.width, colorCanvas.height);
         colorCanvas.classList.remove('hidden');
+        colorZoomTools.classList.remove('hidden');
+        updateColorZoom(1,false);
         document.getElementById('colorUploadPrompt').classList.add('hidden');
         state.currentImageDataUrl = colorCanvas.toDataURL('image/jpeg', 0.85);
         extractColorsFromCanvas(parseInt(document.getElementById('extractCountRange').value, 10));

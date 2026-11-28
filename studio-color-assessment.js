@@ -58,6 +58,7 @@
         colorRequest++;
         paletteImage=null;
         colorCanvas.classList.add('hidden');
+        colorZoomTools.classList.add('hidden');
         assessmentNode('colorUploadPrompt').classList.remove('hidden');
       }
     }

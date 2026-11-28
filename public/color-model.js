@@ -124,7 +124,8 @@ export function contrastRatio(foreground, background) {
 
 export function extractPalette(pixels, count, width = pixels.length / 4, preserveHues = false) {
   const samples = [];
-  const stride = Math.max(1, Math.floor(pixels.length / (4 * 4800)));
+  const sampleBudget = preserveHues ? 14400 : 4800;
+  const stride = Math.max(1, Math.floor(pixels.length / (4 * sampleBudget)));
   const height = pixels.length / (4 * width);
   for (let i = 0; i < pixels.length; i += 4 * stride) {
     if (pixels[i + 3] < 128) continue;

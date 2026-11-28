@@ -349,6 +349,9 @@
             <div class="color-advice">
               <h4>Nhận xét tổng thể</h4>
               <p id="aestheticSummary"></p>
+              <p id="colorHarmonyPrinciple"></p>
+              <p id="colorHarmonyRelation"></p>
+              <ul id="colorHarmonyRoles" class="space-y-1 mt-2"></ul>
               <p id="practicalPairingTip"></p>
             </div>
             <div class="color-metrics-scroll" tabindex="0" role="region" aria-label="Chỉ số từng màu">

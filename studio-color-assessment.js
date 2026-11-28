@@ -106,6 +106,64 @@
         character:reference.character,family:reference.family,suggestions};
     }
 
+    const hueSeparation=(a,b)=>Math.min(Math.abs(a-b),360-Math.abs(a-b));
+    function colorHarmony(entries) {
+      const hues=entries.filter(entry=>entry.lab.C>=10).map(entry=>entry.hue).sort((a,b)=>a-b);
+      if(!hues.length)return entries.length?'Phối trung tính':'Chưa phân bổ màu';
+      const gaps=hues.map((hue,index)=>(hues[index+1]??hues[0]+360)-hue);
+      const widest=Math.max(...gaps);
+      if(360-widest<=18)return entries.length>hues.length?'Một họ màu và trung tính':'Phối đơn sắc';
+      if(360-widest<=65)return 'Phối tương đồng';
+      const first=(gaps.indexOf(widest)+1)%hues.length;
+      const groups=[[]];
+      for(let offset=0;offset<hues.length;offset++){
+        const index=(first+offset)%hues.length;
+        if(offset&&gaps[(index+hues.length-1)%hues.length]>25)groups.push([]);
+        groups.at(-1).push(hues[index]);
+      }
+      const representatives=groups.map(group=>group[Math.floor(group.length/2)]).sort((a,b)=>a-b);
+      const steps=representatives.map((hue,index)=>(representatives[index+1]??representatives[0]+360)-hue);
+      if(steps.length===2&&Math.min(...steps)>=150)return 'Gần bổ túc đối xứng';
+      if(steps.length===3&&steps.every(step=>Math.abs(step-120)<=26))return 'Gần phối bộ ba';
+      if(steps.length===3&&Math.abs(Math.min(...steps)-60)<=20&&steps.filter(step=>Math.abs(step-150)<=25).length===2)return 'Gần bổ túc phân đôi';
+      if(steps.length===4&&steps.every(step=>Math.abs(step-90)<=25))return 'Gần phối bộ bốn dạng vuông';
+      return 'Phối đa sắc';
+    }
+
+    const roleColorText=entry=>entry?entry.hex+' ('+assessmentPercent(entry.ratio)+')':'Chưa rõ trong bản phối';
+    function colorRoleSummary(ranked) {
+      const [lead,...others]=ranked;
+      const principle=colorHarmony(ranked);
+      if(!lead)return {principle,relation:'Cần phân bổ tỷ lệ để xác định mối quan hệ màu.',roles:[]};
+      const contrast=entry=>academyDistance(lead.lab,entry.lab);
+      const accent=others.filter(entry=>entry.ratio<=lead.ratio*.85&&contrast(entry)>=18)
+        .sort((a,b)=>(contrast(b)+.25*b.lab.C-.4*b.ratio)-(contrast(a)+.25*a.lab.C-.4*a.ratio))[0];
+      const transition=others.filter(entry=>entry!==accent).sort((a,b)=>{
+        const cost=entry=>accent
+          ? contrast(entry)+academyDistance(entry.lab,accent.lab)-contrast(accent)-entry.ratio*.18
+          : contrast(entry)-entry.ratio*.3;
+        return cost(a)-cost(b);
+      })[0];
+      lead.role='Chủ đạo';
+      if(transition)transition.role='Chuyển';
+      if(accent)accent.role='Nhấn';
+      const roles=[
+        {name:'Màu chủ đạo',color:roleColorText(lead),reason:others.some(entry=>entry.inputRatio===lead.inputRatio)?'Đồng tỷ lệ cao nhất; lấy ô đứng trước làm mốc.':'Chiếm tỷ lệ lớn nhất.'},
+        {name:'Màu chuyển',color:roleColorText(transition),reason:transition
+          ?(accent?'Gần đường chuyển giữa màu chủ đạo và màu nhấn theo CIELAB.':'Sắc độ gần màu chủ đạo, dùng để tạo chuyển lớp.')
+          :'Chưa có ô riêng để nối màu.'},
+        {name:'Màu nhấn',color:roleColorText(accent),reason:accent?'Mảng nhỏ hơn, có độ tương phản với màu chủ đạo.':'Chưa có mảng nhỏ đủ tương phản để tách vai trò nhấn.'}
+      ];
+      const related=accent??transition;
+      if(!related)return {principle,relation:'Bản phối đang dùng một ô màu.',roles};
+      const delta=Math.abs(lead.lab.L-related.lab.L);
+      const light=delta<12?'gần nhau về độ sáng':delta<25?'chênh sáng vừa phải':'chênh sáng rõ';
+      const hue=lead.lab.C<10||related.lab.C<10?'có màu trung tính':
+        hueSeparation(lead.hue,related.hue)<=35?'gần nhau trên bánh xe màu':
+        hueSeparation(lead.hue,related.hue)>=150?'gần đối diện trên bánh xe màu':'khác họ sắc trên bánh xe màu';
+      return {principle,relation:lead.hex+' và '+related.hex+' '+hue+', '+light+'.',roles};
+    }
+
     function currentColorAssessment() {
       const measured=measuredColors();
       const palette=state.palette.filter(swatch=>assessmentHex(swatch.hex));
@@ -116,26 +174,26 @@
       const ranked=weights.map((_,index)=>index).filter(index=>weights[index]>0).sort((a,b)=>weights[b]-weights[a]);
       const entries=palette.map((swatch,index)=>{
         const rgb=hexToRgb(swatch.hex), lab=rgbToLab(rgb.r,rgb.g,rgb.b);
-        const role=ranked[0]===index?'Chủ đạo':ranked[1]===index?'Màu phụ chính':weights[index]?'Bổ trợ':'Chưa phân bổ';
+        const role=weights[index]?'Bổ trợ':'Chưa phân bổ';
         return {hex:swatch.hex,name:displayStudioColorName(swatch),academy:academyAssessment(swatch.hex,lab),ratio:proportions[index],inputRatio:weights[index],
-          imagePercent:imageWeights[index],rgb,lab,role};
+          imagePercent:imageWeights[index],rgb,lab,role,hue:rgbToHsl(rgb.r,rgb.g,rgb.b).h};
       });
       const lead=entries[ranked[0]],secondary=entries[ranked[1]];
+      const harmony=colorRoleSummary(ranked.map(index=>entries[index]));
       const average=key=>total?entries.reduce((sum,item)=>sum+item.lab[key]*item.inputRatio,0)/total:null;
       const averageLightness=average('L'),averageChroma=average('C');
       const tone=averageLightness>=68?'thiên sáng':averageLightness<43?'thiên trầm':'có độ sáng trung bình';
       const vividness=averageChroma>=45?'khá rực':averageChroma<24?'dịu và ít chói':'có độ rực vừa phải';
       const difference=secondary?Math.abs(lead.lab.L-secondary.lab.L):null;
       const summary=lead
-        ? 'Tổng thể bản phối '+tone+', '+vividness+'. Dùng '+lead.hex+' ('+assessmentPercent(lead.ratio)+') làm mảng màu chính.'+
-          (secondary?' Dùng '+secondary.hex+' ('+assessmentPercent(secondary.ratio)+') để nối hoặc làm nổi bật mảng chính.':'')
+        ? 'Tổng thể bản phối '+tone+', '+vividness+': độ sáng và độ rực được tính theo tỷ lệ phối.'
         :'Đặt tỷ lệ lớn hơn 0 để đánh giá bản phối.';
       const advice=difference==null?'Cần ít nhất hai màu có tỷ lệ dương để so sánh độ sáng.'
         :difference<12?'Hai màu lớn nhất có độ sáng gần nhau. Nếu muốn điểm nhấn rõ, thử đặt một màu sáng hơn hoặc tối hơn cạnh hoa chủ đạo.'
         :difference>=25?'Hai màu lớn nhất có độ sáng cách xa nhau. Đặt chúng cạnh nhau ở vùng muốn hút mắt và dùng màu phụ để chuyển sắc.'
         :'Hai màu lớn nhất có chênh lệch độ sáng vừa phải. Thử nhắc lại màu phụ ở vài điểm để tạo nhịp.';
       return {measured,academySource,scope:measured.length?state.colorMeasurement.scope:null,total,entries,
-        averageLightness,averageChroma,difference,summary,advice};
+        averageLightness,averageChroma,difference,summary,advice,harmony};
     }
 
     const measurementScopeText = scope => scope==='focus'?'Vùng ưu tiên hoa':'Toàn bộ khung hình';
@@ -212,6 +270,12 @@
       }
       renderAcademyTones(entries);
       assessmentNode('aestheticSummary').textContent=result.summary;
+      const {harmony}=result;
+      assessmentNode('colorHarmonyPrinciple').textContent='Nguyên tắc phối: '+harmony.principle;
+      assessmentNode('colorHarmonyRelation').textContent='Mối quan hệ màu: '+harmony.relation;
+      assessmentNode('colorHarmonyRoles').replaceChildren(...harmony.roles.map(role=>
+        assessmentElement('li',role.name+' · '+role.color+' — '+role.reason)));
+
       assessmentNode('practicalPairingTip').textContent=result.advice;
       const table=assessmentNode('colorMathTableBody');
       table.replaceChildren();
@@ -257,6 +321,9 @@
         '<table><thead><tr>'+headings.map(label=>'<th>'+label+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table>'+
         '<h2>Đánh giá sắc độ</h2><p>L* '+assessmentNumber(result.averageLightness)+' · C* '+assessmentNumber(result.averageChroma)+
         ' · ΔL* '+assessmentNumber(result.difference)+'</p><p>'+escapeColorReportText(result.summary)+'</p><p>'+escapeColorReportText(result.advice)+'</p>'+
+        '<h2>Nguyên tắc phối và mối quan hệ màu</h2><p>'+escapeColorReportText(result.harmony.principle)+
+        '</p><p>'+escapeColorReportText(result.harmony.relation)+'</p><ul>'+
+        result.harmony.roles.map(role=>'<li>'+escapeColorReportText(role.name+' · '+role.color+' — '+role.reason)+'</li>').join('')+'</ul>'+
         '<h2>Màu thay thế</h2><ul>'+result.entries.map(entry=>'<li>'+escapeColorReportText(entry.hex)+' · '+
           escapeColorReportText(entry.academy.suggestions.filter(item=>item.hex)
             .map(item=>item.goal+': '+item.name+' '+item.hex).join(' · '))+'</li>').join('')+

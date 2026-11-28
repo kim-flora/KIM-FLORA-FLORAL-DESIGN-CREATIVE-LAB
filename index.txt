@@ -1487,11 +1487,19 @@
     };
 
     // Eyedropper on Canvas
+    const colorPointCanvas = document.createElement('canvas');
+    colorPointCanvas.width = colorPointCanvas.height = 1;
+    const colorPointCtx = colorPointCanvas.getContext('2d', {willReadFrequently:true});
     colorCanvas.addEventListener('click', (e) => {
+      if (!paletteImage) return;
       const rect = colorCanvas.getBoundingClientRect();
-      const x = Math.floor((e.clientX - rect.left) * (colorCanvas.width / rect.width));
-      const y = Math.floor((e.clientY - rect.top) * (colorCanvas.height / rect.height));
-      const px = colorCtx.getImageData(x, y, 1, 1).data;
+      const w = paletteImage.naturalWidth, h = paletteImage.naturalHeight;
+      const x = clamp(Math.floor((e.clientX - rect.left) * w / rect.width), 0, w - 1);
+      const y = clamp(Math.floor((e.clientY - rect.top) * h / rect.height), 0, h - 1);
+      colorPointCtx.clearRect(0, 0, 1, 1);
+      colorPointCtx.drawImage(paletteImage, x, y, 1, 1, 0, 0, 1, 1);
+      const px = colorPointCtx.getImageData(0, 0, 1, 1).data;
+      if (px[3] < 128) return;
       const hex = rgbToHex(px[0], px[1], px[2]);
       lastEyedropperHex = hex;
       document.getElementById('eyedropperReadout').classList.remove('hidden');

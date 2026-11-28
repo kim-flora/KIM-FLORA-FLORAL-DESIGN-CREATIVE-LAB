@@ -1,4 +1,5 @@
 import './build-smart-selection.mjs';
+import { palettePixelLimit } from './public/color-model.js';
 import { readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 const read = path => readFileSync(path,'utf8');
@@ -278,9 +279,14 @@ function preserveStudioState(source){
         }
         state.colorMeasurement=null;
         renderColorAnalysisAndMockup();
-        const pixels=colorCtx.getImageData(0,0,colorCanvas.width,colorCanvas.height).data;
-        const transparent=pixels.some((value,index)=>index%4===3&&value<255);
-        state.currentImageDataUrl = transparent?colorCanvas.toDataURL('image/png'):colorCanvas.toDataURL('image/jpeg',0.85);`);
+        const pixelCanvas=document.createElement('canvas');
+        const sampleScale=Math.min(1,${palettePixelLimit}/Math.max(img.naturalWidth,img.naturalHeight));
+        pixelCanvas.width=Math.max(1,Math.round(img.naturalWidth*sampleScale));
+        pixelCanvas.height=Math.max(1,Math.round(img.naturalHeight*sampleScale));
+        const pixelCtx=pixelCanvas.getContext('2d');
+        pixelCtx.imageSmoothingEnabled=false;
+        pixelCtx.drawImage(img,0,0,pixelCanvas.width,pixelCanvas.height);
+        state.currentImageDataUrl=pixelCanvas.toDataURL('image/png');`);
   source=source.replace('function loadCompImage(src) {','function loadCompImage(src,restore=false) {')
     .replace('function loadCompImage(src,restore=false) { changeReviewSource(src);','function loadCompImage(src,restore=false,onReady) {')
     .replace('compBgImg.onload = () => {','const requestedImage=compBgImg;\n      compBgImg.onload = () => {\n        if(requestedImage!==compBgImg)return;')

@@ -1,3 +1,5 @@
+export const palettePixelLimit = 768;
+
 export function hexToHsl(hex) {
   const [r, g, b] = hex.match(/[\da-f]{2}/gi).map(pair => parseInt(pair, 16) / 255);
   const max = Math.max(r, g, b);

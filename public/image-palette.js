@@ -1,5 +1,5 @@
 import { flowerLeafSamples } from './moodboard-mask.js';
-import { allocate, extractPalette } from './color-model.js';
+import { allocate, extractPalette, palettePixelLimit } from './color-model.js';
 
 function surface(width, height) {
   if (typeof OffscreenCanvas === 'function') return new OffscreenCanvas(width, height);
@@ -9,9 +9,11 @@ function surface(width, height) {
 export function sampledPalette(img, count, flowers) {
   const width = img.naturalWidth || img.width;
   const height = img.naturalHeight || img.height;
-  const scale = Math.min(1, 768 / Math.max(width, height));
+  const scale = Math.min(1, palettePixelLimit / Math.max(width, height));
   const canvas = surface(Math.max(1, Math.round(width * scale)), Math.max(1, Math.round(height * scale)));
   const ctx = canvas.getContext('2d', {willReadFrequently:true});
+  // Keep original sample values when reducing the raster used for clustering.
+  ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
   if (flowers) {

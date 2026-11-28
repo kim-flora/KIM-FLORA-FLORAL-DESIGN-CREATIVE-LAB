@@ -21,11 +21,21 @@ const same = (left, right) => {
   return false;
 };
 
-function merge(base, local, remote, conflict, migrating) {
+const archivedLists=new Set(['savedProjects','savedColorRecipes','savedRecipes','savedConcepts','productionLog',
+  'kim-flora-lab-projects-v1','kim-flora-color-formulas-v1','kim_flora_composition_reports_v1']);
+function merge(base, local, remote, conflict, migrating, field) {
   if (same(local, remote) || same(base, remote)) return local;
   if (same(base, local)) return remote;
   if (migrating && local === missing) return remote;
   if (migrating && remote === missing) return local;
+  if(archivedLists.has(field)&&Array.isArray(local)&&Array.isArray(remote)&&
+      (base===missing||Array.isArray(base))){
+    const records=rows=>Object.fromEntries(rows.map(row=>[
+      typeof row?.id==='string'?'id:'+row.id:'content:'+JSON.stringify(row),row
+    ]));
+    const ancestor=base===missing?missing:records(base);
+    return Object.values(merge(ancestor,records(local),records(remote),conflict,migrating));
+  }
   if (!migrating && recordList(base) && recordList(local) && recordList(remote)) {
     const byId = rows => Object.fromEntries(rows.map(row => [row.id,row]));
     return Object.values(merge(byId(base),byId(local),byId(remote),conflict,false));
@@ -36,7 +46,7 @@ function merge(base, local, remote, conflict, migrating) {
     const result = [];
     for (const key of keys) {
       const get = row => Object.hasOwn(row, key) ? row[key] : missing;
-      const value = merge(get(base), get(local), get(remote), conflict, migrating);
+      const value = merge(get(base), get(local), get(remote), conflict, migrating, key==='json'?field:key);
       if (value !== missing) result.push([key, value]);
     }
     return Object.fromEntries(result);

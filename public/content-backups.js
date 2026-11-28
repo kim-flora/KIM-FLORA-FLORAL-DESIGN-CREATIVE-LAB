@@ -202,7 +202,24 @@ const dialog=document.getElementById('contentBackupDialog');
 const history=document.getElementById('contentBackupHistory');
 const checkpoint='kim-flora-content-checkpoint-v2';
 const recovery='kim-flora-content-recovery-v2';
-let enabled=false, timer, active=null, dirty=false;
+let enabled=false, timer, active=null, dirty=false, polling=false, visibleSnapshot=null;
+let lastInteraction=0;
+const heldPointers=new Set();
+
+for(const type of ['pointerdown','pointerup','pointercancel','input','keydown','wheel']){
+  window.addEventListener(type,event=>{
+    lastInteraction=Date.now();
+    if(type==='pointerdown')heldPointers.add(event.pointerId);
+    if(type==='pointerup'||type==='pointercancel')heldPointers.delete(event.pointerId);
+  },{capture:true,passive:true});
+}
+window.addEventListener('blur',()=>heldPointers.clear());
+
+function canRefreshStudio(){
+  return enabled && !document.hidden && !heldPointers.size && Date.now()-lastInteraction>6000 &&
+    !document.activeElement?.closest('input,textarea,select,[contenteditable="true"]') &&
+    !document.querySelector('dialog[open],#modalOverlay:not(.hidden),.tab-panel:not(.hidden) .flora-editor .stage canvas:not([hidden])');
+}
 
 async function readSnapshot(id) {
   const {data}=await call('?snapshot='+id+'&part=-1');
@@ -247,7 +264,7 @@ function sync(hydration) {
       return true;
     }
     const baseId=localStorage.getItem(checkpoint);
-    let head=await call('?head=1');
+    let head=hydration?.head??await call('?head=1');
     const legacyId=head.snapshot?null:(await call())[0]?.id;
     const local=await capture();
     const hasContent=Object.values(local.local).some(value=>value!==null) ||
@@ -275,22 +292,31 @@ function sync(hydration) {
           continue;
         }
       }
-      if(hydration?.allowed && id!==localId && !sameContent(snapshot,local)){
+      const viewMatches=id===localId||sameContent(snapshot,local);
+      const canApply=()=>hydration?.allowed && (!hydration.canApply||hydration.canApply());
+      if(!viewMatches && canApply()){
         // Keep edits made in another tab during the network requests.
         if(!sameContent(await capture(),local)){
           dirty=true;
-        }else if(hydration.allowed){
+        }else if(canApply()){
           hydration.applying=true;
           await applySnapshot(id,snapshot);
+          if(hydration.canApply){
+            try{
+              const tab=document.querySelector('#mainNav .tab-btn.active')?.dataset.tab;
+              if(tab)sessionStorage.setItem('kim-flora-sync-tab',tab);
+            }catch{}
+          }
           location.reload();
           return true;
         }
       }
       if(localId)localStorage.setItem(checkpoint,localId);
+      if(viewMatches)visibleSnapshot=id;
       succeeded=true;
       status.textContent=conflicted
         ? 'Có thay đổi trùng nhau. Bản của trình duyệt này còn trong lịch sử sao lưu.'
-        : id===localId?'Đã lưu trực tuyến.':'Đã lưu trực tuyến. Tải lại trang để xem dữ liệu chung.';
+        : viewMatches?'Đã lưu trực tuyến.':'Có dữ liệu mới. Studio sẽ tải khi bạn dừng chỉnh sửa.';
       return false;
     }
     throw Error('Concurrent updates');
@@ -395,27 +421,11 @@ document.getElementById('loadSharedContent').onclick=async event=>{
 };
 document.getElementById('saveContentBackup').onclick=()=>sync().then(()=>showHistory()).catch(()=>{});
 window.addEventListener('studio:before-ready',event=>{
-  const hydration={allowed:true,applying:false};
-  event.detail.push(new Promise((resolve,reject)=>{
-    const controller=new AbortController();
-    const cancelHydration=()=>{hydration.allowed=false;};
-    const timer=setTimeout(()=>{
-      if(hydration.applying)return;
-      if(localStorage.getItem(recovery)){
-        reject(Error('Đã đăng nhập. Hãy tải lại trang để hoàn tất khôi phục dữ liệu.'));
-      }else{
-        for(const type of ['pointerdown','keydown','studio:storage-saved']){
-          window.addEventListener(type,cancelHydration,{capture:true,signal:controller.signal});
-        }
-        status.textContent='Đang tải dữ liệu dùng chung…';
-        resolve(false);
-      }
-    },6000);
-    sync(hydration).then(resolve,()=>{
-      if(localStorage.getItem(recovery)){
-        reject(Error('Đã đăng nhập. Hãy tải lại trang để hoàn tất khôi phục dữ liệu.'));
-      }else resolve(false);
-    }).finally(()=>{clearTimeout(timer);controller.abort();});
+  const message=document.getElementById('loginErrorMsg');
+  message.textContent='Đã xác thực. Đang mở dữ liệu dùng chung…';
+  message.classList.remove('hidden');
+  event.detail.push(sync({allowed:true,applying:false}).catch(()=>{
+    throw Error('Đã xác thực nhưng chưa tải được dữ liệu dùng chung. Hãy tải lại trang để thử lại.');
   }));
 });
 window.addEventListener('studio:ready',()=>{enabled=true;if(dirty)schedule();});
@@ -424,10 +434,26 @@ window.addEventListener('studio:before-logout',event=>{
   if(!enabled || (!dirty && !active))return;
   event.detail.push((async()=>{if(active)await active;if(dirty)await sync();})());
 });
-window.addEventListener('online',()=>{if(enabled)schedule();});
-window.addEventListener('focus',()=>{if(enabled)schedule();});
-window.addEventListener('storage',event=>{if(localKeys.includes(event.key))schedule();});
+async function checkSharedContent(){
+  if(!enabled||document.hidden||active||polling)return;
+  if(dirty){
+    await sync({allowed:true,canApply:canRefreshStudio}).catch(()=>{});
+    return;
+  }
+  polling=true;
+  try{
+    const head=await call('?head=1');
+    if(active||dirty)return;
+    if(head.snapshot===visibleSnapshot)return;
+    if(canRefreshStudio())await sync({allowed:true,canApply:canRefreshStudio,head});
+    else status.textContent='Có dữ liệu mới. Studio sẽ tải khi bạn dừng chỉnh sửa.';
+  }catch{
+    status.textContent='Chưa kết nối được kho trực tuyến.';
+  }finally{polling=false;}
+}
 
-setInterval(()=>{
-  if(enabled && !document.hidden && !active)sync().catch(()=>{});
-},60000);
+window.addEventListener('online',checkSharedContent);
+window.addEventListener('focus',checkSharedContent);
+document.addEventListener('visibilitychange',checkSharedContent);
+window.addEventListener('storage',event=>{if(localKeys.includes(event.key))schedule();});
+setInterval(checkSharedContent,15000);

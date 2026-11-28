@@ -5,16 +5,16 @@ export function mountEditor(host) {
   const root = document.createElement('section');
   root.className = 'flora-editor';
   root.innerHTML = `<header><h2>Chỉnh sửa ảnh hoa</h2><label class="pick">Mở ảnh<input type="file" accept="image/*"></label></header>
-  <div class="layout"><div><div class="stage"><canvas hidden></canvas><span class="empty">Chọn ảnh để bắt đầu chỉnh sửa</span><i hidden></i></div>
+  <div class="layout"><div><div class="stage"><canvas hidden></canvas><canvas class="selection-overlay" aria-hidden="true" hidden></canvas><span class="empty">Chọn ảnh để bắt đầu chỉnh sửa</span><i hidden></i></div>
   <nav aria-label="Vùng xem"><button data-act="minus">Thu nhỏ</button><output class="zoom">100%</output><button data-act="plus">Phóng to</button><button data-act="fit">Vừa khung</button><button data-act="before" aria-pressed="false">Xem ảnh gốc</button></nav></div>
   <aside><h3>Ánh sáng và màu sắc</h3><div class="sliders"></div><h3>Khung hình</h3><nav><button data-act="crop">Chọn vùng cắt</button><button data-act="apply" hidden>Áp dụng cắt</button><button data-act="left">Xoay trái 90°</button><button data-act="right">Xoay phải 90°</button><button data-act="flipX">Lật ngang</button><button data-act="flipY">Lật dọc</button></nav>
   <nav><button data-act="undo">Hoàn tác</button><button data-act="redo">Làm lại</button><button data-act="export">Tải ảnh PNG</button></nav></aside></div><p role="status"></p>`;
   host.append(root);
   const q = s => root.querySelector(s);
-  const stage=q('.stage'), canvas=q('canvas'), box=q('i'), message=q('[role=status]');
-  let fileSource, img, name, state, history=[], cursor=0, before=false, crop=false, selection, drag, ticket=0, pending=0;
+  const stage=q('.stage'), canvas=q('canvas'), overlay=q('.selection-overlay'), box=q('i'), message=q('[role=status]');
+  let fileSource, img, name, state, history=[], cursor=0, before=false, crop=false, selection, drag, ticket=0, pending=0, pendingOverlay=0;
   let zoom=1, panX=0, panY=0;
-  const layers=createSelection(q('aside'),()=>({img,s:state,before,schedule,commit,paint,message,exitCrop:stopCrop}));
+  const layers=createSelection(q('aside'),()=>({img,s:state,before,schedule,scheduleOverlay,commit,paint,message,exitCrop:stopCrop}));
   const refreshEffects=effectControls(q('aside'),()=>({s:state,before,commit,paint,schedule}));
   const projects=projectPanel(root,()=>({file:fileSource,name,message,begin:()=>++ticket,
     snapshot:()=>({state:structuredClone(state),history:[...history],cursor,layers:layers.snapshot(),zoom,panX,panY}),
@@ -118,9 +118,33 @@ export function mountEditor(host) {
     const fit=Math.min(stage.clientWidth/s.w,stage.clientHeight/s.h);
     canvas.style.width=s.w*fit*zoom+'px';canvas.style.height=s.h*fit*zoom+'px';
     canvas.style.transform='translate(calc(-50% + '+panX+'px),calc(-50% + '+panY+'px))';
+    overlay.style.width=canvas.style.width;
+    overlay.style.height=canvas.style.height;
+    overlay.style.transform=canvas.style.transform;
     q('.zoom').value=Math.round(zoom*100)+'%';mark();
   }
-  function paint(){if(img){raster(canvas,before?initial(img):state,1800);if(!before)layers.overlay(canvas,state);view();}update();}
+  function paintOverlay(){
+    pendingOverlay=0;
+    if(!img)return;
+    overlay.hidden=before;
+    if(before)return;
+    if(overlay.width!==canvas.width)overlay.width=canvas.width;
+    if(overlay.height!==canvas.height)overlay.height=canvas.height;
+    overlay.getContext('2d').clearRect(0,0,overlay.width,overlay.height);
+    layers.overlay(overlay,state);
+  }
+  function scheduleOverlay(){
+    if(!pendingOverlay)pendingOverlay=requestAnimationFrame(paintOverlay);
+  }
+  function paint(){
+    cancelAnimationFrame(pendingOverlay);
+    if(img){
+      raster(canvas,before?initial(img):state,1800);
+      paintOverlay();
+      view();
+    }
+    update();
+  }
   function schedule(){cancelAnimationFrame(pending);pending=requestAnimationFrame(paint);}
   function resetView(){zoom=1;panX=panY=0;view();}
   function stopCrop(){crop=false;selection=null;box.hidden=true;drag=null;}
@@ -162,7 +186,13 @@ export function mountEditor(host) {
     if(crop){const [x,y]=drag.start,[a,b]=point(e);selection=Math.abs(x-a)*state.w>=1&&Math.abs(y-b)*state.h>=1?[Math.min(x,a),Math.min(y,b),Math.abs(x-a),Math.abs(y-b)]:null;mark();update();}
     else{panX=e.clientX-drag.x;panY=e.clientY-drag.y;view();}
   };
-  stage.onpointerup=stage.onpointercancel=e=>{if(drag?.id===e.pointerId){if(drag.select)layers.pointer(e.type==='pointercancel'?'cancel':'up',originalPoint(e));drag=null;}};
+  stage.onpointerup=stage.onpointercancel=stage.onlostpointercapture=e=>{
+    if(drag?.id!==e.pointerId)return;
+    const current=drag;
+    drag=null;
+    if(current.select)layers.pointer(e.type==='pointerup'?'up':'cancel',originalPoint(e));
+    if(e.type!=='pointerup')brushRing.hidden=true;
+  };
   function transform(matrix,w,h){
     const m=new DOMMatrix(matrix).multiply(new DOMMatrix(state.m));
     Object.assign(state,{m:[m.a,m.b,m.c,m.d,m.e,m.f],w,h});stopCrop();resetView();commit();paint();

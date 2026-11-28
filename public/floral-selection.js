@@ -110,10 +110,10 @@ export function createSelection(aside, environment) {
       if(kind==='move'&&stroke){stroke.push(p);if(performance.now()-lastUpdate>=45)quickPreview();}
       if(kind==='up'&&stroke){if(stroke.at(-1).x!==p.x||stroke.at(-1).y!==p.y)stroke.push(p);if(applied<stroke.length)quickPreview();stroke=null;}
       if(kind==='cancel'&&stroke){mask=undo.pop()||null;outline=null;stroke=null;}
-      environment().schedule();return true;
+      environment().scheduleOverlay();return true;
     }
     if(tool.value==='move')return objects.pointer(kind,p);
-    const {schedule}=environment();
+    const {scheduleOverlay}=environment();
     if(kind==='down'){if(['brush','lasso','wand'].includes(tool.value))checkpoint();stroke=[p];if(tool.value==='brush')line(p,p);if(tool.value==='wand')wand(p);}
     if(stroke&&kind==='move'){if(tool.value==='brush')line(stroke.at(-1),p);stroke.push(p);}
     if(kind==='up'&&stroke){
@@ -122,7 +122,7 @@ export function createSelection(aside, environment) {
       stroke=null;
     }
     if(kind==='cancel')stroke=null;
-    schedule();return true;
+    scheduleOverlay();return true;
   }
   function overlay(canvas,s){
     if(!mask&&!stroke)return;

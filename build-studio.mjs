@@ -26,6 +26,9 @@ html = html.replace(/<\/body>(?=\s*<\/html>\s*$)/, `
 </dialog></body>`);
 const script = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!script) throw Error('Missing Studio application');
+const colorAssessmentMarker = '    // Color assessment renderer';
+if (!script[1].includes(colorAssessmentMarker)) throw Error('Missing color assessment renderer');
+script[1] = script[1].replace(colorAssessmentMarker, () => read('studio-color-assessment.js'));
 const floralProofMarker = '    // Floral product proof renderer';
 if (!script[1].includes(floralProofMarker)) throw Error('Missing floral proof renderer');
 script[1] = script[1].replace(floralProofMarker, () => read('studio-floral-proof.js'));
@@ -53,6 +56,7 @@ script[1]=script[1].slice(0,from)+read('flower-leaf-samples.js')+'\n'+`let palet
           showToast(focus?'Chưa xác định được vùng hoa. Bạn có thể thử chế độ Toàn bộ khung hình.':'Ảnh không có điểm màu đủ rõ để lấy mẫu.', 'info');
           return;
         }
+        state.colorMeasurement={scope:focus?'focus':'full',colors:structuredClone(colors)};
         const extracted=colors.map((c,i)=>({id:crypto.randomUUID(),hex:c.hex,ratio:c.percent,imgArea:c.percent,locked:false,name:'Màu ảnh #'+(i+1)}));
         `+script[1].slice(to);
 script[1]=script[1].replace('colorCtx.drawImage(img,','paletteRequest?.abort(); paletteImage=img; colorCtx.drawImage(img,')
@@ -60,7 +64,6 @@ script[1]=script[1].replace('colorCtx.drawImage(img,','paletteRequest?.abort(); 
 html=html.replace('value="focus" selected','value="focus"').replace('<option value="full">Toàn bộ khung hình','<option value="full" selected>Toàn bộ khung hình')
   .replace('id="extractCountRange" min="2" max="10" value="5"','id="extractCountRange" min="2" max="10" value="7"')
   .replace(/(id="extractCountVal"[^>]*>)5</,(_,prefix)=>prefix+'7<');
-script[1]=script[1].replace('p.ratio = p.imgArea || 5','p.ratio = p.imgArea ?? 0');
 const analysisStart=script[1].indexOf('function analyzeFloralComposition()');
 const cardsEnd=script[1].indexOf("const container = document.getElementById('compDiagnosisCards')",analysisStart);
 if(analysisStart<0||cardsEnd<0)throw Error('Missing Composition Analyzer');
@@ -123,7 +126,7 @@ script[1]=script[1].replace('function renderInlineSavedColors() {', () => `
         id:crypto.randomUUID(),hex:color.hex,ratio:color.weight,locked:!!color.locked,name:color.name||color.hex
       }));
       normalizeRatios();
-      if(image)loadImageToColorStudio(image);
+      loadColorRecipeSource({image});
       renderColorStudio();
       try{persist();}catch{}
     });
@@ -269,6 +272,8 @@ function preserveStudioState(source){
     .replace("function loadImageToColorStudio(src,restore=false) {","function loadImageToColorStudio(src,restore=false) {\n      const request=++colorRequest;")
     .replace('const maxW = 540, maxH = 340;','if(request!==colorRequest)return;\n        const maxW = 540, maxH = 340;')
     .replace("state.currentImageDataUrl = colorCanvas.toDataURL('image/jpeg', 0.85);",`if(restore)return;
+        state.colorMeasurement=null;
+        renderColorAnalysisAndMockup();
         const pixels=colorCtx.getImageData(0,0,colorCanvas.width,colorCanvas.height).data;
         const transparent=pixels.some((value,index)=>index%4===3&&value<255);
         state.currentImageDataUrl = transparent?colorCanvas.toDataURL('image/png'):colorCanvas.toDataURL('image/jpeg',0.85);`);

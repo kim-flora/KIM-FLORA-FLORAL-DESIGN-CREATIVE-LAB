@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="/project-library.css">
   <link rel="stylesheet" href="/floral-proof.css">
+  <link rel="stylesheet" href="/color-assessment.css">
   <title>KIM FLORA – Floral Design & Creative Lab</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -317,62 +318,43 @@
 
         <!-- Right Column: Proportions, Math Analysis vs Aesthetic, Product Mockup -->
         <div class="xl:col-span-7 space-y-5">
-          <!-- Ratio Analysis & Stacked Bar -->
-          <div class="panel-card p-4 space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <h3 class="text-sm font-semibold flex items-center gap-2">
-                <i data-lucide="pie-chart" class="w-4 h-4 text-[#A65A42]"></i> 3. Phân tích Tỷ lệ Phối màu (Color Proportion)
-              </h3>
-              <div class="flex flex-wrap gap-1">
-                <button data-ratio="60-30-10" class="ratio-preset-btn text-[11px] px-2 py-1 rounded-md bg-[#F7F4EF] hover:bg-[#EAE5DC] border border-[#E4DFD5]">60–30–10</button>
-                <button data-ratio="70-20-10" class="ratio-preset-btn text-[11px] px-2 py-1 rounded-md bg-[#F7F4EF] hover:bg-[#EAE5DC] border border-[#E4DFD5]">70–20–10</button>
-                <button data-ratio="50-30-20" class="ratio-preset-btn text-[11px] px-2 py-1 rounded-md bg-[#F7F4EF] hover:bg-[#EAE5DC] border border-[#E4DFD5]">50–30–20</button>
-                <button data-ratio="equal" class="ratio-preset-btn text-[11px] px-2 py-1 rounded-md bg-[#F7F4EF] hover:bg-[#EAE5DC] border border-[#E4DFD5]">Đều nhau</button>
-                <button data-ratio="image" class="ratio-preset-btn text-[11px] px-2 py-1 rounded-md bg-[#F7F4EF] hover:bg-[#EAE5DC] border border-[#E4DFD5]">Theo diện tích ảnh</button>
-              </div>
+          <section class="color-assessment panel-card" aria-labelledby="colorProportionTitle">
+            <header><h3 id="colorProportionTitle" class="font-editorial">3. Phân tích tỷ lệ phối màu</h3></header>
+            <div class="color-ratio-actions" aria-label="Áp dụng tỷ lệ cho bản phối" role="group">
+              <button type="button" data-ratio="60-30-10" class="ratio-preset-btn">60–30–10</button>
+              <button type="button" data-ratio="70-20-10" class="ratio-preset-btn">70–20–10</button>
+              <button type="button" data-ratio="50-30-20" class="ratio-preset-btn">50–30–20</button>
+              <button type="button" data-ratio="equal" class="ratio-preset-btn">Đều nhau</button>
+              <button type="button" data-ratio="image" class="ratio-preset-btn">Dùng tỷ lệ ảnh</button>
             </div>
-            <div id="proportionBar" class="h-10 w-full rounded-xl overflow-hidden flex border border-[#E4DFD5] shadow-inner"></div>
-            <div id="proportionLegend" class="flex flex-wrap gap-3 text-[11px] text-[#5F6B64]"></div>
-          </div>
-
-          <!-- Practical Florist Color & Aesthetic Assessment -->
-          <div class="panel-card p-4 space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <h3 class="text-sm font-semibold flex items-center gap-2">
-                <i data-lucide="sparkles" class="w-4 h-4 text-[#A65A42]"></i> 4. Đánh giá Sắc độ &amp; Gợi ý Ứng dụng Thực tế
-              </h3>
-              <span class="text-[11px] text-[#5F6B64]">Ngôn ngữ thực tế dành cho thợ hoa &amp; tư vấn khách hàng</span>
+            <div class="color-track">
+              <div><strong>Đo từ ảnh</strong><span id="imageProportionScope"></span></div>
+              <div id="imageProportionBar" class="color-stack"></div>
+              <div id="imageProportionLegend" class="color-legend"></div>
             </div>
-
-            <!-- Practical Visual Cards -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="mathKpiGrid"></div>
-
-            <!-- Real-world Aesthetic & Occasion Fit -->
-            <div class="p-3.5 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-2.5">
-              <div class="flex items-center gap-2">
-                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#A65A42] text-white">Cảm nhận Thẩm mỹ &amp; Tư vấn Cắm hoa</span>
-              </div>
-              <p id="aestheticSummary" class="text-xs leading-relaxed text-[#1A2621]"></p>
-              <p id="practicalPairingTip" class="text-xs leading-relaxed text-[#5F6B64]"></p>
-              <div id="aestheticTags" class="flex flex-wrap gap-1.5 pt-1"></div>
+            <div class="color-track">
+              <div><strong>Bản phối hiện tại</strong><span id="designProportionTotal"></span></div>
+              <div id="proportionBar" class="color-stack"></div>
+              <div id="proportionLegend" class="color-legend"></div>
             </div>
+          </section>
 
-            <!-- Clean Practical Swatch Role Table -->
-            <div class="overflow-x-auto border border-[#E4DFD5] rounded-xl">
-              <table class="w-full text-left text-[11px]">
-                <thead class="bg-[#F7F4EF] text-[#5F6B64] border-b border-[#E4DFD5]">
-                  <tr>
-                    <th class="py-2 px-2.5">Màu &amp; Tỷ lệ</th>
-                    <th class="py-2 px-2.5">Mã HEX</th>
-                    <th class="py-2 px-2.5">Sắc độ thực tế</th>
-                    <th class="py-2 px-2.5">Tông Ấm / Mát</th>
-                    <th class="py-2 px-2.5">Vai trò gợi ý khi cắm</th>
-                  </tr>
-                </thead>
-                <tbody id="colorMathTableBody" class="divide-y divide-[#E4DFD5]"></tbody>
+          <section class="color-assessment panel-card" aria-labelledby="colorAssessmentTitle">
+            <header><h3 id="colorAssessmentTitle" class="font-editorial">4. Đánh giá sắc độ &amp; ứng dụng</h3>
+              <p>Phân tích theo tỷ lệ bản phối hiện tại.</p></header>
+            <dl id="mathKpiGrid" class="color-kpis"></dl>
+            <div class="color-advice">
+              <h4>Gợi ý bố trí màu</h4>
+              <p id="aestheticSummary"></p>
+              <p id="practicalPairingTip"></p>
+            </div>
+            <div class="color-metrics-scroll" tabindex="0" role="region" aria-label="Chỉ số từng màu">
+              <table>
+                <thead><tr><th>Mã HEX</th><th>Đo từ ảnh</th><th>Tỷ lệ phối</th><th>L*</th><th>C*</th><th>Vai trò gợi ý</th></tr></thead>
+                <tbody id="colorMathTableBody"></tbody>
               </table>
             </div>
-          </div>
+          </section>
 
           <!-- Floral Product Mockup Simulator -->
           <section class="floral-proof" aria-labelledby="floralProofTitle">
@@ -1651,28 +1633,19 @@
         const n = state.palette.length;
         if (!n) return;
         if (mode === 'image') {
-          const hasArea = state.palette.some(p => p.imgArea > 0);
-          if (!hasArea) return showToast('Chưa có dữ liệu diện tích ảnh. Hãy tải ảnh lên trước.', 'error');
-          state.palette.forEach(p => p.ratio = p.imgArea || 5);
-          normalizeRatios();
+          if (!applyMeasuredColorRatios()) return;
         } else if (mode === 'equal') {
-          const eq = Math.floor(100 / n);
-          state.palette.forEach((p, i) => p.ratio = i === 0 ? 100 - eq * (n - 1) : eq);
+          const shares = proportionalShares(state.palette.map(() => 1), 100);
+          state.palette.forEach((swatch, i) => { swatch.ratio = shares[i]; });
         } else {
-          const base = mode.split('-').map(Number); // e.g. [60,30,10]
-          if (n <= 3) {
-            state.palette.forEach((p, i) => p.ratio = base[i] || 10);
-            normalizeRatios();
-          } else {
-            // Distribute 60% among primary, 30% among secondary, 10% among accents
-            state.palette.forEach((p, i) => {
-              if (i === 0) p.ratio = base[0];
-              else if (i === 1) p.ratio = Math.round(base[1] * 0.65);
-              else if (i === 2) p.ratio = Math.round(base[1] * 0.35);
-              else p.ratio = Math.max(2, Math.round(base[2] / (n - 3)));
-            });
-            normalizeRatios();
-          }
+          const [main, secondary, accent] = mode.split('-').map(Number);
+          const secondaryA = Math.round(secondary * .65);
+          const shares = n === 1 ? [100] : n === 2 ? [main, secondary + accent] :
+            n === 3 ? [main, secondary, accent] : [
+              main, secondaryA, secondary - secondaryA,
+              ...proportionalShares(Array(n - 3).fill(1), accent).map(value => Math.round(value * accent / 100))
+            ];
+          state.palette.forEach((swatch, i) => { swatch.ratio = shares[i]; });
         }
         renderColorStudio();
         persist();
@@ -1813,7 +1786,7 @@
           const cr = state.savedColorRecipes[+b.dataset.idx];
           if (!cr) return;
           state.palette = JSON.parse(JSON.stringify(cr.palette));
-          if (cr.image) loadImageToColorStudio(cr.image);
+          loadColorRecipeSource(cr);
           renderColorStudio();
           persist();
           showToast(`Đã nạp bảng màu "${cr.name}"!`, 'success');
@@ -1830,129 +1803,7 @@
       });
     }
 
-    function renderColorAnalysisAndMockup() {
-      // 1. Proportion Bar
-      const bar = document.getElementById('proportionBar');
-      const legend = document.getElementById('proportionLegend');
-      bar.innerHTML = '';
-      legend.innerHTML = '';
-      const totalR = state.palette.reduce((s, x) => s + (x.ratio || 0), 0) || 1;
-      state.palette.forEach(sw => {
-        const w = (sw.ratio / totalR) * 100;
-        const seg = document.createElement('div');
-        seg.style.width = w + '%';
-        seg.style.backgroundColor = sw.hex;
-        seg.title = `${sw.hex} (${Math.round(w)}%)`;
-        bar.appendChild(seg);
-
-        const item = document.createElement('span');
-        item.className = 'inline-flex items-center gap-1.5';
-        item.innerHTML = `<span class="w-2.5 h-2.5 rounded-sm border border-black/15" style="background:${sw.hex}"></span><strong class="mono-num text-[#1A2621]">${sw.hex}</strong> (${Math.round(w)}%)`;
-        legend.appendChild(item);
-      });
-
-      // 2. Practical Florist Metrics (Plain Language)
-      const metrics = state.palette.map(sw => {
-        const rgb = hexToRgb(sw.hex);
-        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-        const lab = rgbToLab(rgb.r, rgb.g, rgb.b);
-        const warmthScore = lab.b * 0.7 + lab.a * 0.3;
-        return { sw, rgb, hsl, lab, warmthScore };
-      });
-
-      const avgL = metrics.reduce((s, m) => s + m.lab.L * (m.sw.ratio / totalR), 0);
-      const avgC = metrics.reduce((s, m) => s + m.lab.C * (m.sw.ratio / totalR), 0);
-      const avgWarmth = metrics.reduce((s, m) => s + m.warmthScore * (m.sw.ratio / totalR), 0);
-
-      let maxContrast = 1;
-      for (let i = 0; i < metrics.length; i++) {
-        for (let j = i + 1; j < metrics.length; j++) {
-          const cr = contrastRatio(metrics[i].rgb, metrics[j].rgb);
-          if (cr > maxContrast) maxContrast = cr;
-        }
-      }
-
-      const tempLabel = avgWarmth > 8 ? 'Ấm áp (Nắng / Đất)' : avgWarmth < -5 ? 'Mát dịu (Sương / Lạnh)' : 'Trung tính Dễ phối';
-      const brightLabel = avgL > 70 ? 'Sáng thoáng, nhẹ nhàng' : avgL < 42 ? 'Trầm sâu, sang trọng' : 'Cân bằng sáng tối';
-      const satLabel = avgC > 42 ? 'Tươi rực, bắt mắt' : avgC > 22 ? 'Tự nhiên, thanh lịch' : 'Phấn dịu (Pastel / Dusty)';
-      const sepLabel = maxContrast >= 4.2 ? 'Tách lớp rất rõ' : maxContrast >= 2.2 ? 'Chuyển sắc êm dịu' : 'Khá đồng đều (nên thêm lá đậm)';
-
-      const kpiGrid = document.getElementById('mathKpiGrid');
-      kpiGrid.innerHTML = `
-        <div class="p-2.5 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5]">
-          <div class="text-[10px] text-[#5F6B64]">Tông màu chủ đạo</div>
-          <div class="text-xs font-bold mt-1 text-[#1A2621]">${tempLabel}</div>
-        </div>
-        <div class="p-2.5 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5]">
-          <div class="text-[10px] text-[#5F6B64]">Độ sáng tổng thể</div>
-          <div class="text-xs font-bold mt-1 text-[#1A2621]">${brightLabel}</div>
-        </div>
-        <div class="p-2.5 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5]">
-          <div class="text-[10px] text-[#5F6B64]">Độ rực của hoa</div>
-          <div class="text-xs font-bold mt-1 text-[#1A2621]">${satLabel}</div>
-        </div>
-        <div class="p-2.5 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5]">
-          <div class="text-[10px] text-[#5F6B64]">Độ nổi bật Hoa &amp; Lá</div>
-          <div class="text-xs font-bold mt-1 text-[#1A2621]">${sepLabel}</div>
-        </div>
-      `;
-
-      // 3. Practical Aesthetic & Occasion Advice
-      const occasion = avgWarmth > 8
-        ? 'Rất hợp tiệc cưới ngoài trời, lễ gia tiên ấm cúng, khai trương phong cách hiện đại hoặc chụp ảnh nắng chiều.'
-        : avgWarmth < -5
-        ? 'Phù hợp không gian tiệc tối ánh đèn trắng, phòng máy lạnh, quà tặng tinh tế hoặc sự kiện doanh nghiệp.'
-        : 'Đa dụng cho hầu hết các dịp: bó hoa tặng sinh nhật, kỷ niệm, trang trí bàn tiệc và không gian nhà ở.';
-      const contrastAdvice = maxContrast >= 4.2
-        ? 'Các nhóm màu có độ tách biệt sáng–tối tốt, hoa chính sẽ nổi bật rõ khi lên ảnh.'
-        : 'Màu sắc chuyển khá gần nhau; khi cắm thực tế nên giữ khoảng thoáng giữa các bông và lót thêm lá xanh đậm hoặc hoa nhí sáng để tạo chiều sâu.';
-
-      document.getElementById('aestheticSummary').textContent =
-        `Tổng thể bảng màu mang cảm giác ${tempLabel.toLowerCase()}, sắc hoa ${satLabel.toLowerCase()}. ${occasion}`;
-      document.getElementById('practicalPairingTip').textContent =
-        `Gợi ý thực tế: ${contrastAdvice}`;
-
-      const sortedByRatio = [...metrics].sort((a, b) => b.sw.ratio - a.sw.ratio);
-      const topHex = sortedByRatio[0]?.sw.hex || '';
-      const secondHex = sortedByRatio[1]?.sw.hex || '';
-      document.getElementById('aestheticTags').innerHTML = [
-        avgWarmth > 8 ? 'Hợp ánh sáng vàng / nắng chiều' : 'Hợp ánh sáng trắng / tự nhiên',
-        avgC > 40 ? 'Thu hút từ xa' : 'Gần gũi, tinh tế khi nhìn gần',
-        `Hoa nền ${topHex} · Điểm nhấn ${secondHex}`
-      ].map(t => `<span class="text-[11px] px-2.5 py-0.5 rounded-full bg-white border border-[#E4DFD5] text-[#1A2621]">${t}</span>`).join('');
-
-      // 4. Clean Practical Role Table
-      const tbody = document.getElementById('colorMathTableBody');
-      tbody.innerHTML = '';
-      metrics.forEach(m => {
-        const rank = sortedByRatio.indexOf(m);
-        const isGreen = m.hsl.h >= 75 && m.hsl.h <= 165 && m.hsl.s >= 12;
-        const role = isGreen ? 'Lá & Cành tạo khung thoáng' :
-                     rank === 0 ? 'Hoa chủ đạo / Hoa nền (chiếm diện tích lớn)' :
-                     rank === 1 ? 'Hoa trọng tâm (bông to, hút mắt nhất)' :
-                     'Hoa phụ / Chuyển sắc & Phụ kiện';
-        const tone = m.warmthScore > 6 ? 'Tông Ấm' : m.warmthScore < -4 ? 'Tông Mát' : 'Trung tính';
-        const brightWord = m.lab.L > 75 ? 'Sáng' : m.lab.L < 38 ? 'Trầm đậm' : 'Trung bình';
-        const satWord = m.lab.C > 42 ? 'Rực' : m.lab.C > 20 ? 'Vừa' : 'Dịu/Phấn';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="py-2 px-2.5">
-            <div class="flex items-center gap-2">
-              <span class="w-4 h-4 rounded border border-black/15 shrink-0" style="background:${m.sw.hex}"></span>
-              <span class="mono-num font-semibold">${m.sw.ratio}%</span>
-            </div>
-          </td>
-          <td class="py-2 px-2.5 mono-num font-medium">${m.sw.hex}</td>
-          <td class="py-2 px-2.5">${brightWord} · ${satWord}</td>
-          <td class="py-2 px-2.5">${tone}</td>
-          <td class="py-2 px-2.5 text-[#1A2621]">${role}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      renderFloralMockup();
-    }
-
+    // Color assessment renderer
     // Floral product proof renderer
     // Save & Export Color Recipe
     document.getElementById('btnSaveColorRecipe').onclick = () => {
@@ -1967,7 +1818,8 @@
             name,
             createdAt: new Date().toLocaleString('vi-VN'),
             palette: JSON.parse(JSON.stringify(state.palette)),
-            image: state.currentImageDataUrl
+            image: state.currentImageDataUrl,
+            colorMeasurement: structuredClone(state.colorMeasurement ?? null)
           });
           persist();
           renderInlineSavedColors();
@@ -1975,17 +1827,6 @@
           showToast('Đã lưu công thức màu vào Kho Bảng Màu!', 'success');
         }
       });
-    };
-
-    document.getElementById('btnExportColorDossier').onclick = () => {
-      const rows = state.palette.map(sw => {
-        const rgb = hexToRgb(sw.hex);
-        const lab = rgbToLab(rgb.r, rgb.g, rgb.b);
-        return `<tr><td><span style="display:inline-block;width:18px;height:18px;background:${sw.hex};border-radius:4px;vertical-align:middle;margin-right:6px;"></span>${sw.hex}</td><td>${sw.ratio}%</td><td>rgb(${rgb.r},${rgb.g},${rgb.b})</td><td>L*${lab.L.toFixed(1)} a*${lab.a.toFixed(1)} b*${lab.b.toFixed(1)}</td></tr>`;
-      }).join('');
-      const html = `<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Hồ sơ Màu - KIM FLORA</title><style>body{font-family:sans-serif;padding:32px;color:#1A2621;max-width:860px;margin:auto}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:13px}</style></head><body><h1>KIM FLORA – Hồ sơ Phối màu Hoa</h1><p>Dự án: ${state.projectName} | Xuất lúc: ${new Date().toLocaleString('vi-VN')}</p>${state.currentImageDataUrl ? `<img src="${state.currentImageDataUrl}" style="max-width:380px;border-radius:10px;margin:12px 0;" />` : ''}<table><thead><tr><th>Mã HEX</th><th>Tỷ lệ</th><th>RGB</th><th>CIE L*a*b*</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
-      downloadFile('kim_flora_color_profile.html', html, 'text/html');
-      showToast('Đã xuất Hồ sơ Màu HTML!', 'success');
     };
 
     document.getElementById('btnSendPaletteToMoodboard').onclick = () => {
@@ -2896,7 +2737,7 @@
           const cr = state.savedColorRecipes[+b.dataset.idx];
           if (!cr) return;
           state.palette = JSON.parse(JSON.stringify(cr.palette));
-          if (cr.image) loadImageToColorStudio(cr.image);
+          loadColorRecipeSource(cr);
           renderColorStudio();
           document.querySelector('[data-tab="color"]').click();
         };

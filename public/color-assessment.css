@@ -1,0 +1,27 @@
+.color-assessment { padding:clamp(.9rem,2vw,1.35rem); color:#25372e; }
+.color-assessment h3 { font-size:clamp(1.35rem,2.25vw,1.75rem); font-weight:650; line-height:1.2; }
+.color-assessment header p,.color-track span { color:#536258; font-size:.86rem; }
+.color-assessment header p { margin-top:.35rem; }
+.color-ratio-actions { display:flex; flex-wrap:wrap; gap:.4rem; margin:.8rem 0; }
+.color-ratio-actions button { border:1px solid #ded6c7; border-radius:7px; background:#f8f5ed; padding:.42rem .65rem; font-size:.86rem; }
+.color-ratio-actions button:hover:not(:disabled) { background:#eae3d6; }
+.color-ratio-actions button:disabled { opacity:.52; }
+.color-track { padding:.7rem 0; border-top:1px solid #e9e2d7; }
+.color-track > div:first-child { display:flex; justify-content:space-between; flex-wrap:wrap; gap:.4rem; font-size:.95rem; }
+.color-stack { display:flex; height:1.65rem; border-radius:6px; overflow:hidden; margin:.4rem 0; outline:1px solid #38281c22; }
+.color-stack:empty { display:none; }
+.color-legend { display:flex; flex-wrap:wrap; gap:.2rem .75rem; }
+.color-legend span { font-variant-numeric:tabular-nums; }
+.color-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.5rem; margin:.9rem 0; }
+.color-kpis > div { border:1px solid #e4ddd1; border-radius:8px; background:#f7f3eb; padding:.6rem; }
+.color-kpis dt { font-size:.82rem; color:#536258; }
+.color-kpis dd { font-size:1rem; font-weight:650; }
+.color-advice { padding:.75rem; border-left:3px solid #a26048; background:#f7f2e8; border-radius:4px; font-size:.9rem; }
+.color-advice h4 { font-weight:700; }
+.color-advice p { margin-top:.3rem; }
+.color-metrics-scroll { overflow-x:auto; margin-top:.85rem; border:1px solid #e6dfd5; border-radius:8px; }
+.color-metrics-scroll table { width:100%; min-width:32rem; text-align:left; font-size:.84rem; font-variant-numeric:tabular-nums; }
+.color-metrics-scroll th,.color-metrics-scroll td { padding:.53rem .6rem; border-bottom:1px solid #eee9df; }
+.color-metrics-scroll th { background:#f4efe5; white-space:nowrap; }
+.color-analysis-chip { display:inline-block; width:.72rem; height:.72rem; border:1px solid #2223; border-radius:3px; margin-right:.3rem; vertical-align:middle; }
+@media(max-width:500px) { .color-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }

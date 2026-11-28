@@ -39,20 +39,26 @@ script[1] = script[1].slice(0, archiveStart) + read('studio-project-archive.js')
 const from=script[1].indexOf('function extractColorsFromCanvas(k)');
 const to=script[1].indexOf('state.palette = extracted;',from);
 if(from<0||to<0)throw Error('Missing Color Studio extraction');
-script[1]=script[1].slice(0,from)+read('flower-leaf-samples.js')+'\n'+`let paletteImage, paletteTicket=0;
+script[1]=script[1].slice(0,from)+read('flower-leaf-samples.js')+'\n'+`let paletteImage, paletteRequest;
     async function extractColorsFromCanvas(k) {
-      const img=paletteImage, ticket=++paletteTicket;
+      paletteRequest?.abort();
+      const img=paletteImage, request=new AbortController();
+      paletteRequest=request;
       if(!img)return;
       const focus=document.getElementById('extractFocusMode').value==='focus';
       try {
-        const {sampleCanvas,sampledPalette}=await import('/image-palette.js');
-        if(ticket!==paletteTicket||img!==paletteImage)return;
-        const colors=sampledPalette(sampleCanvas(img),k,focus);
-        if(!colors.length){showToast('Chưa lấy được màu ở chế độ này.', 'info');return;}
+        const {extractImagePalette}=await import('/image-palette.js');
+        if(request.signal.aborted)return;
+        const colors=await extractImagePalette(img,k,focus,request.signal);
+        if(request.signal.aborted||img!==paletteImage)return;
+        if(!colors.length){
+          showToast(focus?'Chưa xác định được vùng hoa. Bạn có thể thử chế độ Toàn bộ khung hình.':'Ảnh không có điểm màu đủ rõ để lấy mẫu.', 'info');
+          return;
+        }
         const extracted=colors.map((c,i)=>({id:crypto.randomUUID(),hex:c.hex,ratio:c.percent,imgArea:c.percent,locked:false,name:'Màu ảnh #'+(i+1)}));
         `+script[1].slice(to);
-script[1]=script[1].replace('colorCtx.drawImage(img,','paletteImage=img; colorCtx.drawImage(img,')
-  .replace("showToast(`Đã trích xuất ${k} màu chủ đạo từ ảnh!`, 'success');","showToast(`Đã trích xuất ${extracted.length} màu chủ đạo từ ảnh!`, 'success'); } catch {showToast('Chưa đọc được màu ảnh.', 'error');}");
+script[1]=script[1].replace('colorCtx.drawImage(img,','paletteRequest?.abort(); paletteImage=img; colorCtx.drawImage(img,')
+  .replace("showToast(`Đã trích xuất ${k} màu chủ đạo từ ảnh!`, 'success');","showToast(`Đã trích xuất ${extracted.length} màu chủ đạo từ ảnh!`, 'success'); } catch {if(!request.signal.aborted)showToast('Chưa đọc được màu ảnh.', 'error');}");
 html=html.replace('value="focus" selected','value="focus"').replace('<option value="full">Toàn bộ khung hình','<option value="full" selected>Toàn bộ khung hình')
   .replace('id="extractCountRange" min="2" max="10" value="5"','id="extractCountRange" min="2" max="10" value="7"')
   .replace(/(id="extractCountVal"[^>]*>)5</,(_,prefix)=>prefix+'7<');
@@ -264,7 +270,10 @@ function preserveStudioState(source){
   source=source.replace('function loadImageToColorStudio(src)', 'let colorRequest=0;\n    function loadImageToColorStudio(src,restore=false)')
     .replace("function loadImageToColorStudio(src,restore=false) {","function loadImageToColorStudio(src,restore=false) {\n      const request=++colorRequest;")
     .replace('const maxW = 540, maxH = 340;','if(request!==colorRequest)return;\n        const maxW = 540, maxH = 340;')
-    .replace("state.currentImageDataUrl = colorCanvas.toDataURL","if(restore)return;\n        state.currentImageDataUrl = colorCanvas.toDataURL");
+    .replace("state.currentImageDataUrl = colorCanvas.toDataURL('image/jpeg', 0.85);",`if(restore)return;
+        const pixels=colorCtx.getImageData(0,0,colorCanvas.width,colorCanvas.height).data;
+        const transparent=pixels.some((value,index)=>index%4===3&&value<255);
+        state.currentImageDataUrl = transparent?colorCanvas.toDataURL('image/png'):colorCanvas.toDataURL('image/jpeg',0.85);`);
   source=source.replace('function loadCompImage(src) {','function loadCompImage(src,restore=false) {')
     .replace('function loadCompImage(src,restore=false) { changeReviewSource(src);','function loadCompImage(src,restore=false,onReady) {')
     .replace('compBgImg.onload = () => {','const requestedImage=compBgImg;\n      compBgImg.onload = () => {\n        if(requestedImage!==compBgImg)return;')

@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     if (req.query.head === '1') {
       if (req.method === 'GET') {
         const [row] = await database(head + '&select=revision,snapshot');
-        return res.json(row);
+        return row ? res.json(row) : fail(503, 'Chưa tìm thấy phiên bản dùng chung.');
       }
       if (req.method !== 'POST') return fail(405, 'Phương thức không được hỗ trợ.');
       const {revision, snapshot} = req.body ?? {};
@@ -55,7 +55,13 @@ export default async function handler(req, res) {
     }
     await database(table, 'POST', {snapshot,part,data}, 'resolution=ignore-duplicates,return=minimal');
     return res.json({saved:true});
-  } catch {
+  } catch(error) {
+    console.warn('Studio backup request failed', {
+      operation:req.query.head==='1'?'head':req.query.snapshot?'part':req.method==='GET'?'history':'upload',
+      method:req.method,
+      reason:error?.name,
+      databaseStatus:error?.status
+    });
     return fail(503, 'Chưa kết nối được kho lưu trực tuyến.');
   }
 }

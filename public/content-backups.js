@@ -76,16 +76,25 @@ async function capture() {
 }
 
 async function call(query='', body) {
-  const response=await fetch('/api/content-backups'+query,body?{
-    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
-    signal:AbortSignal.timeout(30000)
-  }:{cache:'no-store',signal:AbortSignal.timeout(30000)});
-  if(!response.ok){
-    const error=Error('Online backup unavailable');
-    error.status=response.status;
-    throw error;
+  const attempts=body?1:3;
+  for(let attempt=0;attempt<attempts;attempt++){
+    try{
+      const response=await fetch('/api/content-backups'+query,body?{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
+        signal:AbortSignal.timeout(30000)
+      }:{cache:'no-store',signal:AbortSignal.timeout(12000)});
+      if(!response.ok){
+        const error=Error('Online backup unavailable');
+        error.status=response.status;
+        throw error;
+      }
+      return await response.json();
+    }catch(error){
+      const retryable=!error.status||error.status===429||error.status>=500;
+      if(!retryable||attempt===attempts-1)throw error;
+      await new Promise(resolve=>setTimeout(resolve,400*(attempt+1)));
+    }
   }
-  return response.json();
 }
 async function digest(data) {
   const hash=await crypto.subtle.digest('SHA-256',data);
@@ -202,7 +211,7 @@ const dialog=document.getElementById('contentBackupDialog');
 const history=document.getElementById('contentBackupHistory');
 const checkpoint='kim-flora-content-checkpoint-v2';
 const recovery='kim-flora-content-recovery-v2';
-let enabled=false, timer, active=null, dirty=false, polling=false, visibleSnapshot=null;
+let enabled=false, timer, active=null, dirty=false, polling=false, visibleSnapshot=null, usingLocalCopy=false;
 let lastInteraction=0;
 const heldPointers=new Set();
 
@@ -275,14 +284,21 @@ function sync(hydration) {
       return false;
     }
     const localId=baseId || hasContent?await upload(local,baseId):null;
-    const base=baseId && localId!==baseId?await readSnapshot(baseId):local;
+    let base=baseId?local:null;
+    if(baseId&&localId!==baseId){
+      try{base=await readSnapshot(baseId);}
+      catch(error){
+        if(error.status!==404)throw error;
+        base=null;
+      }
+    }
     for(let attempt=0;attempt<4;attempt++){
       const remoteId=head.snapshot ?? legacyId;
       const remote=remoteId===localId?local:remoteId?await readSnapshot(remoteId):null;
       // A browser whose local copy is unchanged must never publish it over the head.
       const {snapshot,conflicted}=baseId && localId===baseId && remote
         ? {snapshot:remote,conflicted:false}
-        : mergeContent(baseId?base:null,local,remote);
+        : mergeContent(base,local,remote);
       const id=snapshot===remote?remoteId:snapshot===local?localId:await upload(snapshot,remoteId);
       if(id!==head.snapshot){
         try{await call('?head=1',{snapshot:id,revision:head.revision});}
@@ -312,7 +328,7 @@ function sync(hydration) {
         }
       }
       if(localId)localStorage.setItem(checkpoint,localId);
-      if(viewMatches)visibleSnapshot=id;
+      if(viewMatches){visibleSnapshot=id;usingLocalCopy=false;}
       succeeded=true;
       status.textContent=conflicted
         ? 'Có thay đổi trùng nhau. Bản của trình duyệt này còn trong lịch sử sao lưu.'
@@ -322,7 +338,7 @@ function sync(hydration) {
     throw Error('Concurrent updates');
   }).catch(error=>{
     dirty=true;
-    status.textContent='Chưa kết nối được kho trực tuyến.';
+    status.textContent=usingLocalCopy?'Đang mở bản lưu trên thiết bị. Chưa đồng bộ được.':'Chưa kết nối được kho trực tuyến.';
     throw error;
   }).finally(()=>{
     active=null;
@@ -424,8 +440,19 @@ window.addEventListener('studio:before-ready',event=>{
   const message=document.getElementById('loginErrorMsg');
   message.textContent='Đã xác thực. Đang mở dữ liệu dùng chung…';
   message.classList.remove('hidden');
-  event.detail.push(sync({allowed:true,applying:false}).catch(()=>{
-    throw Error('Đã xác thực nhưng chưa tải được dữ liệu dùng chung. Hãy tải lại trang để thử lại.');
+  event.detail.push(sync({allowed:true,applying:false}).catch(async error=>{
+    if(error.status!==401&&!localStorage.getItem(recovery)){
+      const local=localKeys.some(key=>localStorage.getItem(key)!==null);
+      const indexed=local?false:await capture().then(snapshot=>Object.values(snapshot.stores)
+        .some(stores=>Object.values(stores).some(records=>records.length))).catch(()=>false);
+      if(local||indexed){
+        usingLocalCopy=true;
+        status.textContent='Đang mở bản lưu trên thiết bị. Chưa đồng bộ được.';
+        return false;
+      }
+    }
+    throw Error(error.status===401?'Phiên đã hết hạn. Vui lòng tải lại trang và đăng nhập.':
+      'Đã xác thực nhưng kho trực tuyến chưa phản hồi. Hãy tải lại trang để thử lại.');
   }));
 });
 window.addEventListener('studio:ready',()=>{enabled=true;if(dirty)schedule();});

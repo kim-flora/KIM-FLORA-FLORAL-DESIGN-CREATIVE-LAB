@@ -51,7 +51,11 @@ export async function database(path, method = 'GET', body, preference = 'return=
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(8000)
   });
-  if (!result.ok) throw new Error('Database request failed');
+  if (!result.ok) {
+    const error=new Error('Database request failed');
+    error.status=result.status;
+    throw error;
+  }
   if (result.status === 204 || preference.includes('return=minimal')) return null;
   return result.json();
 }

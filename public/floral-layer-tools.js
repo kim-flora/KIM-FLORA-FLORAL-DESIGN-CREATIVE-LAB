@@ -1,11 +1,31 @@
-import {pose} from './floral-layer-render.js';
+import {pose,layerBlendModes} from './floral-layer-render.js';
 export function objectTools(parent,parts,env,selectTool,nextId){
   const box=document.createElement('fieldset');box.className='object-tools';parent.append(box);
-  box.innerHTML=`<legend>Chỉnh đối tượng</legend><strong></strong><label>Màu cánh hoa <input type="color"></label><label>Mã HEX <input class="hex" placeholder="#B97691" maxlength="7"></label><button type="button" data-a="natural">Màu nguyên bản</button><div class="grades"></div><h3>Vị trí và bố cục</h3><div class="positions"></div><nav></nav>`;
+  box.innerHTML=`<legend>Chỉnh đối tượng</legend><strong></strong><div class="layer-composite"></div><label>Màu cánh hoa <input type="color"></label><label>Mã HEX <input class="hex" placeholder="#B97691" maxlength="7"></label><button type="button" data-a="natural">Màu nguyên bản</button><div class="grades"></div><h3>Vị trí và bố cục</h3><div class="positions"></div><nav></nav>`;
   const q=s=>box.querySelector(s),grades={},fields={};let active=null,drag=null;
   const selected=()=>env().s?.layers?.find(l=>l.id===active);
   function mutate(fn){const l=selected();if(!l||l.locked)return;fn(l);env().commit();env().paint();}
   function label(parent,name,ctrl){const el=document.createElement('label');el.append(name,ctrl);parent.append(el);return el;}
+  const compositing=q('.layer-composite');
+  const layerName=document.createElement('input');layerName.type='text';layerName.maxLength=100;
+  label(compositing,'Tên lớp',layerName);
+  layerName.onchange=()=>mutate(layer=>{layer.name=layerName.value.trim()||layer.name;});
+  const opacity=document.createElement('input');opacity.type='range';opacity.min=0;opacity.max=100;opacity.setAttribute('aria-label','Độ mờ');
+  const opacityLabel=label(compositing,'Độ mờ',opacity);
+  const opacityValue=document.createElement('output');
+  opacityLabel.prepend(opacityValue);
+  opacity.oninput=()=>{
+    const layer=selected();
+    if(!layer||layer.locked)return;
+    layer.opacity=Number(opacity.value);
+    opacityValue.value=layer.opacity+'%';
+    env().schedule();
+  };
+  opacity.onchange=()=>env().commit();
+  const blend=document.createElement('select');
+  for(const [value,name] of Object.entries(layerBlendModes))blend.add(new Option(name,value));
+  label(compositing,'Chế độ hòa trộn',blend);
+  blend.onchange=()=>mutate(layer=>{layer.blend=blend.value;});
   for(const [key,title] of Object.entries({hue:'Sắc độ (Hue)',saturation:'Độ bão hòa',brightness:'Độ sáng',temperature:'Nhiệt độ màu',contrast:'Tương phản',highlights:'Vùng sáng',shadows:'Vùng tối'})){
     const input=document.createElement('input');input.type='range';input.min=key==='hue'?-180:-100;input.max=-input.min;
     const holder=label(q('.grades'),title,input),output=document.createElement('output');holder.prepend(output);grades[key]={input,output};
@@ -50,6 +70,10 @@ export function objectTools(parent,parts,env,selectTool,nextId){
   };
   function refresh(){
     const l=selected();box.hidden=!l;if(!l)return;box.disabled=l.locked||env().before;q('strong').textContent=l.name;
+    layerName.value=l.name;
+    opacity.value=l.opacity??100;
+    opacityValue.value=opacity.value+'%';
+    blend.value=Object.hasOwn(layerBlendModes,l.blend)?l.blend:'source-over';
     const color=l.color||{};q('.hex').value=color.hex||'';q('input[type=color]').value=color.hex||'#888888';
     for(const [k,{input,output}] of Object.entries(grades))input.value=output.value=color[k]||0;
     for(const [k,input] of Object.entries(fields))input.value=Math.round(k==='scale'?(l.scale||1)*100:l[k]||0);

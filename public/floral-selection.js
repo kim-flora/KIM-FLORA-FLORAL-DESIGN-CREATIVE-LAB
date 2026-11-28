@@ -1,5 +1,5 @@
 import {growBrush} from './floral-quick-selection.js';
-import {layerRenderer,moved} from './floral-layer-render.js';
+import {layerRenderer,moved,hasLayerComposite} from './floral-layer-render.js';
 import {objectTools} from './floral-layer-tools.js';
 // Masks use original-image coordinates so zoom, crops and rotations never resample a cutout.
 export function createSelection(aside, environment) {
@@ -174,7 +174,7 @@ export function createSelection(aside, environment) {
   }
   function source(img,s){
     const layers=s.layers||[];
-    if(s.removed?.length||layers.some(l=>moved(l)||l.color||l.copy)){
+    if(s.removed?.length||layers.some(l=>moved(l)||l.color||l.copy||hasLayerComposite(l))){
       const sig=JSON.stringify([s.hideBase,layers,s.removed]);if(rendered!==sig){cachedSource=compose(img,s);rendered=sig;}return cachedSource;
     }
     if(!s.hideBase&&layers.every(l=>l.visible))return img;
@@ -217,5 +217,5 @@ export function createSelection(aside, environment) {
     objects.select(editing||environment().s.layers?.at(-1)?.id);
   }
   function quick(){tool.value='quick';tool.onchange();notice.textContent='Quét bên trong đối tượng. Giữ Alt để bớt vùng.';}
-  return {quick,parts:cache,snapshot,restore,pointer,overlay,source,update,reset,cancel,active:()=>!!tool.value,pan:()=>{invalidate();tool.value='';stroke=null;}};
+  return {quick,move(){cancel();tool.value='move';environment().exitCrop();update();},parts:cache,snapshot,restore,pointer,overlay,source,update,reset,cancel,active:()=>!!tool.value,pan:()=>{invalidate();tool.value='';stroke=null;}};
 }

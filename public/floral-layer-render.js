@@ -54,15 +54,24 @@ function repair(frame,hole,excluded){
     for(let t=0;t<4;t++)d[i*4+t]=sum[t]/weight;
   }
 }
+export const layerBlendModes = {
+  'source-over':'Bình thường', multiply:'Nhân tối', screen:'Hòa sáng', overlay:'Tăng tương phản',
+  'soft-light':'Ánh sáng mềm', darken:'Lấy màu tối hơn', lighten:'Lấy màu sáng hơn'
+};
+const blendMode = layer => Object.hasOwn(layerBlendModes,layer.blend) ? layer.blend : 'source-over';
+const layerOpacity = layer => Number.isFinite(layer.opacity) ? clamp(layer.opacity / 100) : 1;
+export const hasLayerComposite = layer => layerOpacity(layer)!==1 || blendMode(layer)!=='source-over';
+
 export function layerRenderer(parts){
   let lastImg,baseKey,base,out,tiles=new Map();
   return (img,s)=>{
     if(lastImg!==img){lastImg=img;baseKey=null;out=null;tiles.clear();}
-    const layers=s.layers||[],holes=[...(s.removed||[]),...layers.filter(l=>!l.copy&&moved(l)).map(l=>l.key)];
+    const layers=s.layers||[],holes=[...(s.removed||[]),...layers.filter(l=>!l.copy&&(moved(l)||hasLayerComposite(l))).map(l=>l.key)];
     const w=img.naturalWidth,h=img.naturalHeight;
     out??=surface(w,h);
     const ctx=out.getContext('2d');
     ctx.resetTransform();
+    ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
     ctx.clearRect(0,0,w,h);
     if(!holes.length&&!s.hideBase&&layers.every(l=>!l.copy&&l.visible)){
       ctx.drawImage(img,0,0);
@@ -86,7 +95,7 @@ export function layerRenderer(parts){
           for(const k of holes)each(k,i=>{hole[i]=excluded[i]=1;});
           for(const l of layers)each(l.key,i=>{excluded[i]=1;});
           if(holes.length)repair(frame,hole,excluded);
-          for(const l of layers)if(!l.copy&&!l.visible&&!moved(l))each(l.key,(i,a)=>frame.data[4*i+3]*=1-a/255);
+          for(const l of layers)if(!l.copy&&!l.visible&&!moved(l)&&!hasLayerComposite(l))each(l.key,(i,a)=>frame.data[4*i+3]*=1-a/255);
           ctx.putImageData(frame,0,0);
         }
       }
@@ -96,7 +105,11 @@ export function layerRenderer(parts){
     for(const l of layers){if(!l.visible)continue;
       const p=parts.get(l.key),key=JSON.stringify([l.key,l.color]);let tile=tiles.get(l.id);
       if(tile?.key!==key){tile={key,image:cutout(img,p,l.color)};tiles.set(l.id,tile);}
-      const m=pose(l,p);ctx.setTransform(m.a,m.b,m.c,m.d,m.e,m.f);ctx.drawImage(tile.image,0,0);
+      const m=pose(l,p);
+      ctx.setTransform(m.a,m.b,m.c,m.d,m.e,m.f);
+      ctx.globalAlpha=layerOpacity(l);
+      ctx.globalCompositeOperation=blendMode(l);
+      ctx.drawImage(tile.image,0,0);
     }
     return out;
   };

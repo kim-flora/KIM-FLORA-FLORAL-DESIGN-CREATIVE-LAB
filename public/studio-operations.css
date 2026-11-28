@@ -1,0 +1,16 @@
+.studio-operations .operations-header{background:#eee9df;border:1px solid #e0d7c8;border-radius:16px;padding:clamp(1rem,2.7vw,1.75rem)}
+.studio-operations .operations-header h2{font-size:clamp(1.75rem,3.4vw,2.55rem);line-height:1.14}
+.studio-operations .operations-header p{font-size:.9rem;margin-top:.45rem}
+.studio-operations table{min-width:620px;font-size:.85rem;font-variant-numeric:tabular-nums}
+.studio-operations thead{background:#f1ede3}
+.studio-operations button:disabled{opacity:.5;cursor:not-allowed}
+.studio-operations :focus-visible{outline:2px solid #a65a42;outline-offset:2px}
+.operations-batch{padding:.65rem .75rem;border-radius:7px;background:#eaf0e8;font-size:.9rem;font-weight:650}
+.operations-check{display:flex;align-items:center;gap:.4rem;font-size:.85rem}
+.operations-log{margin-top:.65rem;font-size:.88rem;color:#4e5c52}
+.operations-log li{display:grid;gap:.2rem;border-top:1px solid #ebe4d8;padding:.55rem 0;overflow-wrap:anywhere}
+#invKpiBar{grid-template-columns:repeat(3,minmax(0,1fr))}
+#mbViewport{height:clamp(400px,65vh,780px);touch-action:none;background-color:#f1ede5}
+#mbViewport .mb-item{touch-action:none}
+#mbViewport [contenteditable]{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:520px){#invKpiBar{grid-template-columns:1fr}#mbViewport{height:52vh}}

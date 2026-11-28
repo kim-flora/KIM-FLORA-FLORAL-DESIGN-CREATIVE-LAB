@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="/project-library.css">
   <link rel="stylesheet" href="/floral-proof.css">
   <link rel="stylesheet" href="/color-assessment.css">
+  <link rel="stylesheet" href="/studio-operations.css">
   <title>KIM FLORA – Floral Design & Creative Lab</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -566,11 +567,11 @@
     <section id="tab-designmood" class="tab-panel hidden space-y-3"></section>
 
     <!-- ==================== TAB 3: RECIPE BUILDER & COSTING ==================== -->
-    <section id="tab-recipe" class="tab-panel hidden space-y-5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
+    <section id="tab-recipe" class="tab-panel hidden studio-operations space-y-5">
+      <div class="operations-header flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="font-editorial text-2xl font-semibold text-[#1A2621]">Recipe Builder &amp; Costing</h2>
-          <p class="text-xs text-[#5F6B64]">Xây dựng công thức cắm hoa liên kết trực tiếp với Kho nguyên liệu: tự động tính giá vốn, kiểm tra tồn kho và định giá bán.</p>
+          <h2 class="font-editorial text-2xl font-semibold text-[#1A2621]">Recipe &amp; Costing</h2>
+          <p class="text-xs text-[#5F6B64]">Lập định mức, kiểm tra vật tư và định giá theo lô sản xuất.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button id="btnSaveRecipeSample" class="px-3 py-1.5 rounded-lg bg-[#5A7364] hover:bg-[#495F52] text-white text-xs font-medium flex items-center gap-1.5">
@@ -668,7 +669,8 @@
             <h3 class="text-sm font-semibold flex items-center gap-2">
               <i data-lucide="shopping-cart" class="w-4 h-4 text-[#A65A42]"></i> Nguyên liệu cần nhập thêm (Tự động đối chiếu kho)
             </h3>
-            <div id="shortageListContainer" class="text-xs"></div>
+            <div id="shortageListContainer" class="text-xs" role="status"></div>
+            <p id="recipeBatchCost" class="operations-batch"></p>
           </div>
         </div>
 
@@ -688,20 +690,20 @@
                 <input type="number" id="costLaborPct" min="0" max="200" value="25" class="mono-num w-20 px-2 py-1 border border-[#E4DFD5] rounded text-right" />
               </div>
               <div class="flex justify-between items-center gap-2">
-                <label class="text-[#5F6B64]">Hao hụt hoa tươi (%):</label>
+                <label class="text-[#5F6B64]">Dự phòng hao hụt (% vật tư):</label>
                 <input type="number" id="costWastePct" min="0" max="50" value="8" class="mono-num w-20 px-2 py-1 border border-[#E4DFD5] rounded text-right" />
               </div>
               <div class="flex justify-between items-center gap-2">
-                <label class="text-[#5F6B64]">Bao bì / Vận chuyển (VNĐ):</label>
+                <label class="text-[#5F6B64]">Chi phí khác / sản phẩm (₫):</label>
                 <input type="number" id="costOverheadFixed" min="0" step="10000" value="80000" class="mono-num w-28 px-2 py-1 border border-[#E4DFD5] rounded text-right" />
               </div>
               <div class="flex justify-between items-center py-1.5 border-y border-[#E4DFD5] bg-[#F7F4EF] px-2 rounded">
-                <span class="font-semibold">Tổng Giá Thành (COGS):</span>
+                <span class="font-semibold">Giá thành / sản phẩm:</span>
                 <strong id="costTotalCogs" class="mono-num text-sm text-[#1A2621]">0 ₫</strong>
               </div>
               <div class="flex justify-between items-center gap-2 pt-1">
                 <label class="text-[#5F6B64]">Biên lợi nhuận mục tiêu (%):</label>
-                <input type="number" id="costMarginPct" min="5" max="90" value="45" class="mono-num w-20 px-2 py-1 border border-[#E4DFD5] rounded text-right" />
+                <input type="number" id="costMarginPct" min="0" max="95" value="45" class="mono-num w-20 px-2 py-1 border border-[#E4DFD5] rounded text-right" />
               </div>
             </div>
 
@@ -751,11 +753,11 @@
     </section>
 
     <!-- ==================== TAB 4: INVENTORY MANAGEMENT ==================== -->
-    <section id="tab-inventory" class="tab-panel hidden space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3">
+    <section id="tab-inventory" class="tab-panel hidden studio-operations space-y-4">
+      <div class="operations-header flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="font-editorial text-2xl font-semibold text-[#1A2621]">Quản lý Kho Nguyên Liệu Hoa</h2>
-          <p class="text-xs text-[#5F6B64]">Cơ sở dữ liệu tồn kho thực tế, đồng bộ hai chiều với Recipe Builder &amp; Costing.</p>
+          <h2 class="font-editorial text-2xl font-semibold text-[#1A2621]">Kho Nguyên Liệu</h2>
+          <p class="text-xs text-[#5F6B64]">Cơ sở dữ liệu tồn kho thực tế, đồng bộ hai chiều với Recipe &amp; Costing.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button id="btnAddInvModal" class="px-3 py-1.5 rounded-lg bg-[#A65A42] hover:bg-[#8E4A35] text-white text-xs font-medium flex items-center gap-1.5">
@@ -769,6 +771,7 @@
 
       <!-- Filters & KPIs -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="invKpiBar"></div>
+      <details class="panel-card p-4"><summary class="font-semibold cursor-pointer">Nhật ký xuất kho theo lô</summary><ol id="productionLogList" class="operations-log"></ol></details>
 
       <div class="panel-card p-4 space-y-3">
         <div class="flex flex-wrap items-center gap-2">
@@ -780,6 +783,7 @@
             <option value="Lá & Cành">Lá &amp; Cành</option>
             <option value="Phụ liệu & Bình">Phụ liệu &amp; Bình</option>
           </select>
+          <label class="operations-check"><input id="invLowOnly" type="checkbox"> Chỉ mã cần bổ sung</label>
         </div>
         <div class="overflow-x-auto border border-[#E4DFD5] rounded-xl">
           <table class="w-full text-left text-xs">
@@ -801,11 +805,11 @@
     </section>
 
     <!-- ==================== TAB 5: FREEFORM MOODBOARD ==================== -->
-    <section id="tab-moodboard" class="tab-panel hidden space-y-3">
-      <div class="flex flex-wrap items-center justify-between gap-2">
+    <section id="tab-moodboard" class="tab-panel hidden studio-operations space-y-3">
+      <div class="operations-header flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 class="font-editorial text-2xl font-semibold text-[#1A2621]">Moodboard Tự Do (Freeform Canvas)</h2>
-          <p class="text-xs text-[#5F6B64]">Không gian sáng tạo không giới hạn: kéo thả, phóng to/thu nhỏ, xoay, sắp xếp ảnh, bảng màu và ghi chú ý tưởng.</p>
+          <h2 class="font-editorial text-2xl font-semibold text-[#1A2621]">Moodboard Tự Do</h2>
+          <p class="text-xs text-[#5F6B64]">Sắp xếp ảnh tham chiếu, bảng màu và ghi chú cho phương án thiết kế.</p>
         </div>
         <div class="flex flex-wrap items-center gap-1.5">
           <button id="btnMbAddImage" class="px-2.5 py-1.5 rounded-lg bg-white border border-[#E4DFD5] hover:bg-[#EAE5DC] text-xs font-medium flex items-center gap-1">
@@ -1093,7 +1097,7 @@
       btnOk.className = 'px-3 py-1.5 rounded-lg bg-[#1A2621] text-white text-xs font-medium hover:bg-[#2E3F37]';
       btnOk.textContent = confirmText;
       btnOk.onclick = () => {
-        if (onConfirm) onConfirm();
+        if (onConfirm && onConfirm() === false) return;
         overlay.classList.add('hidden');
       };
       actions.appendChild(btnOk);
@@ -2330,13 +2334,41 @@
     };
 
     // ==================== MODULE 3 & 4: INVENTORY & RECIPE BUILDER ====================
+    const operationsText=value=>escapeColorReportText(value??'');
+    const operationsSearch=value=>String(value??'').toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/đ/g,'d');
+    const positiveQty=value=>Math.max(1,Number(value)||1);
+    const plannedBatch=()=>Math.max(1,Math.floor(Number(state.recipe.batchQty)||1));
+    function productionNeeds() {
+      const totals=new Map();
+      for(const line of state.recipe.items)totals.set(line.invId,(totals.get(line.invId)??0)+positiveQty(line.qty)*plannedBatch());
+      return [...totals].map(([id,qty])=>{
+        const item=state.inventory.find(row=>row.id===id);
+        return {id,item,qty,short:item?Math.max(0,qty-Number(item.stock||0)):qty};
+      });
+    }
+    function renderProductionLog() {
+      const list=document.getElementById('productionLogList');
+      list.replaceChildren();
+      for(const batch of (state.productionLog??[]).slice(0,30)){
+        const row=document.createElement('li');
+        const label=document.createElement('strong');
+        label.textContent=batch.recipe+' · '+batch.count+' sản phẩm'+(Number.isFinite(batch.materialCost)?' · Vật tư '+formatVND(batch.materialCost):'');
+        const detail=document.createElement('small');
+        detail.textContent=new Date(batch.date).toLocaleString('vi-VN')+' · '+batch.lines.map(line=>line.sku+' −'+line.qty+' '+line.unit).join(' · ');
+        row.append(label,detail);list.append(row);
+      }
+      if(!list.children.length)list.textContent='Chưa có lô xuất kho.';
+    }
+
     function renderInventory() {
-      const q = document.getElementById('invSearchInput').value.toLowerCase();
+      const q = operationsSearch(document.getElementById('invSearchInput').value.trim());
+      const lowOnly=document.getElementById('invLowOnly').checked;
+      renderProductionLog();
       const cat = document.getElementById('invCategoryFilter').value;
       const filtered = state.inventory.filter(item => {
-        const matchQ = !q || item.name.toLowerCase().includes(q) || item.sku.toLowerCase().includes(q) || item.supplier.toLowerCase().includes(q);
+        const matchQ = !q || [item.name,item.sku,item.supplier].some(value=>operationsSearch(value).includes(q));
         const matchCat = cat === 'all' || item.category === cat;
-        return matchQ && matchCat;
+        return matchQ && matchCat && (!lowOnly || item.stock<=item.minStock);
       });
 
       const lowCount = state.inventory.filter(x => x.stock <= x.minStock).length;
@@ -2345,24 +2377,23 @@
         <div class="panel-card p-3"><div class="text-[11px] text-[#5F6B64]">Tổng mã nguyên liệu</div><div class="mono-num text-lg font-bold">${state.inventory.length}</div></div>
         <div class="panel-card p-3"><div class="text-[11px] text-[#5F6B64]">Tổng giá trị tồn kho</div><div class="mono-num text-lg font-bold">${formatVND(totalVal)}</div></div>
         <div class="panel-card p-3"><div class="text-[11px] text-[#5F6B64]">Sắp hết hàng (≤ ngưỡng)</div><div class="mono-num text-lg font-bold ${lowCount ? 'text-red-600' : 'text-[#5A7364]'}">${lowCount} mã</div></div>
-        <div class="panel-card p-3"><div class="text-[11px] text-[#5F6B64]">Liên kết Recipe Builder</div><div class="text-xs font-semibold text-[#5A7364] mt-1">Đang đồng bộ trực tiếp</div></div>
       `;
 
       const tbody = document.getElementById('invTableBody');
-      tbody.innerHTML = '';
+      tbody.innerHTML = filtered.length?'':'<tr><td colspan="7" class="p-4">Không có nguyên liệu phù hợp.</td></tr>';
       filtered.forEach(item => {
         const isLow = item.stock <= item.minStock;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="py-2 px-3 mono-num text-[#5F6B64]">${item.sku}</td>
-          <td class="py-2 px-3 font-medium">${item.name}</td>
-          <td class="py-2 px-2"><span class="px-2 py-0.5 rounded-full bg-[#F7F4EF] border border-[#E4DFD5] text-[11px]">${item.category}</span></td>
-          <td class="py-2 px-2 mono-num">${formatVND(item.cost)} / ${item.unit}</td>
-          <td class="py-2 px-2 mono-num font-semibold ${isLow ? 'text-red-600' : ''}">${item.stock} ${item.unit} ${isLow ? '⚠' : ''}</td>
-          <td class="py-2 px-2 text-[#5F6B64]">${item.supplier}</td>
+          <td class="py-2 px-3 mono-num text-[#5F6B64]">${operationsText(item.sku)}</td>
+          <td class="py-2 px-3 font-medium">${operationsText(item.name)}</td>
+          <td class="py-2 px-2"><span class="px-2 py-0.5 rounded-full bg-[#F7F4EF] border border-[#E4DFD5] text-[11px]">${operationsText(item.category)}</span></td>
+          <td class="py-2 px-2 mono-num">${formatVND(item.cost)} / ${operationsText(item.unit)}</td>
+          <td class="py-2 px-2 mono-num font-semibold ${isLow ? 'text-red-600' : ''}">${item.stock} ${operationsText(item.unit)} ${isLow ? '⚠' : ''}</td>
+          <td class="py-2 px-2 text-[#5F6B64]">${operationsText(item.supplier)}</td>
           <td class="py-2 px-2 text-right space-x-1">
-            <button data-id="${item.id}" class="inv-plus px-2 py-1 rounded bg-[#F7F4EF] hover:bg-[#EAE5DC] text-[11px]">+5</button>
-            <button data-id="${item.id}" class="inv-del px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100 text-[11px]">Xóa</button>
+            <button data-id="${operationsText(item.id)}" class="inv-plus px-2 py-1 rounded bg-[#F7F4EF] hover:bg-[#EAE5DC] text-[11px]">Cập nhật</button>
+            <button data-id="${operationsText(item.id)}" class="inv-del px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100 text-[11px]">Xóa</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -2371,60 +2402,75 @@
       tbody.querySelectorAll('.inv-plus').forEach(b => {
         b.onclick = () => {
           const item = state.inventory.find(x => x.id === b.dataset.id);
-          if (item) { item.stock += 5; persist(); renderInventory(); renderRecipe(); }
+          if (item) editInventoryItem(item);
         };
       });
       tbody.querySelectorAll('.inv-del').forEach(b => {
         b.onclick = () => {
+          const referenced=[state.recipe,...state.savedRecipes,...state.savedProjects.map(project=>project.recipe)]
+            .some(recipe=>recipe?.items?.some(line=>line.invId===b.dataset.id));
+          if(referenced)return showToast('Nguyên liệu đang có trong công thức. Hãy giữ mã và cập nhật tồn kho.', 'info');
+          if(!confirm('Xóa mã nguyên liệu này?'))return;
+          const previous=state.inventory;
           state.inventory = state.inventory.filter(x => x.id !== b.dataset.id);
-          persist(); renderInventory(); renderRecipe();
+          try{persist();}catch{state.inventory=previous;return;} renderInventory(); renderRecipe();
         };
       });
     }
 
     document.getElementById('invSearchInput').oninput = renderInventory;
+    document.getElementById('invLowOnly').onchange = renderInventory;
     document.getElementById('invCategoryFilter').onchange = renderInventory;
     document.getElementById('btnExportInvCsv').onclick = () => {
-      const csv = ['SKU,Ten,Nhom,DonVi,GiaVon,TonKho,NhaCungCap']
-        .concat(state.inventory.map(x => `${x.sku},"${x.name}","${x.category}",${x.unit},${x.cost},${x.stock},"${x.supplier}"`))
-        .join('\n');
+      const cell=value=>{
+        const text=String(value??'');
+        return '"'+(/^[=+@\-\t\r]/.test(text)?"'"+text:text).replaceAll('"','""')+'"';
+      };
+      const csv = '\uFEFF'+['SKU,Ten,Nhom,DonVi,GiaVon,TonKho,NhaCungCap']
+        .concat(state.inventory.map(x=>[x.sku,x.name,x.category,x.unit,x.cost,x.stock,x.supplier].map(cell).join(',')))
+        .join('\r\n');
       downloadFile('kim_flora_inventory.csv', csv, 'text/csv;charset=utf-8');
       showToast('Đã xuất danh sách kho CSV!', 'success');
     };
 
-    document.getElementById('btnAddInvModal').onclick = () => {
+    function editInventoryItem(item) {
+      const categories=['Hoa chính','Hoa phụ','Lá & Cành','Phụ liệu & Bình'];
+      if(item?.category&&!categories.includes(item.category))categories.push(item.category);
+      const field=(id,label,value,type='text')=>'<label>'+label+'<input id="'+id+'" type="'+type+'" class="block w-full border rounded px-2 py-1" value="'+operationsText(value)+'"'+(type==='number'?' min="0" step="any"':'')+'></label>';
       showModal({
-        title: 'Nhập Nguyên Liệu Mới Vào Kho',
-        bodyHtml: `
-          <div class="grid grid-cols-2 gap-2">
-            <input id="mSku" placeholder="Mã SKU (VD: FL-PEO-13)" class="px-2.5 py-1.5 border rounded-lg" />
-            <select id="mCat" class="px-2.5 py-1.5 border rounded-lg"><option>Hoa chính</option><option>Hoa phụ</option><option>Lá &amp; Cành</option><option>Phụ liệu &amp; Bình</option></select>
-            <input id="mName" placeholder="Tên nguyên liệu" class="col-span-2 px-2.5 py-1.5 border rounded-lg" />
-            <input id="mUnit" value="Cành" placeholder="Đơn vị" class="px-2.5 py-1.5 border rounded-lg" />
-            <input id="mCost" type="number" placeholder="Giá vốn (VNĐ)" class="px-2.5 py-1.5 border rounded-lg" />
-            <input id="mStock" type="number" placeholder="Số lượng nhập" class="px-2.5 py-1.5 border rounded-lg" />
-            <input id="mSup" placeholder="Nhà cung cấp" class="px-2.5 py-1.5 border rounded-lg" />
-          </div>`,
-        confirmText: 'Thêm vào kho',
-        onConfirm: () => {
-          const name = document.getElementById('mName').value.trim();
-          if (!name) return;
-          state.inventory.unshift({
-            id: 'inv-' + Date.now(),
-            sku: document.getElementById('mSku').value.trim() || 'SKU-NEW',
-            name,
-            category: document.getElementById('mCat').value,
-            unit: document.getElementById('mUnit').value.trim() || 'Cành',
-            cost: Number(document.getElementById('mCost').value) || 0,
-            stock: Number(document.getElementById('mStock').value) || 0,
-            minStock: 5,
-            supplier: document.getElementById('mSup').value.trim() || 'Nội bộ'
-          });
-          persist(); renderInventory(); renderRecipe();
-          showToast('Đã thêm nguyên liệu mới vào kho!', 'success');
+        title:item?'Cập nhật nguyên liệu':'Thêm nguyên liệu',
+        bodyHtml:'<div class="grid gap-2 sm:grid-cols-2">'+[
+          field('mSku','Mã SKU',item?.sku),field('mName','Tên nguyên liệu',item?.name),
+          '<label>Nhóm<select id="mCat" class="block w-full border rounded px-2 py-1">'+categories.map(value=>'<option'+(value===item?.category?' selected':'')+'>'+operationsText(value)+'</option>').join('')+'</select></label>',
+          field('mUnit','Đơn vị',item?.unit??'Cành'),field('mCost','Đơn giá vốn (₫)',item?.cost??0,'number'),
+          field('mStock','Tồn thực tế',item?.stock??0,'number'),field('mMin','Ngưỡng bổ sung',item?.minStock??5,'number'),
+          field('mSup','Nhà cung cấp',item?.supplier)
+        ].join('')+'</div><p id="invFormError" class="text-red-700" role="alert"></p>',
+        confirmText:'Lưu nguyên liệu',
+        onConfirm:()=>{
+          const input=id=>document.getElementById(id);
+          const value=id=>input(id).value.trim();
+          const sku=value('mSku'),name=value('mName'),unit=value('mUnit');
+          const amounts=['mCost','mStock','mMin'].map(id=>input(id).valueAsNumber);
+          const error=input('invFormError');
+          if(!sku||!name||!unit||amounts.some(n=>!Number.isFinite(n)||n<0)){
+            error.textContent='Điền mã, tên, đơn vị và số liệu từ 0 trở lên.';return false;
+          }
+          if(state.inventory.some(row=>row.id!==item?.id&&operationsSearch(row.sku)===operationsSearch(sku))){
+            error.textContent='Mã SKU đã được sử dụng.';return false;
+          }
+          const [cost,stock,minStock]=amounts;
+          const row={...item,id:item?.id??'inv-'+crypto.randomUUID(),sku,name,unit,cost,stock,minStock,
+            category:value('mCat'),supplier:value('mSup')};
+          const previous=state.inventory;
+          state.inventory=item?previous.map(entry=>entry.id===item.id?row:entry):[row,...previous];
+          try{persist();}catch{state.inventory=previous;return false;}
+          renderInventory();renderRecipe();
+          showToast('Đã lưu nguyên liệu.', 'success');
         }
       });
-    };
+    }
+    document.getElementById('btnAddInvModal').onclick=()=>editInventoryItem();
 
     function renderRecipe() {
       const r = state.recipe;
@@ -2436,29 +2482,41 @@
       document.getElementById('costMarginPct').value = r.marginPct;
 
       const picker = document.getElementById('recipeInvPicker');
-      picker.innerHTML = state.inventory.map(inv => `<option value="${inv.id}">${inv.name} (${formatVND(inv.cost)}/${inv.unit} · Tồn: ${inv.stock})</option>`).join('');
+      const selection=picker.value;
+      picker.innerHTML = state.inventory.map(inv => `<option value="${operationsText(inv.id)}">${operationsText(inv.name)} (${formatVND(inv.cost)}/${operationsText(inv.unit)} · Tồn: ${inv.stock})</option>`).join('');
 
+      if(state.inventory.some(item=>item.id===selection))picker.value=selection;
+      document.getElementById('btnAddRecipeItem').disabled=!state.inventory.length;
+      const plan=productionNeeds();
+      const missing=plan.filter(line=>!line.item);
       const tbody = document.getElementById('recipeTableBody');
       tbody.innerHTML = '';
       let matCostPerUnit = 0;
-      const shortages = [];
+      const shortages = plan.filter(line=>line.item&&line.short>0).map(line=>({inv:line.item,needMore:line.short}));
 
       r.items.forEach((line, idx) => {
         const inv = state.inventory.find(x => x.id === line.invId);
-        if (!inv) return;
+        if(!inv){
+          const row=tbody.insertRow();
+          const message=row.insertCell();
+          message.colSpan=7;
+          message.textContent='Thiếu mã nguyên liệu trong kho: '+line.invId;
+          const remove=row.insertCell();
+          remove.innerHTML='<button type="button" class="rec-del text-red-700" data-idx="'+idx+'">Xóa dòng</button>';
+          return;
+        }
         const lineCost = inv.cost * line.qty;
         matCostPerUnit += lineCost;
-        const totalNeed = line.qty * r.batchQty;
-        const diff = inv.stock - totalNeed;
-        if (diff < 0) shortages.push({ inv, needMore: Math.abs(diff) });
+        const totalNeed = line.qty * plannedBatch();
+        const diff = -(plan.find(entry=>entry.id===inv.id)?.short??0);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="py-2 px-3 font-medium">${inv.name}</td>
+          <td class="py-2 px-3 font-medium">${operationsText(inv.name)}</td>
           <td class="py-2 px-2 mono-num">${formatVND(inv.cost)}</td>
           <td class="py-2 px-2"><input type="number" min="1" value="${line.qty}" data-idx="${idx}" class="rec-qty mono-num w-14 px-1.5 py-1 border border-[#E4DFD5] rounded text-center" /></td>
-          <td class="py-2 px-2 mono-num font-semibold">${totalNeed} ${inv.unit}</td>
-          <td class="py-2 px-2 mono-num">${inv.stock} ${inv.unit}</td>
+          <td class="py-2 px-2 mono-num font-semibold">${totalNeed} ${operationsText(inv.unit)}</td>
+          <td class="py-2 px-2 mono-num">${inv.stock} ${operationsText(inv.unit)}</td>
           <td class="py-2 px-2">${diff >= 0 ? '<span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px]">Đủ kho</span>' : `<span class="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[11px]">Thiếu ${Math.abs(diff)}</span>`}</td>
           <td class="py-2 px-2 text-right mono-num font-semibold">${formatVND(lineCost)}</td>
           <td class="py-2 px-2 text-right"><button data-idx="${idx}" class="rec-del text-red-600 hover:underline text-[11px]">Xóa</button></td>
@@ -2467,17 +2525,17 @@
       });
 
       tbody.querySelectorAll('.rec-qty').forEach(el => {
-        el.oninput = (e) => { r.items[+e.target.dataset.idx].qty = Math.max(1, Number(e.target.value) || 1); persist(); renderRecipe(); };
+        el.onchange = (e) => { r.items[+e.target.dataset.idx].qty = Math.max(1, Number(e.target.value) || 1); persist(); renderRecipe(); };
       });
       tbody.querySelectorAll('.rec-del').forEach(el => {
         el.onclick = (e) => { r.items.splice(+e.target.dataset.idx, 1); persist(); renderRecipe(); };
       });
 
       // Costing Math
-      const labor = matCostPerUnit * (r.laborPct / 100);
-      const waste = matCostPerUnit * (r.wastePct / 100);
-      const cogs = matCostPerUnit + labor + waste + Number(r.overheadFixed || 0);
-      const marginDec = clamp(r.marginPct, 1, 95) / 100;
+      const labor = matCostPerUnit * clamp(Number(r.laborPct)||0,0,200) / 100;
+      const waste = matCostPerUnit * clamp(Number(r.wastePct)||0,0,50) / 100;
+      const cogs = matCostPerUnit + labor + waste + Math.max(0,Number(r.overheadFixed)||0);
+      const marginDec = clamp(Number(r.marginPct)||0, 0, 95) / 100;
       const suggestedPrice = cogs / (1 - marginDec);
       const netProfit = suggestedPrice - cogs;
 
@@ -2486,11 +2544,11 @@
       document.getElementById('costSuggestedPrice').textContent = formatVND(suggestedPrice);
       document.getElementById('costNetProfit').textContent = formatVND(netProfit);
       document.getElementById('costBatchCountLabel').textContent = r.batchQty;
-      document.getElementById('costTotalOrderRevenue').textContent = formatVND(suggestedPrice * r.batchQty);
+      document.getElementById('costTotalOrderRevenue').textContent = formatVND(suggestedPrice * plannedBatch());
       document.getElementById('costMarkupInfo').textContent = `Biên LN ${r.marginPct}%`;
       document.getElementById('recipeCategoryInput').value = r.category || 'Bó hoa bất đối xứng';
       document.getElementById('recipeSizeInput').value = r.size || 'M';
-      document.getElementById('recipeBudgetInput').value = r.budget || 1800000;
+      document.getElementById('recipeBudgetInput').value = r.budget ?? 0;
       document.getElementById('recipeStepsInput').value = r.steps || '';
       if (r.photo) {
         document.getElementById('recipePhotoPreview').src = r.photo;
@@ -2500,30 +2558,42 @@
       }
       updateRecipeProportionsAndBudget(cogs, suggestedPrice);
       renderSavedRecipesList();
+      if(missing.length){
+        for(const id of ['costMaterials','costTotalCogs','costSuggestedPrice','costNetProfit','costTotalOrderRevenue'])document.getElementById(id).textContent='—';
+        document.getElementById('recipeBudgetStatus').textContent='Chưa đủ dữ liệu để đối chiếu ngân sách.';
+      }
 
       const shortEl = document.getElementById('shortageListContainer');
-      if (!shortages.length) {
+      const ready=plan.length>0&&!shortages.length&&!missing.length;
+      document.getElementById('btnDeductInventory').disabled=!ready;
+      document.getElementById('recipeBatchCost').textContent=missing.length
+        ?'Giá thành đang thiếu dữ liệu nguyên liệu.'
+        :'Giá thành dự kiến · '+plannedBatch()+' sản phẩm: '+formatVND(cogs*plannedBatch());
+      if(!plan.length)shortEl.textContent='Thêm nguyên liệu để lập lô sản xuất.';
+      else if(missing.length)shortEl.textContent='Có mã nguyên liệu đã mất liên kết với kho. Cập nhật công thức trước khi xuất kho.';
+      else if (!shortages.length) {
         shortEl.innerHTML = '<p class="text-[#5A7364] font-medium">✓ Kho hiện tại đáp ứng đủ toàn bộ nguyên liệu cho công thức này.</p>';
       } else {
-        shortEl.innerHTML = shortages.map(s => `<div class="flex justify-between py-1 border-b border-[#E4DFD5]"><span>${s.inv.name} (${s.inv.supplier})</span><strong class="text-red-600 mono-num">Cần mua thêm: ${s.needMore} ${s.inv.unit} (~${formatVND(s.needMore * s.inv.cost)})</strong></div>`).join('');
+        shortEl.innerHTML = shortages.map(s => `<div class="flex justify-between py-1 border-b border-[#E4DFD5]"><span>${operationsText(s.inv.name)} (${operationsText(s.inv.supplier)})</span><strong class="text-red-600 mono-num">Cần mua thêm: ${s.needMore} ${operationsText(s.inv.unit)} (~${formatVND(s.needMore * s.inv.cost)})</strong></div>`).join('');
       }
     }
 
     ['recipeNameInput', 'recipeBatchQty', 'costLaborPct', 'costWastePct', 'costOverheadFixed', 'costMarginPct'].forEach(id => {
-      document.getElementById(id).oninput = () => {
+      document.getElementById(id).onchange = () => {
         state.recipe.name = document.getElementById('recipeNameInput').value;
-        state.recipe.batchQty = Math.max(1, Number(document.getElementById('recipeBatchQty').value) || 1);
-        state.recipe.laborPct = Number(document.getElementById('costLaborPct').value) || 0;
-        state.recipe.wastePct = Number(document.getElementById('costWastePct').value) || 0;
-        state.recipe.overheadFixed = Number(document.getElementById('costOverheadFixed').value) || 0;
-        state.recipe.marginPct = clamp(Number(document.getElementById('costMarginPct').value) || 10, 1, 95);
+        state.recipe.batchQty = Math.max(1, Math.floor(Number(document.getElementById('recipeBatchQty').value) || 1));
+        state.recipe.laborPct = clamp(Number(document.getElementById('costLaborPct').value) || 0, 0, 200);
+        state.recipe.wastePct = clamp(Number(document.getElementById('costWastePct').value) || 0, 0, 50);
+        state.recipe.overheadFixed = Math.max(0,Number(document.getElementById('costOverheadFixed').value) || 0);
+        state.recipe.marginPct = clamp(Number(document.getElementById('costMarginPct').value) || 0, 0, 95);
         persist();
         renderRecipe();
       };
     });
     document.getElementById('btnAddRecipeItem').onclick = () => {
       const invId = document.getElementById('recipeInvPicker').value;
-      const qty = Math.max(1, Number(document.getElementById('recipeAddQty').value) || 1);
+      if(!state.inventory.some(item=>item.id===invId))return;
+      const qty = positiveQty(document.getElementById('recipeAddQty').value);
       const existing = state.recipe.items.find(x => x.invId === invId);
       if (existing) existing.qty += qty;
       else state.recipe.items.push({ invId, qty });
@@ -2531,27 +2601,33 @@
     };
     document.getElementById('btnDeductInventory').onclick = () => {
       showModal({
-        title: 'Xác nhận Trừ Kho Theo Công Thức',
-        bodyHtml: `<p>Hệ thống sẽ trừ tồn kho của <strong>${state.recipe.items.length}</strong> loại nguyên liệu nhân cho <strong>${state.recipe.batchQty}</strong> sản phẩm.</p>`,
-        confirmText: 'Trừ kho ngay',
-        onConfirm: () => {
-          state.recipe.items.forEach(line => {
-            const inv = state.inventory.find(x => x.id === line.invId);
-            if (inv) inv.stock = Math.max(0, inv.stock - line.qty * state.recipe.batchQty);
-          });
-          persist(); renderRecipe(); renderInventory();
-          showToast('Đã cập nhật trừ kho thành công!', 'success');
+        title:'Xuất kho theo lô',
+        bodyHtml:'<p>Xuất vật tư cho <strong>'+plannedBatch()+' sản phẩm</strong> và ghi vào nhật ký kho.</p>',
+        confirmText:'Xác nhận xuất kho',
+        onConfirm:()=>{
+          const plan=productionNeeds();
+          if(!plan.length||plan.some(line=>!line.item||line.short>0)){
+            showToast('Chưa đủ nguyên liệu để xuất trọn lô.', 'error');return false;
+          }
+          const oldInventory=state.inventory, oldLog=state.productionLog;
+          const quantities=new Map(plan.map(line=>[line.id,line.qty]));
+          state.inventory=oldInventory.map(item=>quantities.has(item.id)?{...item,stock:item.stock-quantities.get(item.id)}:item);
+          const batch={id:crypto.randomUUID(),recipe:state.recipe.name,count:plannedBatch(),date:new Date().toISOString(),
+            materialCost:plan.reduce((sum,{item,qty})=>sum+item.cost*qty,0),
+            lines:plan.map(({item,qty})=>({id:item.id,sku:item.sku,name:item.name,unit:item.unit,qty,cost:item.cost,before:item.stock,after:item.stock-qty}))};
+          state.productionLog=[batch,...(oldLog??[])];
+          try{persist();}catch{state.inventory=oldInventory;state.productionLog=oldLog;return false;}
+          renderRecipe();renderInventory();
+          showToast('Đã xuất đủ vật tư cho lô sản xuất.', 'success');
         }
       });
     };
     document.getElementById('btnExportShoppingList').onclick = () => {
       const lines = ['PHIEU MUA HANG THIEU - KIM FLORA', `Cong thuc: ${state.recipe.name} (x${state.recipe.batchQty})`, '---'];
-      state.recipe.items.forEach(line => {
-        const inv = state.inventory.find(x => x.id === line.invId);
-        if (!inv) return;
-        const need = line.qty * state.recipe.batchQty - inv.stock;
-        if (need > 0) lines.push(`- ${inv.name}: Mua ${need} ${inv.unit} | NCC: ${inv.supplier} | Du kien: ${formatVND(need * inv.cost)}`);
-      });
+      for(const {item,short,id} of productionNeeds()){
+        if(!item)lines.push('- Cần liên kết lại mã: '+id);
+        else if(short>0)lines.push('- '+item.name+': Mua '+short+' '+item.unit+' | NCC: '+item.supplier+' | Dự kiến: '+formatVND(short*item.cost));
+      }
       if (lines.length === 3) lines.push('Khong co nguyen lieu thieu.');
       downloadFile('phieu_mua_hang_kim_flora.txt', lines.join('\n'));
       showToast('Đã xuất phiếu mua hàng!', 'success');
@@ -2569,6 +2645,11 @@
 
     function renderMoodboard() {
       mbStage.innerHTML = '';
+      const selected=state.moodboardItems.some(item=>item.id===selectedMbId);
+      const tools=document.getElementById('mbSelectionTools');
+      tools.classList.toggle('opacity-40',!selected);
+      tools.classList.toggle('pointer-events-none',!selected);
+      for(const button of tools.querySelectorAll('button'))button.disabled=!selected;
       state.moodboardItems.forEach(item => {
         const el = document.createElement('div');
         el.className = `mb-item ${item.id === selectedMbId ? 'selected' : ''}`;
@@ -2581,12 +2662,12 @@
         el.dataset.id = item.id;
 
         if (item.type === 'image') {
-          el.innerHTML = `<img src="${item.src}" class="w-full h-full object-cover rounded-lg shadow-md pointer-events-none" /><div class="mb-resize-handle"></div>`;
+          el.innerHTML = `<img src="${operationsText(item.src)}" class="w-full h-full object-cover rounded-lg shadow-md pointer-events-none" /><div class="mb-resize-handle"></div>`;
         } else if (item.type === 'note') {
-          el.innerHTML = `<textarea class="w-full h-full p-3 rounded-lg bg-[#FEF3C7] border border-amber-300 shadow-md text-xs text-[#1A2621] resize-none focus:outline-none">${item.text || ''}</textarea><div class="mb-resize-handle"></div>`;
+          el.innerHTML = `<textarea class="w-full h-full p-3 rounded-lg bg-[#FEF3C7] border border-amber-300 shadow-md text-xs text-[#1A2621] resize-none focus:outline-none">${operationsText(item.text)}</textarea><div class="mb-resize-handle"></div>`;
           el.querySelector('textarea').oninput = (e) => { item.text = e.target.value; persist(); };
         } else if (item.type === 'text') {
-          el.innerHTML = `<div contenteditable="true" class="w-full h-full font-editorial font-semibold outline-none" style="font-size:${item.fontSize || 20}px;color:${item.color || '#1A2621'}">${item.text || 'Tiêu đề'}</div><div class="mb-resize-handle"></div>`;
+          el.innerHTML = `<div contenteditable="true" class="w-full h-full font-editorial font-semibold outline-none" style="font-size:${item.fontSize || 20}px;color:${item.color || '#1A2621'}">${operationsText(item.text ?? 'Tiêu đề')}</div><div class="mb-resize-handle"></div>`;
           el.querySelector('[contenteditable]').oninput = (e) => { item.text = e.target.innerText; persist(); };
         } else if (item.type === 'palette') {
           const swatches = (item.colors || []).map(c => `<div class="flex-1 h-full" style="background:${c}"></div>`).join('');
@@ -2595,11 +2676,14 @@
 
         // Drag & Resize
         el.addEventListener('pointerdown', (e) => {
+          if(e.button!==0)return;
           e.stopPropagation();
           selectedMbId = item.id;
           document.querySelectorAll('.mb-item').forEach(x => x.classList.remove('selected'));
           el.classList.add('selected');
-          document.getElementById('mbSelectionTools').classList.remove('opacity-40', 'pointer-events-none');
+          const tools=document.getElementById('mbSelectionTools');
+          tools.classList.remove('opacity-40', 'pointer-events-none');
+          for(const button of tools.querySelectorAll('button'))button.disabled=false;
 
           if (e.target.classList.contains('mb-resize-handle')) {
             const startX = e.clientX, startY = e.clientY, origW = item.w, origH = item.h;
@@ -2609,10 +2693,10 @@
               el.style.width = item.w + 'px';
               el.style.height = item.h + 'px';
             };
-            const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); persist(); };
+            const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp); persist(); };
             window.addEventListener('pointermove', onMove);
-            window.addEventListener('pointerup', onUp);
-          } else if (!['TEXTAREA'].includes(e.target.tagName)) {
+            window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
+          } else if (!e.target.closest('textarea,[contenteditable]') || e.altKey) {
             const startX = e.clientX, startY = e.clientY, origX = item.x, origY = item.y;
             const onMove = (ev) => {
               item.x = origX + (ev.clientX - startX) / mbZoom;
@@ -2620,9 +2704,9 @@
               el.style.left = item.x + 'px';
               el.style.top = item.y + 'px';
             };
-            const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); persist(); };
+            const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp); persist(); };
             window.addEventListener('pointermove', onMove);
-            window.addEventListener('pointerup', onUp);
+            window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
           }
         });
         mbStage.appendChild(el);
@@ -2632,15 +2716,18 @@
 
     // Pan viewport
     mbViewport.addEventListener('pointerdown', (e) => {
+      if(e.button!==0)return;
       if (e.target !== mbViewport && e.target !== mbStage) return;
       selectedMbId = null;
       document.querySelectorAll('.mb-item').forEach(x => x.classList.remove('selected'));
-      document.getElementById('mbSelectionTools').classList.add('opacity-40', 'pointer-events-none');
+      const tools=document.getElementById('mbSelectionTools');
+      tools.classList.add('opacity-40','pointer-events-none');
+      for(const button of tools.querySelectorAll('button'))button.disabled=true;
       const startX = e.clientX, startY = e.clientY, origPX = mbPanX, origPY = mbPanY;
       const onMove = (ev) => { mbPanX = origPX + (ev.clientX - startX); mbPanY = origPY + (ev.clientY - startY); updateMbTransform(); };
-      const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+      const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp); };
       window.addEventListener('pointermove', onMove);
-      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
     });
 
     document.getElementById('btnMbZoomIn').onclick = () => { mbZoom = clamp(mbZoom + 0.15, 0.3, 2.5); updateMbTransform(); };
@@ -2648,11 +2735,11 @@
     document.getElementById('btnMbResetView').onclick = () => { mbZoom = 1; mbPanX = 0; mbPanY = 0; updateMbTransform(); };
 
     document.getElementById('btnMbAddNote').onclick = () => {
-      state.moodboardItems.push({ id: 'mb-' + Date.now(), type: 'note', x: 120, y: 120, w: 220, h: 140, rotate: 0, z: state.moodboardItems.length + 1, text: 'Ghi chú ý tưởng mới...' });
+      state.moodboardItems.push({ id: 'mb-' + crypto.randomUUID(), type: 'note', x: 120, y: 120, w: 220, h: 140, rotate: 0, z: state.moodboardItems.length + 1, text: 'Ghi chú ý tưởng mới...' });
       persist(); renderMoodboard();
     };
     document.getElementById('btnMbAddText').onclick = () => {
-      state.moodboardItems.push({ id: 'mb-' + Date.now(), type: 'text', x: 140, y: 80, w: 280, h: 50, rotate: 0, z: state.moodboardItems.length + 1, text: 'TIÊU ĐỀ BỘ SƯU TẬP', fontSize: 22, color: '#1A2621' });
+      state.moodboardItems.push({ id: 'mb-' + crypto.randomUUID(), type: 'text', x: 140, y: 80, w: 280, h: 50, rotate: 0, z: state.moodboardItems.length + 1, text: 'TIÊU ĐỀ BỘ SƯU TẬP', fontSize: 22, color: '#1A2621' });
       persist(); renderMoodboard();
     };
     document.getElementById('btnMbAddImage').onclick = () => document.getElementById('mbImageInput').click();
@@ -2660,7 +2747,7 @@
       const f = e.target.files[0]; if (!f) return;
       const r = new FileReader();
       r.onload = ev => {
-        state.moodboardItems.push({ id: 'mb-' + Date.now(), type: 'image', x: 180, y: 140, w: 260, h: 200, rotate: 0, z: state.moodboardItems.length + 1, src: ev.target.result });
+        state.moodboardItems.push({ id: 'mb-' + crypto.randomUUID(), type: 'image', x: 180, y: 140, w: 260, h: 200, rotate: 0, z: state.moodboardItems.length + 1, src: ev.target.result });
         persist(); renderMoodboard();
       };
       r.readAsDataURL(f);
@@ -2668,7 +2755,7 @@
 
     function importPaletteToMoodboard() {
       state.moodboardItems.push({
-        id: 'mb-' + Date.now(),
+        id: 'mb-' + crypto.randomUUID(),
         type: 'palette',
         x: 100, y: 310, w: 320, h: 95, rotate: 0, z: state.moodboardItems.length + 1,
         colors: state.palette.map(p => p.hex)
@@ -2684,7 +2771,7 @@
     };
     document.getElementById('btnMbSendBack').onclick = () => {
       const it = state.moodboardItems.find(x => x.id === selectedMbId);
-      if (it) { it.z = 1; persist(); renderMoodboard(); }
+      if (it) { it.z = Math.min(...state.moodboardItems.map(item=>item.z||1))-1; persist(); renderMoodboard(); }
     };
     document.getElementById('btnMbRotate').onclick = () => {
       const it = state.moodboardItems.find(x => x.id === selectedMbId);
@@ -2694,31 +2781,85 @@
       state.moodboardItems = state.moodboardItems.filter(x => x.id !== selectedMbId);
       selectedMbId = null; persist(); renderMoodboard();
     };
-    document.getElementById('btnMbExportPng').onclick = () => {
-      const c = document.createElement('canvas'); c.width = 1200; c.height = 800;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = '#FAF8F4'; ctx.fillRect(0, 0, 1200, 800);
-      const sorted = [...state.moodboardItems].sort((a, b) => (a.z || 1) - (b.z || 1));
-      sorted.forEach(it => {
-        ctx.save();
-        ctx.translate(it.x + it.w/2, it.y + it.h/2);
-        ctx.rotate((it.rotate || 0) * Math.PI / 180);
-        if (it.type === 'note') {
-          ctx.fillStyle = '#FEF3C7'; ctx.fillRect(-it.w/2, -it.h/2, it.w, it.h);
-          ctx.fillStyle = '#1A2621'; ctx.font = '13px Inter, sans-serif';
-          ctx.fillText((it.text || '').slice(0, 45), -it.w/2 + 10, -it.h/2 + 24);
-        } else if (it.type === 'text') {
-          ctx.fillStyle = it.color || '#1A2621'; ctx.font = `bold ${it.fontSize || 20}px Georgia, serif`;
-          ctx.fillText(it.text || '', -it.w/2, 0);
-        } else if (it.type === 'palette') {
-          const cols = it.colors || [];
-          const sw = it.w / Math.max(1, cols.length);
-          cols.forEach((col, i) => { ctx.fillStyle = col; ctx.fillRect(-it.w/2 + i*sw, -it.h/2, sw, it.h); });
+    function moodboardText(ctx,text,x,y,width,height,lineHeight){
+      let drawn=0;
+      for(const paragraph of String(text??'').split('\n')){
+        let line='';
+        for(const word of paragraph.split(/\s+/)){
+          const next=line?line+' '+word:word;
+          if(line&&ctx.measureText(next).width>width){
+            if(drawn+lineHeight>height)return;
+            ctx.fillText(line,x,y+drawn,width);drawn+=lineHeight;line=word;
+          }else line=next;
         }
-        ctx.restore();
-      });
-      const a = document.createElement('a'); a.download = 'kim_flora_moodboard.png'; a.href = c.toDataURL('image/png'); a.click();
-      showToast('Đã xuất Moodboard PNG!', 'success');
+        if(drawn+lineHeight>height)return;
+        ctx.fillText(line,x,y+drawn,width);drawn+=lineHeight;
+      }
+    }
+    document.getElementById('btnMbExportPng').onclick = async event => {
+      const button=event.currentTarget;
+      const items=structuredClone(state.moodboardItems).sort((a,b)=>(a.z||1)-(b.z||1));
+      if(!items.length)return showToast('Thêm nội dung vào Moodboard trước khi xuất.', 'info');
+      button.disabled=true;
+      try{
+        const images=new Map();
+        await Promise.all(items.filter(item=>item.type==='image').map(async item=>{
+          const img=new Image();
+          img.src=item.src;
+          await img.decode();
+          images.set(item.id,img);
+        }));
+        const bounds=items.map(item=>{
+          const angle=(item.rotate||0)*Math.PI/180;
+          const halfWidth=(Math.abs(Math.cos(angle))*item.w+Math.abs(Math.sin(angle))*item.h)/2;
+          const halfHeight=(Math.abs(Math.sin(angle))*item.w+Math.abs(Math.cos(angle))*item.h)/2;
+          return {x:item.x+item.w/2-halfWidth,y:item.y+item.h/2-halfHeight,w:halfWidth*2,h:halfHeight*2};
+        });
+        const left=Math.floor(Math.min(...bounds.map(box=>box.x)))-28,top=Math.floor(Math.min(...bounds.map(box=>box.y)))-28;
+        const width=Math.ceil(Math.max(...bounds.map(box=>box.x+box.w)))-left+28;
+        const height=Math.ceil(Math.max(...bounds.map(box=>box.y+box.h)))-top+28;
+        const scale=Math.min(2,3000/Math.max(width,height));
+        const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.ceil(width*scale));canvas.height=Math.max(1,Math.ceil(height*scale));
+        const ctx=canvas.getContext('2d');
+        ctx.scale(scale,scale);
+        ctx.fillStyle='#FAF8F4';ctx.fillRect(0,0,width,height);
+        for(const item of items){
+          const {w,h}=item;
+          ctx.save();
+          ctx.translate(item.x-left+w/2,item.y-top+h/2);
+          ctx.rotate((item.rotate||0)*Math.PI/180);
+          ctx.translate(-w/2,-h/2);
+          ctx.beginPath();ctx.rect(0,0,w,h);ctx.clip();
+          ctx.textBaseline='top';
+          if(item.type==='image'){
+            const img=images.get(item.id),ratio=Math.max(w/img.naturalWidth,h/img.naturalHeight);
+            const dx=img.naturalWidth*ratio,dy=img.naturalHeight*ratio;
+            ctx.drawImage(img,(w-dx)/2,(h-dy)/2,dx,dy);
+          }else if(item.type==='note'){
+            ctx.fillStyle='#FEF3C7';ctx.fillRect(0,0,w,h);
+            ctx.fillStyle='#1A2621';ctx.font='12px system-ui';
+            moodboardText(ctx,item.text,12,12,w-24,h-24,17);
+          }else if(item.type==='text'){
+            const size=item.fontSize||20;
+            ctx.fillStyle=item.color||'#1A2621';ctx.font='600 '+size+'px Georgia';
+            moodboardText(ctx,item.text,0,0,w,h,size*1.35);
+          }else if(item.type==='palette'){
+            const colors=item.colors||[],sw=w/Math.max(1,colors.length);
+            ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+            colors.forEach((color,index)=>{ctx.fillStyle=color;ctx.fillRect(index*sw,0,sw,Math.max(1,h-22));});
+            ctx.fillStyle='#1A2621';ctx.font='10px monospace';ctx.fillText(colors.join(' · '),6,h-16,w-12);
+          }
+          ctx.restore();
+        }
+        const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        if(!png)throw new Error();
+        const link=document.createElement('a');link.download='kim_flora_moodboard.png';
+        link.href=URL.createObjectURL(png);link.click();
+        setTimeout(()=>URL.revokeObjectURL(link.href),10000);
+        showToast('Đã xuất Moodboard PNG.', 'success');
+      }catch{
+        showToast('Chưa xuất được Moodboard. Kiểm tra các ảnh trên bảng.', 'error');
+      }finally{button.disabled=false;}
     };
 
     // ==================== MODULE 6: PROJECT ARCHIVE ====================
@@ -2908,8 +3049,8 @@
           <div class="flex items-center gap-2 min-w-0">
             ${rec.photo ? `<img src="${rec.photo}" class="w-10 h-10 rounded-lg object-cover shrink-0" />` : ''}
             <div class="min-w-0">
-              <div class="font-semibold truncate">${rec.name}</div>
-              <div class="text-[10px] text-[#5F6B64]">${rec.category} · Size ${rec.size || 'M'}</div>
+              <div class="font-semibold truncate">${operationsText(rec.name)}</div>
+              <div class="text-[10px] text-[#5F6B64]">${operationsText(rec.category)} · Size ${operationsText(rec.size || 'M')}</div>
             </div>
           </div>
           <button data-idx="${idx}" class="rec-lib-load px-2 py-1 rounded bg-[#1A2621] text-white text-[11px] shrink-0">Mở</button>

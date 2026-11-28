@@ -49,11 +49,13 @@ export function applyEffects(canvas,s,parts){
   }
   if(f.shadow){const tmp=surface(w,h),tc=tmp.getContext('2d'),dx=(f.offset??25)*unit*.6;
     tc.filter='blur('+Math.max(.1,(f.soft??35)*unit*.35)+'px)';tc.drawImage(mask,dx*.65,dx);shadow=tc.getImageData(0,0,w,h).data;}
+  const light=f.light||0,background=(f.background||0)-(f.depth||0)*.22;
+  const lighting=Float64Array.from({length:256},(_,alpha)=>2**((light*(alpha/255)+background*(1-alpha/255))/65));
   const tint=(f.tint||'#70566F').slice(1).match(/../g).map(x=>parseInt(x,16)),opacity=(f.opacity||0)/100;
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){
     const i=(y*w+x)*4,fg=alpha[i+3]/255,bg=1-fg;
     const vignette=Math.min(1,((2*x+1)/w-1)**2+((2*y+1)/h-1)**2);
-    const gain=2**(((f.light||0)*fg+((f.background||0)-(f.depth||0)*.22)*bg)/65)
+    const gain=lighting[alpha[i+3]]
       *(1-vignette*vignette*(f.edge||0)*.008)*(1-(shadow?shadow[i+3]/255:0)*bg*(f.shadow||0)*.008);
     const mix=blurred&&blurred[i+3]?bg*Math.min(1,((f.blur||0)+(f.depth||0)*.3)/18):0;
     for(let j=0;j<3;j++){const base=d[i+j]+(mix?(blurred[i+j]-d[i+j])*mix:0);d[i+j]=base*gain*(1-opacity)+tint[j]*opacity;}

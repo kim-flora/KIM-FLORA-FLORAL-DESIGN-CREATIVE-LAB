@@ -31,8 +31,9 @@ export function refine(img,mask,x=0,y=0){
   }
   ctx.putImageData(frame,0,0);return mask;
 }
-export async function infer(img,points){
-  let model=await segmenter();const W=img.naturalWidth,H=img.naturalHeight;
+export async function infer(img,points,isCurrent=()=>true){
+  const check=()=>{if(!isCurrent())throw new DOMException('Selection changed','AbortError');};
+  const W=img.naturalWidth,H=img.naturalHeight;
   let l=W,t=H,r=0,b=0;for(const p of points){l=Math.min(l,p.x);r=Math.max(r,p.x);t=Math.min(t,p.y);b=Math.max(b,p.y);}
   if(r-l<3||b-t<3)throw Error('Khoanh một vùng rộng hơn quanh đối tượng.');
   const margin=Math.max(10,.32*Math.max(r-l,b-t)),x=Math.max(0,Math.floor(l-margin)),y=Math.max(0,Math.floor(t-margin));
@@ -57,11 +58,15 @@ export async function infer(img,points){
       if(value>score){score=value;best=k;}}
     if(best>=0)seeds.push({x:best%vw,y:Math.floor(best/vw)});
   }
-  let bestMask,bestScore=-1;
+  check();
+  let model=await segmenter(),bestMask,bestScore=-1;
+  check();
   for(const seed of seeds){
     await new Promise(resolve=>requestAnimationFrame(resolve));
+    check();
     const prompt={keypoint:{x:(seed.x+.5)/vw,y:(seed.y+.5)/vh}};
     const consume=result=>{
+      if(!isCurrent())return;
       const masks=result.confidenceMasks,mp=masks[masks.length-1],probs=mp.getAsFloat32Array(),mw=mp.width,mh=mp.height;
       let inside=0,outside=0;for(let i=0;i<probs.length;i++)if(probs[i]>.5){
         const k=Math.floor(Math.floor(i/mw)*vh/mh)*vw+Math.floor((i%mw)*vw/mw);
@@ -71,8 +76,9 @@ export async function infer(img,points){
       if(inside>2&&score>bestScore){bestScore=score;bestMask=canvas(mw,mh);const c=bestMask.getContext('2d'),f=c.createImageData(mw,mh);
         for(let i=0;i<probs.length;i++){const j=i*4;f.data[j]=16;f.data[j+1]=167;f.data[j+2]=144;f.data[j+3]=255*Math.max(0,Math.min(1,(probs[i]-.33)/.34));}c.putImageData(f,0,0);}
     };
-    try{await model.segment(view,prompt,consume);}catch(error){const cpuModel=await fallback();if(model===cpuModel)throw error;model=cpuModel;engine=Promise.resolve(model);await model.segment(view,prompt,consume);}
+    try{await model.segment(view,prompt,consume);}catch(error){check();const cpuModel=await fallback();check();if(model===cpuModel)throw error;model=cpuModel;engine=Promise.resolve(model);await model.segment(view,prompt,consume);}
   }
+  check();
   if(!bestMask||bestScore<.035)throw Error('AI chưa xác định được đối tượng. Hãy khoanh sát hơn.');
   const out=canvas(w,h);out.getContext('2d').drawImage(bestMask,0,0,w,h);return {mask:refine(img,out,x,y),x,y};
 }

@@ -12,7 +12,7 @@ export function mountEditor(host) {
   host.append(root);
   const q = s => root.querySelector(s);
   const stage=q('.stage'), canvas=q('canvas'), overlay=q('.selection-overlay'), box=q('i'), message=q('[role=status]');
-  let fileSource, img, name, state, history=[], cursor=0, before=false, crop=false, selection, drag, ticket=0, pending=0, pendingOverlay=0;
+  let fileSource, img, name, state, history=[], cursor=0, before=false, crop=false, selection, drag, ticket=0, pending=0, pendingOverlay=0, previewTimer;
   let zoom=1, panX=0, panY=0;
   const layers=createSelection(q('aside'),()=>({img,s:state,before,schedule,scheduleOverlay,commit,paint,message,exitCrop:stopCrop}));
   const refreshEffects=effectControls(q('aside'),()=>({s:state,before,commit,paint,schedule}));
@@ -136,16 +136,24 @@ export function mountEditor(host) {
   function scheduleOverlay(){
     if(!pendingOverlay)pendingOverlay=requestAnimationFrame(paintOverlay);
   }
-  function paint(){
+  function paint(limit=1800){
+    clearTimeout(previewTimer);
+    cancelAnimationFrame(pending);
     cancelAnimationFrame(pendingOverlay);
     if(img){
-      raster(canvas,before?initial(img):state,1800);
+      raster(canvas,before?initial(img):state,limit);
       paintOverlay();
       view();
     }
     update();
   }
-  function schedule(){cancelAnimationFrame(pending);pending=requestAnimationFrame(paint);}
+  function schedule(){
+    cancelAnimationFrame(pending);
+    pending=requestAnimationFrame(()=>{
+      paint(900);
+      previewTimer=setTimeout(()=>paint(),120);
+    });
+  }
   function resetView(){zoom=1;panX=panY=0;view();}
   function stopCrop(){crop=false;selection=null;box.hidden=true;drag=null;}
   function mark(){
@@ -162,8 +170,8 @@ export function mountEditor(host) {
       before=false;stopCrop();canvas.hidden=false;q('.empty').hidden=true;message.textContent='';resetView();paint();
     }catch{if(id===ticket)message.textContent='Không đọc được ảnh. Hãy chọn ảnh khác.';}finally{URL.revokeObjectURL(url);}
   };
-  function point(e){const r=canvas.getBoundingClientRect();return [(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height].map(n=>Math.max(0,Math.min(1,n)));}
-  function originalPoint(e){const [x,y]=point(e);return new DOMPoint(x*state.w,y*state.h).matrixTransform(new DOMMatrix(state.m).inverse());}
+  function point(e,clamp=true){const r=canvas.getBoundingClientRect();const coordinates=[(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height];return clamp?coordinates.map(n=>Math.max(0,Math.min(1,n))):coordinates;}
+  function originalPoint(e){const [x,y]=point(e,q('.tool').value!=='move');return new DOMPoint(x*state.w,y*state.h).matrixTransform(new DOMMatrix(state.m).inverse());}
   const brushRing=document.createElement('span');brushRing.className='quick-brush-ring';brushRing.hidden=true;stage.append(brushRing);
   function brushCursor(e){
     brushRing.hidden=!img||before||q('.tool').value!=='quick'||(e.target!==canvas&&!drag?.select);
@@ -209,7 +217,7 @@ export function mountEditor(host) {
     if(a==='right')transform([0,1,-1,0,h,0],h,w);
     if(a==='flipX')transform([-1,0,0,1,w,0],w,h);
     if(a==='flipY')transform([1,0,0,-1,0,h],w,h);
-    if(a==='undo'||a==='redo'){cursor+=a==='undo'?-1:1;state=JSON.parse(history[cursor]);layers.cancel();stopCrop();resetView();paint();}
+    if(a==='undo'||a==='redo'){cursor+=a==='undo'?-1:1;state=JSON.parse(history[cursor]);layers.cancel();stopCrop();paint();}
     if(a==='export'){try{
       const size=exportOptions(),jpg=format.value==='JPG',filename=name;
       if(!Number.isSafeInteger(size.w)||size.w<1||size.w>32767||size.h>32767||size.w*size.h>64000000||(jpg&&(!quality.value||!quality.validity.valid))){

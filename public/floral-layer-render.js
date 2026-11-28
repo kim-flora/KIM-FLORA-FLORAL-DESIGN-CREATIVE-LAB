@@ -13,6 +13,7 @@ function cutout(img,p,c={}){
   const frame=ctx.getImageData(0,0,p.w,p.h),d=frame.data;
   const target=c.hex?hsl(...c.hex.match(/\w\w/g).map(k=>parseInt(k,16)/255)):null;
   const adjust=target||Object.values(c).some(Boolean);
+  const contrast=2**((c.contrast||0)/100);
   let mean=0,total=0;
   if(target)for(let i=0;i<p.alpha.length;i++){const j=i*4,a=p.alpha[i]*d[j+3];mean+=a*(Math.max(d[j],d[j+1],d[j+2])+Math.min(d[j],d[j+1],d[j+2]))/510;total+=a;}
   mean/=total||1;
@@ -22,7 +23,7 @@ function cutout(img,p,c={}){
     if(target){h=target[0];s=target[1]*(.52+.48*s);l=clamp(l+.8*(target[2]-mean)*4*l*(1-l));}
     h=(h+(c.hue||0)/60+6)%6;s=clamp(s*(1+(c.saturation||0)/100));
     const lift=((c.shadows||0)*(1-l)**2+(c.highlights||0)*l*l)/100;
-    l=clamp(.5+(l-.5)*2**((c.contrast||0)/100)+(c.brightness||0)/230+lift*.52);
+    l=clamp(.5+(l-.5)*contrast+(c.brightness||0)/230+lift*.52);
     const t=(c.temperature||0)*.0014*4*l*(1-l);
     d[j]=255*(channel(h,s,l,0)+t);d[j+1]=255*channel(h,s,l,8);d[j+2]=255*(channel(h,s,l,4)-t);
   }
@@ -54,12 +55,16 @@ function repair(frame,hole,excluded){
   }
 }
 export function layerRenderer(parts){
-  let lastImg,baseKey,base,tiles=new Map();
+  let lastImg,baseKey,base,out,tiles=new Map();
   return (img,s)=>{
-    if(lastImg!==img){lastImg=img;baseKey=null;tiles.clear();}
+    if(lastImg!==img){lastImg=img;baseKey=null;out=null;tiles.clear();}
     const layers=s.layers||[],holes=[...(s.removed||[]),...layers.filter(l=>!l.copy&&moved(l)).map(l=>l.key)];
+    const w=img.naturalWidth,h=img.naturalHeight;
+    out??=surface(w,h);
+    const ctx=out.getContext('2d');
+    ctx.resetTransform();
+    ctx.clearRect(0,0,w,h);
     if(!holes.length&&!s.hideBase&&layers.every(l=>!l.copy&&l.visible)){
-      const canvas=surface(img.naturalWidth,img.naturalHeight),ctx=canvas.getContext('2d');
       ctx.drawImage(img,0,0);
       for(const l of layers){if(!l.color)continue;
         const p=parts.get(l.key),tile=cutout(img,p,l.color),colors=tile.getContext('2d').getImageData(0,0,p.w,p.h).data;
@@ -68,10 +73,9 @@ export function layerRenderer(parts){
           for(let c=0;c<3;c++){const j=i*4+c;frame.data[j]+=(colors[j]-frame.data[j])*a;}}
         ctx.putImageData(frame,p.x,p.y);
       }
-      return canvas;
+      return out;
     }
     const key=JSON.stringify([holes,s.hideBase,layers.filter(l=>!l.copy).map(l=>[l.key,l.visible,moved(l)])]);
-    const w=img.naturalWidth,h=img.naturalHeight;
     if(key!==baseKey){
       base=surface(w,h);const ctx=base.getContext('2d');
       if(!s.hideBase){
@@ -88,7 +92,7 @@ export function layerRenderer(parts){
       }
       baseKey=key;
     }
-    const out=surface(w,h),ctx=out.getContext('2d');ctx.drawImage(base,0,0);
+    ctx.drawImage(base,0,0);
     for(const l of layers){if(!l.visible)continue;
       const p=parts.get(l.key),key=JSON.stringify([l.key,l.color]);let tile=tiles.get(l.id);
       if(tile?.key!==key){tile={key,image:cutout(img,p,l.color)};tiles.set(l.id,tile);}

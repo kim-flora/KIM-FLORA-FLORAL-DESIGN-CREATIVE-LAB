@@ -37,13 +37,13 @@ export function createSelection(aside, environment) {
     }return outline;
   }
   async function smart(points,similar=false){
-    const id=++request,{img,paint}=environment(),erase=q('.erase').checked&&!similar;
-    busy=true;notice.textContent='AI đang xác định đường biên…';paint();
+    const id=++request,{img,scheduleOverlay}=environment(),erase=q('.erase').checked&&!similar;
+    busy=true;notice.textContent='AI đang xác định đường biên…';update();scheduleOverlay();
     try{
       const {infer,candidates}=await import('./floral-smart-mask.js');
       if(id!==request)return;
       const loops=similar?candidates(img,mask):[points],matches=[];
-      for(const loop of loops){if(id!==request)return;try{matches.push(await infer(img,loop));}catch(e){if(!similar)throw e;}}
+      for(const loop of loops){if(id!==request)return;try{matches.push(await infer(img,loop,()=>id===request));}catch(e){if(!similar)throw e;}}
       if(id!==request)return;
       if(!matches.length){notice.textContent='Chưa tìm thấy đối tượng tương tự.';return;}
       checkpoint();const c=startMask();c.save();c.globalCompositeOperation=erase?'destination-out':'source-over';
@@ -54,13 +54,28 @@ export function createSelection(aside, environment) {
         notice.textContent=hint?e.message:'Không tải hoặc khởi động được bộ nhận diện. Hãy thử lại.';
         if(!hint)console.error('Floral object selection:',e);
       }}
-    finally{if(id===request){busy=false;paint();}}
+    finally{if(id===request){busy=false;update();scheduleOverlay();}}
   }
   for(const [selector,erase] of [['.plus-mask',false],['.minus-mask',true]])q(selector).onclick=()=>{
     invalidate();if(tool.value==='quick')mode.value=erase?'subtract':'add';else tool.value='brush';q('.erase').checked=erase;environment().exitCrop();environment().paint();
   };
   q('.undo-mask').onclick=()=>{invalidate();mask=undo.pop()||null;notice.textContent='';environment().paint();};
-  q('.refine').onclick=async()=>{const id=++request;const {refine}=await import('./floral-smart-mask.js');if(id!==request||!mask)return;checkpoint();refine(environment().img,mask);environment().paint();};
+  q('.refine').onclick=async()=>{
+    const id=++request;
+    busy=true;
+    update();
+    try{
+      const {refine}=await import('./floral-smart-mask.js');
+      if(id!==request||!mask)return;
+      checkpoint();
+      refine(environment().img,mask);
+      notice.textContent='';
+    }catch{
+      if(id===request)notice.textContent='Chưa tinh chỉnh được đường biên. Hãy thử lại.';
+    }finally{
+      if(id===request){busy=false;update();environment().scheduleOverlay();}
+    }
+  };
   q('.similar').onclick=()=>smart(null,true);
   function cancel(){invalidate();undo.length=0;notice.textContent='';mask=null;editing=null;stroke=null;q('.name').value='';}
   function reset(){cancel();tool.value='';cache.clear();rendered=listKey='';cachedSource=null;}
@@ -80,8 +95,10 @@ export function createSelection(aside, environment) {
     const {img}=environment(),ctx=startMask(),w=mask.width,h=mask.height;
     const source=make(w,h),sc=source.getContext('2d');sc.drawImage(img,0,0);
     const data=sc.getImageData(0,0,w,h).data;
-    const seed=Math.floor(p.y)*w+Math.floor(p.x);
-    if(seed<0||seed>=w*h||!data[4*seed+3])return;
+    const x=Math.floor(p.x),y=Math.floor(p.y);
+    if(x<0||x>=w||y<0||y>=h)return;
+    const seed=y*w+x;
+    if(!data[4*seed+3])return;
     const tolerance=Number(q('.tolerance input').value)**2;
     const seen=new Uint8Array(w*h),queue=new Int32Array(w*h),region=sc.createImageData(w,h);
     let tail=0;
@@ -110,6 +127,7 @@ export function createSelection(aside, environment) {
       if(kind==='move'&&stroke){stroke.push(p);if(performance.now()-lastUpdate>=45)quickPreview();}
       if(kind==='up'&&stroke){if(stroke.at(-1).x!==p.x||stroke.at(-1).y!==p.y)stroke.push(p);if(applied<stroke.length)quickPreview();stroke=null;}
       if(kind==='cancel'&&stroke){mask=undo.pop()||null;outline=null;stroke=null;}
+      if(kind!=='move')update();
       environment().scheduleOverlay();return true;
     }
     if(tool.value==='move')return objects.pointer(kind,p);
@@ -122,6 +140,7 @@ export function createSelection(aside, environment) {
       stroke=null;
     }
     if(kind==='cancel')stroke=null;
+    if(kind!=='move')update();
     scheduleOverlay();return true;
   }
   function overlay(canvas,s){
@@ -173,7 +192,7 @@ export function createSelection(aside, environment) {
     q('.similar').disabled=q('.refine').disabled=!mask||busy;q('.undo-mask').disabled=!undo.length||busy;
     q('.save').disabled=!mask||busy;q('.save').textContent=editing?'Lưu vùng chọn':'Tách thành lớp';
     objects.refresh();
-    const key=JSON.stringify([s?.layers,s?.hideBase]);if(key===listKey&&listOwner===s)return;listKey=key;listOwner=s;
+    const key=JSON.stringify([s?.layers?.map(l=>[l.id,l.key,l.name,l.visible,l.locked,l.copy,moved(l)]),s?.hideBase]);if(key===listKey&&listOwner===s)return;listKey=key;listOwner=s;
     const list=q('.layers');list.replaceChildren();if(!s)return;
     function add(row,text,click,disabled=false){const b=document.createElement('button');b.type='button';b.textContent=text;b.disabled=disabled;b.onclick=click;row.append(b);}
     for(const layer of [...(s.layers||[])].reverse()){
@@ -198,5 +217,5 @@ export function createSelection(aside, environment) {
     objects.select(editing||environment().s.layers?.at(-1)?.id);
   }
   function quick(){tool.value='quick';tool.onchange();notice.textContent='Quét bên trong đối tượng. Giữ Alt để bớt vùng.';}
-  return {quick,parts:cache,snapshot,restore,pointer,overlay,source,update,reset,cancel,active:()=>!!tool.value,pan:()=>{tool.value='';stroke=null;}};
+  return {quick,parts:cache,snapshot,restore,pointer,overlay,source,update,reset,cancel,active:()=>!!tool.value,pan:()=>{invalidate();tool.value='';stroke=null;}};
 }

@@ -58,7 +58,7 @@ export function objectTools(parent,parts,env,selectTool,nextId){
     if(kind==='down'){drag=null;for(const l of [...s.layers||[]].reverse()){
       if(!l.visible||l.locked)continue;const part=parts.get(l.key),v=p.matrixTransform(pose(l,part).inverse()),x=Math.floor(v.x),y=Math.floor(v.y);
       if(x>=0&&y>=0&&x<part.w&&y<part.h&&part.alpha[y*part.w+x]){active=l.id;drag={l,p,x:l.x||0,y:l.y||0};break;}}
-    }else if(drag){if(kind==='move'){drag.l.x=drag.x+p.x-drag.p.x;drag.l.y=drag.y+p.y-drag.p.y;}
+    }else if(drag){if(kind==='move'||kind==='up'){drag.l.x=drag.x+p.x-drag.p.x;drag.l.y=drag.y+p.y-drag.p.y;}
       if(kind==='cancel'){drag.l.x=drag.x;drag.l.y=drag.y;}
       if(kind==='up'||kind==='cancel'){drag=null;commit();}}
     schedule();return true;

@@ -22,6 +22,7 @@ html = html.replace(/<\/body>(?=\s*<\/html>\s*$)/, `
 <dialog id="contentBackupDialog" class="m-auto w-11/12 max-w-md rounded-xl bg-white p-5">
   <form method="dialog"><button class="float-right underline">Đóng</button></form>
   <h2 class="mb-3 text-lg font-semibold">Kho lưu trực tuyến</h2>
+  <button type="button" id="loadSharedContent" class="mb-3 mr-3 underline">Tải dữ liệu dùng chung</button>
   <button type="button" id="saveContentBackup" class="mb-3 underline">Sao lưu ngay</button>
   <ul id="contentBackupHistory" class="max-h-80 space-y-2 overflow-auto"></ul>
 </dialog></body>`);

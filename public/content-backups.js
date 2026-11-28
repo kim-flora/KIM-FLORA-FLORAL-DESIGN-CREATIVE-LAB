@@ -296,7 +296,7 @@ function sync(hydration) {
     throw Error('Concurrent updates');
   }).catch(error=>{
     dirty=true;
-    status.textContent='Chưa lưu trực tuyến. Dữ liệu vẫn ở trình duyệt này.';
+    status.textContent='Chưa kết nối được kho trực tuyến.';
     throw error;
   }).finally(()=>{
     active=null;
@@ -304,6 +304,22 @@ function sync(hydration) {
   });
   return active;
 }
+function describeBackup(snapshot) {
+  let studio={};
+  try{studio=JSON.parse(snapshot.local.kim_flora_lab_v1??'{}')??{};}catch{}
+  const stored=(database,store)=>snapshot.stores?.[database]?.[store]?.length??0;
+  const count=value=>Array.isArray(value)?value.length:0;
+  return [
+    ['Dự án Studio',count(studio.savedProjects)],
+    ['Bảng màu đã lưu',count(studio.savedColorRecipes)+stored('kim-flora-color-studio','formulas')],
+    ['Công thức đã lưu',count(studio.savedRecipes)],
+    ['Mã nguyên liệu',count(studio.inventory)],
+    ['Mục Moodboard',count(studio.moodboardItems)],
+    ['Hồ sơ bố cục',stored('kim-flora-composition-notes','reviews')],
+    ['Phiên bản dự án ảnh',stored('kim-flora-photo-projects','catalog')]
+  ].map(([label,total])=>label+' '+total).join(' · ');
+}
+
 async function showHistory(offset=0) {
   history.textContent='Đang tải lịch sử…';
   try{
@@ -337,7 +353,21 @@ async function showHistory(offset=0) {
           open.disabled=false;
         }finally{guard.remove();}
       };
-      item.append(open);history.append(item);
+      const preview=document.createElement('button');
+      preview.type='button';
+      preview.className='ml-3 underline';
+      preview.textContent='Xem nội dung';
+      const details=document.createElement('p');
+      details.className='my-1 text-xs';
+      details.setAttribute('role','status');
+      preview.onclick=async()=>{
+        preview.disabled=true;
+        details.textContent='Đang đọc bản sao…';
+        try{details.textContent=describeBackup(await download(row));}
+        catch{details.textContent='Chưa đọc được nội dung bản sao này.';}
+        finally{preview.disabled=false;}
+      };
+      item.append(open,preview,details);history.append(item);
     }
     if(!rows.length)history.textContent=offset?'Không còn bản lưu cũ hơn.':'Chưa có bản lưu trực tuyến.';
     for(const [label,target] of [['Bản mới hơn',offset-50],['Bản cũ hơn',offset+50]]){
@@ -351,17 +381,33 @@ async function showHistory(offset=0) {
   }catch{history.textContent='Chưa đọc được kho lưu trực tuyến.';}
 }
 button.onclick=()=>{dialog.showModal();showHistory();};
+document.getElementById('loadSharedContent').onclick=async event=>{
+  const control=event.currentTarget;
+  control.disabled=true;
+  try{
+    if(active && await active)return;
+    if(!(await sync({allowed:true,applying:false}))){
+      history.textContent='Trình duyệt đã được đối chiếu với bản trực tuyến.';
+    }
+  }catch{
+    history.textContent='Chưa tải được dữ liệu dùng chung. Hãy thử lại khi kết nối ổn định.';
+  }finally{control.disabled=false;}
+};
 document.getElementById('saveContentBackup').onclick=()=>sync().then(()=>showHistory()).catch(()=>{});
 window.addEventListener('studio:before-ready',event=>{
   const hydration={allowed:true,applying:false};
   event.detail.push(new Promise((resolve,reject)=>{
+    const controller=new AbortController();
+    const cancelHydration=()=>{hydration.allowed=false;};
     const timer=setTimeout(()=>{
       if(hydration.applying)return;
-      hydration.allowed=false;
       if(localStorage.getItem(recovery)){
         reject(Error('Đã đăng nhập. Hãy tải lại trang để hoàn tất khôi phục dữ liệu.'));
       }else{
-        status.textContent='Đã đăng nhập. Dữ liệu trực tuyến đang được đồng bộ…';
+        for(const type of ['pointerdown','keydown','studio:storage-saved']){
+          window.addEventListener(type,cancelHydration,{capture:true,signal:controller.signal});
+        }
+        status.textContent='Đang tải dữ liệu dùng chung…';
         resolve(false);
       }
     },6000);
@@ -369,7 +415,7 @@ window.addEventListener('studio:before-ready',event=>{
       if(localStorage.getItem(recovery)){
         reject(Error('Đã đăng nhập. Hãy tải lại trang để hoàn tất khôi phục dữ liệu.'));
       }else resolve(false);
-    }).finally(()=>clearTimeout(timer));
+    }).finally(()=>{clearTimeout(timer);controller.abort();});
   }));
 });
 window.addEventListener('studio:ready',()=>{enabled=true;if(dirty)schedule();});

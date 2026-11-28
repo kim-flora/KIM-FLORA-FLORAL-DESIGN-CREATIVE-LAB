@@ -118,9 +118,9 @@
       return floralProof.photos.get(type);
     }
 
-    function drawFloralProof(photo, colors, original) {
+    function drawFloralProof(photo, colors, original, canvas=proofNode('floralMockupCanvas')) {
       const {width,height,data}=photo.original;
-      const canvas=proofNode('floralMockupCanvas'),ctx=canvas.getContext('2d');
+      const ctx=canvas.getContext('2d');
       if(canvas.width!==width)canvas.width=width;
       if(canvas.height!==height)canvas.height=height;
       if(original){ctx.putImageData(photo.original,0,0);return;}

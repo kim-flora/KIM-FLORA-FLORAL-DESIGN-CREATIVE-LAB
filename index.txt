@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/color-assessment.css">
   <link rel="stylesheet" href="/studio-operations.css">
   <link rel="stylesheet" href="/technical-drawing.css">
+  <link rel="stylesheet" href="/client-approval.css">
   <title>KIM FLORA – Floral Design & Creative Lab</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -941,6 +942,36 @@
           </div>
         </aside>
       </div>
+
+      <section id="approvalLibrary" class="approval-library" aria-labelledby="approvalHeading">
+        <header><div><h3 id="approvalHeading" class="font-editorial">Hồ sơ duyệt mẫu</h3><p>Lưu phương án gửi khách và đánh dấu mẫu đã chốt để bàn giao sản xuất.</p></div>
+          <button id="approvalNew" class="project-primary" type="button">Tạo hồ sơ</button>
+        </header>
+        <ul id="approvalList" class="approval-list"></ul>
+        <p id="approvalEmpty">Chưa có hồ sơ duyệt mẫu.</p>
+      </section>
+      <dialog id="approvalFormDialog" class="project-details approval-dialog" aria-labelledby="approvalFormTitle">
+        <h3 id="approvalFormTitle">Tạo hồ sơ duyệt mẫu</h3>
+        <form id="approvalForm" class="approval-form">
+          <label>Tên phương án <input id="approvalTitle" required maxlength="120"></label>
+          <label>Khách hàng / sự kiện <input id="approvalClient" maxlength="120"></label>
+          <label>Kích thước <input id="approvalDimensions" maxlength="180" placeholder="VD: Rộng 120 × cao 180 cm"></label>
+          <label>Báo giá cả lô (₫) <input id="approvalQuote" type="number" min="0" max="999999999999" step="1" required></label>
+          <label>Ảnh trình bày <select id="approvalImage"><option value="mockup">Ảnh mô phỏng màu hiện tại</option><option value="recipe">Ảnh thành phẩm trong công thức</option><option value="none">Không kèm ảnh</option></select></label>
+          <label>Ghi chú gửi khách <textarea id="approvalNotes" rows="3" maxlength="1500"></textarea></label>
+          <p id="approvalFormStatus" role="status"></p>
+          <div class="approval-actions"><button type="button" class="project-secondary" id="approvalCancel">Hủy</button><button class="project-primary" type="submit">Lưu hồ sơ</button></div>
+        </form>
+      </dialog>
+      <dialog id="approvalPreview" class="project-details approval-dialog" aria-labelledby="approvalPreviewTitle">
+        <h3 id="approvalPreviewTitle"></h3>
+        <div id="approvalPreviewContent"></div>
+        <div class="approval-actions">
+          <button id="approvalMark" type="button" class="project-secondary">Đánh dấu đã duyệt</button>
+          <button id="approvalDownload" type="button" class="project-primary">Tải hồ sơ HTML</button>
+          <form method="dialog"><button type="submit" class="project-secondary">Đóng</button></form>
+        </div>
+      </dialog>
 
       <dialog id="projectDetails" class="project-details" aria-labelledby="projectDetailsTitle">
         <h3 id="projectDetailsTitle"></h3>
@@ -2581,6 +2612,7 @@
       document.getElementById('costNetProfit').textContent = formatVND(netProfit);
       document.getElementById('costBatchCountLabel').textContent = r.batchQty;
       document.getElementById('costTotalOrderRevenue').textContent = formatVND(suggestedPrice * plannedBatch());
+      document.getElementById('costTotalOrderRevenue').dataset.quote = missing.length || !r.items.length ? '' : String(Math.round(suggestedPrice * plannedBatch()));
       document.getElementById('costMarkupInfo').textContent = `Biên LN ${r.marginPct}%`;
       document.getElementById('recipeCategoryInput').value = r.category || 'Bó hoa bất đối xứng';
       document.getElementById('recipeSizeInput').value = r.size || 'M';
@@ -2669,6 +2701,8 @@
       downloadFile('phieu_mua_hang_kim_flora.txt', lines.join('\n'));
       showToast('Đã xuất phiếu mua hàng!', 'success');
     };
+
+    // Client approval workspace renderer
 
     // Recipe technical drawing renderer
 

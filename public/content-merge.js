@@ -21,7 +21,7 @@ const same = (left, right) => {
   return false;
 };
 
-const archivedLists=new Set(['savedProjects','savedColorRecipes','savedRecipes','savedConcepts','productionLog',
+const archivedLists=new Set(['savedProjects','savedColorRecipes','savedRecipes','savedConcepts','productionLog','approvalDossiers',
   'kim-flora-lab-projects-v1','kim-flora-color-formulas-v1','kim_flora_composition_reports_v1']);
 function merge(base, local, remote, conflict, migrating, field) {
   if (same(local, remote) || same(base, remote)) return local;

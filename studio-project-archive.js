@@ -166,6 +166,7 @@
         projectFormValues = values;
       }
       renderProjectList();
+      renderApprovalLibrary();
     }
 
     projectSearch.oninput = renderProjectList;

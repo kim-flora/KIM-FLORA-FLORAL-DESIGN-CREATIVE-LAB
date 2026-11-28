@@ -34,6 +34,4 @@
 .academy-color-suggestions p { margin:.35rem 0;color:#47564d;overflow-wrap:anywhere; }
 .academy-color-suggestions button { padding:.36rem .55rem;border:1px solid #617268;border-radius:5px;color:#25372e;background:#fff; }
 .academy-color-suggestions button:hover { background:#eae3d6; }
-.academy-color-source { color:#536258;font-size:.8rem; }
-.academy-color-source a { text-decoration:underline; }
 @media(max-width:550px) { .academy-tone-highlights,.academy-color-suggestions { grid-template-columns:1fr; } }

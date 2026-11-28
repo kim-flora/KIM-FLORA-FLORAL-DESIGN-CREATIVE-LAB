@@ -347,7 +347,6 @@
               <label for="academyColorTarget">Màu cần thay</label>
               <select id="academyColorTarget"></select>
               <div id="academyColorSuggestions" class="academy-color-suggestions"></div>
-              <p class="academy-color-source">Màu tham chiếu từ thư viện 192 màu. <a href="https://github.com/kim-flora/hocvienhoakimflora/blob/0f940ec/index.html.html#L9281" target="_blank" rel="noopener noreferrer">Học Viện Hoa Kim Flora</a></p>
             </div>
             <dl id="mathKpiGrid" class="color-kpis"></dl>
             <div class="color-advice">

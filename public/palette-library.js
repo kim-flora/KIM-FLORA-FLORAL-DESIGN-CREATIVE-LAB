@@ -25,5 +25,9 @@ async function transact(mode, action) {
   }
 }
 
-export const savePhotoPalette = entry => transact('readwrite', store => store.put(entry));
+export async function savePhotoPalette(entry) {
+  const id = await transact('readwrite', store => store.put(entry));
+  window.dispatchEvent(new Event('studio:storage-saved'));
+  return id;
+}
 export const readPhotoPalettes = () => transact('readonly', store => store.getAll());

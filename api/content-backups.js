@@ -1,12 +1,32 @@
 import { database, hasStudioSession } from './auth.js';
 
 const table = 'kim_flora_lab_backups';
+const head = 'kim_flora_lab_content?id=eq.1';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   const fail = (status, message) => res.status(status).json({message});
   try {
     if (!(await hasStudioSession(req))) return fail(401, 'Vui lòng đăng nhập lại.');
+    if (req.method === 'POST' && (req.headers.origin !== 'https://' + req.headers.host ||
+        req.headers['content-type']?.split(';')[0] !== 'application/json')) {
+      return fail(403, 'Yêu cầu không hợp lệ.');
+    }
+    if (req.query.head === '1') {
+      if (req.method === 'GET') {
+        const [row] = await database(head + '&select=revision,snapshot');
+        return res.json(row);
+      }
+      if (req.method !== 'POST') return fail(405, 'Phương thức không được hỗ trợ.');
+      const {revision, snapshot} = req.body ?? {};
+      if (!Number.isInteger(revision) || revision < 0 || revision >= 2147483647 ||
+          typeof snapshot !== 'string' || !/^[0-9a-f]{64}$/.test(snapshot)) {
+        return fail(400, 'Phiên bản đồng bộ không hợp lệ.');
+      }
+      const rows = await database(head + '&revision=eq.' + revision, 'PATCH',
+        {snapshot, revision: revision + 1});
+      return rows.length ? res.json(rows[0]) : fail(409, 'Nội dung trực tuyến vừa thay đổi.');
+    }
     if (req.method === 'GET' && !req.query.snapshot) {
       const offset = Number(req.query.offset ?? 0);
       if (!Number.isSafeInteger(offset) || offset < 0) return fail(400, 'Trang lịch sử không hợp lệ.');
@@ -25,10 +45,6 @@ export default async function handler(req, res) {
       return row ? res.json(row) : fail(404, 'Không tìm thấy phần dữ liệu.');
     }
     if (req.method !== 'POST') return fail(405, 'Phương thức không được hỗ trợ.');
-    if (req.headers.origin !== 'https://' + req.headers.host ||
-        req.headers['content-type']?.split(';')[0] !== 'application/json') {
-      return fail(403, 'Yêu cầu không hợp lệ.');
-    }
     if (typeof data !== 'string' || (part === -1
       ? !/^\d{1,4}$/.test(data) || Number(data) < 1 || Number(data) > 999
       : !/^[A-Za-z0-9+/=]{1,700000}$/.test(data))) return fail(400, 'Dữ liệu bản sao không hợp lệ.');

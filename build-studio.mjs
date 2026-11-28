@@ -5,11 +5,6 @@ const read = path => readFileSync(path,'utf8');
 const save = (path,data) => writeFileSync('public/'+path,data);
 let html = read('index.txt');
 html = html.replace(
-  'id="savedProjectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>',
-  `id="savedProjectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-            <ul id="workspaceProjectLinks" class="space-y-2 text-xs"></ul>`
-);
-html = html.replace(
   /(<div id="inlineSavedColorsGrid"[^>]*><\/div>)/,
   `$1
     <div class="mt-3 space-y-2 text-xs">

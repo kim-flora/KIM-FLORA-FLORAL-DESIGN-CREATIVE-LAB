@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/project-library.css">
   <title>KIM FLORA – Floral Design & Creative Lab</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -854,54 +855,63 @@
     </section>
 
     <!-- ==================== TAB 6: PROJECT ARCHIVE & CREATIVE LAB ==================== -->
-    <section id="tab-projects" class="tab-panel hidden space-y-5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
+    <section id="tab-projects" class="tab-panel hidden project-library" aria-labelledby="projectLibraryTitle">
+      <header class="project-library-header">
         <div>
-          <h2 class="font-editorial text-2xl font-semibold text-[#1A2621]">Lưu Trữ Dự Án &amp; Phát Triển Ý Tưởng</h2>
-          <p class="text-xs text-[#5F6B64]">Lưu toàn bộ hồ sơ dự án (Bảng màu + Ảnh + Bố cục + Công thức + Moodboard) bền vững trong trình duyệt và sao lưu JSON.</p>
+          <h2 id="projectLibraryTitle" class="font-editorial">Dự án &amp; Lưu trữ</h2>
+          <p>Tìm và mở hồ sơ dự án đã lưu.</p>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="btnBackupAllJson" class="px-3 py-1.5 rounded-lg bg-white border border-[#E4DFD5] hover:bg-[#EAE5DC] text-xs font-medium flex items-center gap-1.5">
-            <i data-lucide="download" class="w-3.5 h-3.5"></i> Sao lưu Toàn bộ (JSON)
-          </button>
-          <button id="btnRestoreJson" class="px-3 py-1.5 rounded-lg bg-white border border-[#E4DFD5] hover:bg-[#EAE5DC] text-xs font-medium flex items-center gap-1.5">
-            <i data-lucide="upload" class="w-3.5 h-3.5"></i> Khôi phục từ JSON
-          </button>
-          <input type="file" id="restoreJsonInput" accept="application/json" class="hidden" />
-        </div>
+        <details class="project-data-menu">
+          <summary>Quản lý dữ liệu</summary>
+          <div>
+            <button type="button" id="openProjectBackups">Kho lưu trực tuyến</button>
+            <button type="button" id="btnBackupAllJson">Tải bản sao Studio (JSON)</button>
+            <button type="button" id="btnRestoreJson">Khôi phục Studio từ JSON</button>
+            <input type="file" id="restoreJsonInput" accept=".json,application/json" hidden />
+          </div>
+        </details>
+      </header>
+
+      <div class="project-library-layout">
+        <section class="project-library-panel" aria-labelledby="savedProjectsHeading">
+          <div class="project-panel-heading">
+            <h3 id="savedProjectsHeading">Hồ sơ đã lưu</h3>
+            <p id="projectResultCount" role="status"></p>
+          </div>
+          <div class="project-toolbar">
+            <input id="projectSearch" type="search" aria-label="Tìm hồ sơ dự án" placeholder="Tìm theo tên, khách hàng, ghi chú…" />
+            <select id="projectSourceFilter" aria-label="Nguồn hồ sơ">
+              <option value="all">Tất cả hồ sơ</option>
+              <option value="studio">Studio</option>
+              <option value="legacy">Kho cũ</option>
+            </select>
+          </div>
+          <ul id="savedProjectsGrid" class="project-records"></ul>
+          <p id="projectListMessage" class="project-list-message" role="status" hidden></p>
+        </section>
+
+        <aside class="project-library-panel" aria-labelledby="activeProjectHeading">
+          <div class="project-panel-heading">
+            <h3 id="activeProjectHeading">Dự án đang làm</h3>
+          </div>
+          <div class="project-form">
+            <label for="projNameInput">Tên dự án</label>
+            <input id="projNameInput" type="text" />
+            <label for="projClientInput">Khách hàng hoặc sự kiện</label>
+            <input id="projClientInput" type="text" />
+            <label for="projBriefInput">Ghi chú ý tưởng</label>
+            <textarea id="projBriefInput" rows="5"></textarea>
+            <button id="btnSaveFullProject" type="button" class="project-primary">Lưu phiên bản</button>
+          </div>
+        </aside>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div class="lg:col-span-4 panel-card p-4 space-y-3">
-          <h3 class="text-sm font-semibold">Thông tin Dự án Hiện tại</h3>
-          <div class="space-y-2.5 text-xs">
-            <div>
-              <label class="text-[#5F6B64]">Tên dự án</label>
-              <input type="text" id="projNameInput" value="BST Thu Đất – Tiệc Cưới Thảo Điền" class="w-full mt-1 px-2.5 py-1.5 border border-[#E4DFD5] rounded-lg bg-[#F7F4EF]" />
-            </div>
-            <div>
-              <label class="text-[#5F6B64]">Khách hàng / Sự kiện</label>
-              <input type="text" id="projClientInput" value="Lễ Cưới Minh &amp; Linh" class="w-full mt-1 px-2.5 py-1.5 border border-[#E4DFD5] rounded-lg bg-[#F7F4EF]" />
-            </div>
-            <div>
-              <label class="text-[#5F6B64]">Ghi chú ý tưởng &amp; Concept Brief</label>
-              <textarea id="projBriefInput" rows="4" class="w-full mt-1 px-2.5 py-1.5 border border-[#E4DFD5] rounded-lg bg-[#F7F4EF]" placeholder="Mô tả tinh thần, ánh sáng không gian, chất liệu bình..."></textarea>
-            </div>
-            <button id="btnSaveFullProject" class="w-full py-2 rounded-lg bg-[#1A2621] hover:bg-[#2E3F37] text-white font-medium">Lưu Dự Án Vào Kho Lưu Trữ</button>
-          </div>
-        </div>
-
-        <div class="lg:col-span-8 space-y-4">
-          <div class="panel-card p-4 space-y-3">
-            <h3 class="text-sm font-semibold">Danh sách Dự án Đã Lưu</h3>
-            <div id="savedProjectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-          </div>
-          <div class="panel-card p-4 space-y-3">
-            <h3 class="text-sm font-semibold">Bộ Sưu Tập Công Thức Màu Đã Lưu (Kèm Ảnh)</h3>
-            <div id="savedColorRecipesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-          </div>
-        </div>
-      </div>
+      <dialog id="projectDetails" class="project-details" aria-labelledby="projectDetailsTitle">
+        <h3 id="projectDetailsTitle"></h3>
+        <p id="projectDetailsMeta"></p>
+        <dl id="projectDetailsFields"></dl>
+        <form method="dialog"><button type="submit" class="project-primary">Đóng</button></form>
+      </dialog>
     </section>
   </main>
 

@@ -1,143 +1,222 @@
     // ==================== MODULE 6: PROJECT ARCHIVE ====================
-    function saveFullProject() {
-      state.projectName = document.getElementById('projNameInput').value.trim() || 'Dự án Kim Flora';
-      state.projectClient = document.getElementById('projClientInput').value.trim();
-      state.projectBrief = document.getElementById('projBriefInput').value.trim();
-      document.getElementById('activeProjectName').textContent = 'Dự án: ' + state.projectName;
+    const projectElement = id => document.getElementById(id);
+    const projectSearch = projectElement('projectSearch');
+    const projectSourceFilter = projectElement('projectSourceFilter');
+    let projectFormValues;
 
+    function saveFullProject() {
+      const previous = state;
+      const name = projectElement('projNameInput').value.trim() || 'Dự án Kim Flora';
+      const client = projectElement('projClientInput').value.trim();
+      const brief = projectElement('projBriefInput').value.trim();
       const project = {
         id: 'prj-' + crypto.randomUUID(),
-        name: state.projectName,
-        client: state.projectClient,
-        brief: state.projectBrief,
+        name, client, brief,
         updatedAt: new Date().toLocaleString('vi-VN'),
-        palette: JSON.parse(JSON.stringify(state.palette)),
-        recipe: JSON.parse(JSON.stringify(state.recipe)),
+        palette: structuredClone(state.palette),
+        recipe: structuredClone(state.recipe),
         compAnnotations: structuredClone(state.compAnnotations)
       };
-      state.savedProjects.unshift(project);
+      state = {
+        ...state, projectName: name, projectClient: client, projectBrief: brief,
+        savedProjects: [project, ...state.savedProjects]
+      };
       try {
         persist();
       } catch {
-        state.savedProjects.shift();
+        state = previous;
         return;
       }
+      projectSearch.value = '';
+      projectSourceFilter.value = 'all';
       renderProjectsArchive();
-      showToast('Đã lưu dự án vào kho lưu trữ!', 'success');
+      showToast('Đã lưu phiên bản dự án.', 'success');
     }
 
-    document.getElementById('btnQuickSaveProject').onclick = saveFullProject;
-    document.getElementById('btnSaveFullProject').onclick = saveFullProject;
+    projectElement('btnQuickSaveProject').onclick = saveFullProject;
+    projectElement('btnSaveFullProject').onclick = saveFullProject;
 
-    function renderWorkspaceProjectLinks() {
-      const list = document.getElementById('workspaceProjectLinks');
+    function projectNode(tag, text, className) {
+      const node = document.createElement(tag);
+      if (text) node.textContent = text;
+      if (className) node.className = className;
+      return node;
+    }
+
+    function describeProject(record, legacy) {
+      return {
+        record, legacy,
+        name: legacy ? record.title : record.name || 'Dự án chưa đặt tên',
+        client: legacy ? record.occasion : record.client,
+        date: record.updatedAt || '',
+        note: legacy ? record.notes : record.brief,
+        materials: legacy ? record.materials : '',
+        palette: legacy ? record.colors : (Array.isArray(record.palette) ? record.palette.map(color => color?.hex) : [])
+      };
+    }
+
+    function viewProjectDetails(project) {
+      projectElement('projectDetailsTitle').textContent = project.name;
+      projectElement('projectDetailsMeta').textContent = [project.client, project.date].filter(Boolean).join(' · ');
+      const fields = projectElement('projectDetailsFields');
+      fields.replaceChildren();
+      for (const [label, value] of [
+        ['Ghi chú', project.note],
+        ['Vật liệu', project.materials],
+        ['Màu sắc', Array.isArray(project.palette) && project.palette.join(' · ')],
+        ['Công thức', project.record.recipe?.name]
+      ]) {
+        if (typeof value !== 'string' || !value.trim()) continue;
+        fields.append(projectNode('dt', label), projectNode('dd', value));
+      }
+      if (!fields.childElementCount) fields.append(projectNode('dt', 'Hồ sơ chưa có ghi chú chi tiết.'));
+      projectElement('projectDetails').showModal();
+    }
+
+    function openSavedProject(project) {
+      const {record} = project;
+      state.projectName = project.name;
+      state.projectClient = project.client ?? '';
+      state.projectBrief = project.note ?? '';
+      state.palette = structuredClone(record.palette ?? state.palette);
+      state.recipe = structuredClone(applyDefaults(DEFAULT_STATE.recipe, record.recipe ?? state.recipe));
+      state.compAnnotations = structuredClone(record.compAnnotations ?? []);
+      projectFormValues = undefined;
+      renderProjectsArchive();
+      renderColorStudio();
+      renderRecipe();
+      renderCompCanvas();
+      showToast('Đã mở dự án “' + project.name + '”.', 'success');
+    }
+
+    function projectSearchText(text) {
+      return String(text ?? '').toLocaleLowerCase('vi').normalize('NFD')
+        .replace(/\p{M}/gu, '').replace(/đ/g, 'd').trim();
+    }
+
+    function renderProjectList() {
+      const list = projectElement('savedProjectsGrid');
+      const notice = projectElement('projectListMessage');
       list.replaceChildren();
+      const projects = (state.savedProjects ?? []).filter(Boolean).map(record => describeProject(record, false));
+      let legacyError = false;
       try {
-        const projects = JSON.parse(localStorage.getItem('kim-flora-lab-projects-v1') ?? '[]');
-        if (!Array.isArray(projects)) throw new Error();
-        for (const project of projects) {
-          if (typeof project?.id !== 'string' || typeof project.title !== 'string') continue;
-          const row = document.createElement('li');
-          const details = document.createElement('details');
-          const title = document.createElement('summary');
-          title.textContent = project.title;
-          details.append(title);
-          for (const value of [project.occasion, project.notes, project.materials, Array.isArray(project.colors) ? project.colors.join(', ') : '']) {
-            if (typeof value !== 'string' || !value) continue;
-            const text = document.createElement('p');
-            text.className = 'whitespace-pre-wrap';
-            text.textContent = value;
-            details.append(text);
-          }
-          row.append(details);
-          list.append(row);
+        const legacy = JSON.parse(localStorage.getItem('kim-flora-lab-projects-v1') ?? '[]');
+        if (!Array.isArray(legacy)) throw new Error();
+        for (const record of legacy) {
+          if (typeof record?.id === 'string' && typeof record.title === 'string') projects.push(describeProject(record, true));
         }
       } catch {
-        list.append(document.createElement('li'));
-        list.lastChild.textContent = 'Chưa đọc được kho Dự án hoa trên trình duyệt này.';
+        legacyError = true;
+      }
+      const terms = projectSearchText(projectSearch.value).split(/\s+/).filter(Boolean);
+      const source = projectSourceFilter.value;
+      const results = projects.filter(project => {
+        if (source !== 'all' && project.legacy !== (source === 'legacy')) return false;
+        const text = projectSearchText([project.name, project.client, project.note, project.materials].join(' '));
+        return terms.every(term => text.includes(term));
+      });
+      projectElement('projectResultCount').textContent = results.length + ' hồ sơ';
+      notice.textContent = legacyError ? 'Chưa đọc được hồ sơ từ kho cũ.'
+        : projects.length ? 'Không tìm thấy hồ sơ phù hợp.' : 'Chưa có hồ sơ. Lưu phiên bản đầu tiên từ dự án đang làm.';
+      notice.hidden = !legacyError && results.length > 0;
+      for (const project of results) {
+        const row = projectNode('li', '', 'project-record');
+        const content = projectNode('div');
+        const meta = [project.client, project.date, project.legacy && 'Kho cũ'].filter(Boolean).join(' · ');
+        content.append(projectNode('h4', project.name, 'project-record-title'));
+        if (meta) content.append(projectNode('p', meta, 'project-record-meta'));
+        const colors = Array.isArray(project.palette)
+          ? project.palette.filter(color => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color)).slice(0, 10) : [];
+        if (colors.length) {
+          const swatches = projectNode('div', '', 'project-swatches');
+          swatches.setAttribute('aria-hidden', 'true');
+          for (const color of colors) {
+            const swatch = projectNode('span');
+            swatch.style.backgroundColor = color;
+            swatches.append(swatch);
+          }
+          content.append(swatches);
+        }
+        const actions = projectNode('div', '', 'project-record-actions');
+        const details = projectNode('button', 'Chi tiết', 'project-secondary');
+        details.type = 'button';
+        details.setAttribute('aria-label', 'Chi tiết ' + project.name);
+        details.onclick = () => viewProjectDetails(project);
+        actions.append(details);
+        if (!project.legacy) {
+          const open = projectNode('button', 'Mở dự án', 'project-primary');
+          open.type = 'button';
+          open.setAttribute('aria-label', 'Mở dự án ' + project.name);
+          open.onclick = () => openSavedProject(project);
+          actions.append(open);
+        }
+        row.append(content, actions);
+        list.append(row);
       }
     }
 
-    window.addEventListener('storage', event => {
-      if (event.key === 'kim-flora-lab-projects-v1' || event.key === null) renderWorkspaceProjectLinks();
-    });
-
     function renderProjectsArchive() {
-      renderWorkspaceProjectLinks();
-      document.getElementById('activeProjectName').textContent = 'Dự án: ' + state.projectName;
-      document.getElementById('projNameInput').value = state.projectName;
-      document.getElementById('projClientInput').value = state.projectClient;
-      document.getElementById('projBriefInput').value = state.projectBrief;
-
-      const pGrid = document.getElementById('savedProjectsGrid');
-      pGrid.innerHTML = state.savedProjects.length ? state.savedProjects.map((p, idx) => `
-        <div class="p-3 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-2">
-          <div class="flex justify-between items-start">
-            <div>
-              <div class="font-semibold text-xs">${p.name}</div>
-              <div class="text-[11px] text-[#5F6B64]">${p.client || 'Nội bộ'} · ${p.updatedAt}</div>
-            </div>
-            <button data-idx="${idx}" class="prj-load px-2 py-1 rounded bg-[#1A2621] text-white text-[11px]">Mở</button>
-          </div>
-          <div class="flex h-4 rounded overflow-hidden border border-black/10">${(p.palette||[]).map(c => `<div class="flex-1" style="background:${c.hex}"></div>`).join('')}</div>
-        </div>
-      `).join('') : '<p class="text-xs text-[#5F6B64]">Chưa có dự án lưu bằng nút “Lưu Dự Án” của Studio.</p>';
-
-      pGrid.querySelectorAll('.prj-load').forEach(b => {
-        b.onclick = () => {
-          const p = state.savedProjects[+b.dataset.idx];
-          if (!p) return;
-          state.projectName = p.name; state.projectClient = p.client; state.projectBrief = p.brief;
-          state.palette = structuredClone(p.palette ?? state.palette);
-          state.recipe = structuredClone(applyDefaults(DEFAULT_STATE.recipe, p.recipe ?? state.recipe));
-          state.compAnnotations = structuredClone(p.compAnnotations ?? []);
-          renderProjectsArchive();
-          renderColorStudio(); renderRecipe(); renderCompCanvas();
-          showToast(`Đã nạp dự án "${p.name}"!`, 'success');
-        };
-      });
-
-      const crGrid = document.getElementById('savedColorRecipesGrid');
-      crGrid.innerHTML = state.savedColorRecipes.length ? state.savedColorRecipes.map((cr, idx) => `
-        <div class="p-3 rounded-xl bg-[#F7F4EF] border border-[#E4DFD5] space-y-2">
-          <div class="flex justify-between items-center">
-            <strong class="text-xs">${cr.name}</strong>
-            <button data-idx="${idx}" class="cr-load text-[11px] text-[#A65A42] font-semibold hover:underline">Áp dụng</button>
-          </div>
-          ${cr.image ? `<img src="${cr.image}" class="w-full h-auto max-h-44 object-contain bg-white rounded-lg" />` : ''}
-          <div class="flex h-5 rounded overflow-hidden">${cr.palette.map(c => `<div class="flex-1" style="background:${c.hex}" title="${c.hex} (${c.ratio}%)"></div>`).join('')}</div>
-        </div>
-      `).join('') : '<p class="text-xs text-[#5F6B64]">Chưa có công thức màu riêng nào được lưu.</p>';
-
-      crGrid.querySelectorAll('.cr-load').forEach(b => {
-        b.onclick = () => {
-          const cr = state.savedColorRecipes[+b.dataset.idx];
-          if (!cr) return;
-          state.palette = JSON.parse(JSON.stringify(cr.palette));
-          if (cr.image) loadImageToColorStudio(cr.image);
-          renderColorStudio();
-          document.querySelector('[data-tab="color"]').click();
-        };
-      });
+      projectElement('activeProjectName').textContent = 'Dự án: ' + state.projectName;
+      const values = [state.projectName, state.projectClient, state.projectBrief];
+      if (!projectFormValues || values.some((value, index) => value !== projectFormValues[index])) {
+        ['projNameInput', 'projClientInput', 'projBriefInput'].forEach((id, index) => {
+          projectElement(id).value = values[index] ?? '';
+        });
+        projectFormValues = values;
+      }
+      renderProjectList();
     }
 
-    document.getElementById('btnBackupAllJson').onclick = () => {
-      downloadFile('kim_flora_backup.json', JSON.stringify(state, null, 2), 'application/json');
-      showToast('Đã xuất file sao lưu JSON!', 'success');
+    projectSearch.oninput = renderProjectList;
+    projectSourceFilter.onchange = renderProjectList;
+    window.addEventListener('storage', event => {
+      if (event.key === 'kim-flora-lab-projects-v1' || event.key === null) renderProjectList();
+    });
+
+    function closeProjectDataMenu() {
+      projectElement('openProjectBackups').closest('details').open = false;
+    }
+
+    projectElement('openProjectBackups').onclick = () => {
+      closeProjectDataMenu();
+      projectElement('openContentBackups').click();
     };
-    document.getElementById('btnRestoreJson').onclick = () => document.getElementById('restoreJsonInput').click();
-    document.getElementById('restoreJsonInput').onchange = (e) => {
-      const f = e.target.files[0]; if (!f) return;
-      const r = new FileReader();
-      r.onload = ev => {
+    projectElement('btnBackupAllJson').onclick = () => {
+      closeProjectDataMenu();
+      downloadFile('kim_flora_backup.json', JSON.stringify(state, null, 2), 'application/json');
+      showToast('Đã tải bản sao Studio.', 'success');
+    };
+    projectElement('btnRestoreJson').onclick = () => {
+      closeProjectDataMenu();
+      projectElement('restoreJsonInput').click();
+    };
+    projectElement('restoreJsonInput').onchange = async event => {
+      const input = event.currentTarget;
+      const file = input.files[0];
+      input.value = '';
+      if (!file) return;
+      try {
+        const parsed = JSON.parse(await file.text());
+        if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error();
+        const restored = applyDefaults(DEFAULT_STATE, parsed);
+        if (![restored.savedProjects, restored.savedColorRecipes, restored.palette, restored.inventory].every(Array.isArray)) throw new Error();
+        const previous = state;
+        state = restored;
         try {
-          const parsed = JSON.parse(ev.target.result);
-          state = Object.assign({}, DEFAULT_STATE, parsed);
           persist();
-          renderColorStudio(); renderInventory(); renderRecipe(); renderProjectsArchive();
-          showToast('Khôi phục dữ liệu thành công!', 'success');
-        } catch (err) { showToast('File JSON không hợp lệ.', 'error'); }
-      };
-      r.readAsText(f);
+        } catch {
+          state = previous;
+          return;
+        }
+        projectFormValues = undefined;
+        renderColorStudio();
+        renderInventory();
+        renderRecipe();
+        renderProjectsArchive();
+        showToast('Đã khôi phục dữ liệu Studio.', 'success');
+      } catch {
+        showToast('Không đọc được bản sao Studio từ tệp này.', 'error');
+      }
     };
 

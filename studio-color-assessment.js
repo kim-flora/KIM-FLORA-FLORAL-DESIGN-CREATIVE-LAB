@@ -62,6 +62,38 @@
       }
     }
 
+    const academySource='https://github.com/kim-flora/hocvienhoakimflora/blob/0f940ec/index.html.html#L9281';
+    const academyCatalog=academyColors.map(([hex,name,family,tone,character,elegant])=>{
+      const {r,g,b}=hexToRgb(hex);
+      return {hex,name,family,tone,character,elegant,lab:rgbToLab(r,g,b)};
+    });
+    const academyDistance=(a,b)=>Math.hypot(a.L-b.L,a.a-b.a,a.b-b.b);
+    const academyGoals=[
+      ['Dịu hơn',(sample,lab)=>sample.character==='Dịu'&&sample.lab.C<lab.C-2&&sample.lab.L>=lab.L-4],
+      ['Trầm hơn',(sample,lab)=>sample.character==='Trầm'&&sample.lab.L<lab.L-3],
+      ['Sang hơn',(sample)=>sample.elegant]
+    ];
+
+    function academyAssessment(hex,lab) {
+      const ranked=academyCatalog.map(sample=>({sample,distance:academyDistance(sample.lab,lab)}))
+        .sort((a,b)=>a.distance-b.distance);
+      const reference=ranked[0].sample;
+      const used=new Set([hex.toUpperCase()]);
+      const suggestions=academyGoals.map(([goal,accept])=>{
+        let best,score=Infinity;
+        for(const {sample,distance} of ranked){
+          if(used.has(sample.hex.toUpperCase())||!accept(sample,lab))continue;
+          const cost=distance+(sample.family===reference.family?0:12);
+          if(cost<score){best=sample;score=cost;}
+        }
+        if(!best)return {goal};
+        used.add(best.hex.toUpperCase());
+        return {goal,hex:best.hex,name:best.name,family:best.family,lightness:best.lab.L,chroma:best.lab.C};
+      });
+      return {reference:reference.name,referenceHex:reference.hex,tone:reference.tone,
+        character:reference.character,family:reference.family,suggestions};
+    }
+
     function currentColorAssessment() {
       const measured=measuredColors();
       const palette=state.palette.filter(swatch=>assessmentHex(swatch.hex));
@@ -73,7 +105,7 @@
       const entries=palette.map((swatch,index)=>{
         const rgb=hexToRgb(swatch.hex), lab=rgbToLab(rgb.r,rgb.g,rgb.b);
         const role=ranked[0]===index?'Chủ đạo':ranked[1]===index?'Màu phụ chính':weights[index]?'Bổ trợ':'Chưa phân bổ';
-        return {hex:swatch.hex,name:swatch.name,ratio:proportions[index],inputRatio:weights[index],
+        return {hex:swatch.hex,name:swatch.name,academy:academyAssessment(swatch.hex,lab),ratio:proportions[index],inputRatio:weights[index],
           imagePercent:imageWeights[index],rgb,lab,role};
       });
       const lead=entries[ranked[0]],secondary=entries[ranked[1]];
@@ -87,7 +119,7 @@
         :difference<12?'Hai màu lớn nhất có độ sáng gần nhau. Nếu muốn điểm nhấn rõ, thử đặt một màu sáng hơn hoặc tối hơn cạnh hoa chủ đạo.'
         :difference>=25?'Hai màu lớn nhất có độ sáng cách xa nhau. Đặt chúng cạnh nhau ở vùng muốn hút mắt và dùng màu phụ để chuyển sắc.'
         :'Hai màu lớn nhất có chênh lệch độ sáng vừa phải. Thử nhắc lại màu phụ ở vài điểm để tạo nhịp.';
-      return {measured,scope:measured.length?state.colorMeasurement.scope:null,total,entries,
+      return {measured,academySource,scope:measured.length?state.colorMeasurement.scope:null,total,entries,
         averageLightness:average('L'),averageChroma:average('C'),difference,summary,advice};
     }
 
@@ -119,6 +151,71 @@
       }
     }
 
+    function academyChip(hex) {
+      const chip=assessmentElement('i');
+      chip.className='color-analysis-chip';
+      chip.style.backgroundColor=hex;
+      return chip;
+    }
+
+    function renderAcademySuggestions(entries) {
+      const select=assessmentNode('academyColorTarget');
+      const selected=Number(select.value);
+      const signature=entries.map(entry=>entry.hex).join(',');
+      if(select.dataset.colors!==signature){
+        select.dataset.colors=signature;
+        select.replaceChildren(...entries.map((entry,index)=>new Option(entry.hex,index)));
+        if(entries[selected])select.value=String(selected);
+      }
+      const index=Number(select.value),entry=entries[index];
+      const panel=assessmentNode('academyColorSuggestions');
+      panel.replaceChildren();
+      if(!entry)return;
+      for(const suggestion of entry.academy.suggestions){
+        const card=assessmentElement('article');
+        card.append(assessmentElement('strong',suggestion.goal));
+        if(!suggestion.hex){
+          card.append(assessmentElement('p','Chưa có màu phù hợp trong thư viện.'));
+        }else{
+          const option=assessmentElement('p',suggestion.name+' · '+suggestion.hex);
+          option.prepend(academyChip(suggestion.hex));
+          const apply=assessmentElement('button','Áp dụng');
+          apply.type='button';
+          const swatch=state.palette.filter(item=>assessmentHex(item.hex))[index];
+          apply.disabled=!!swatch?.locked;
+          if(apply.disabled)apply.title='Mở khóa ô màu để áp dụng';
+          apply.onclick=()=>{
+            if(!swatch||swatch.locked)return;
+            const previous=swatch.hex;
+            swatch.hex=suggestion.hex;
+            try{persist();}catch{swatch.hex=previous;return;}
+            renderColorStudio();
+          };
+          card.append(option,apply);
+        }
+        panel.append(card);
+      }
+    }
+
+    function renderAcademyTones(entries) {
+      const ordered=[...entries].sort((a,b)=>b.lab.L-a.lab.L);
+      const strongest=[...entries].sort((a,b)=>b.lab.C-a.lab.C)[0];
+      const panel=assessmentNode('academyToneHighlights');
+      panel.replaceChildren();
+      for(const [label,entry] of [
+        ['Sáng nhất',ordered[0]],['Tối nhất',ordered.at(-1)],['Độ rực cao nhất',strongest]
+      ]){
+        if(!entry)continue;
+        const card=assessmentElement('div');
+        const swatch=assessmentElement('span',entry.hex+' · '+entry.academy.character);
+        swatch.prepend(academyChip(entry.hex));
+        card.append(assessmentElement('strong',label),swatch);
+        panel.append(card);
+      }
+      assessmentNode('academyColorTarget').onchange=()=>renderAcademySuggestions(entries);
+      renderAcademySuggestions(entries);
+    }
+
     function renderColorAnalysisAndMockup() {
       const result=currentColorAssessment();
       const {measured,entries,total,scope,difference}=result;
@@ -142,6 +239,7 @@
         item.append(assessmentElement('dt',name),assessmentElement('dd',assessmentNumber(value)));
         metrics.append(item);
       }
+      renderAcademyTones(entries);
       assessmentNode('aestheticSummary').textContent=result.summary;
       assessmentNode('practicalPairingTip').textContent=result.advice;
       const table=assessmentNode('colorMathTableBody');
@@ -149,7 +247,7 @@
       for(const entry of entries){
         const row=assessmentElement('tr');
         for(const value of [entry.hex,assessmentPercent(entry.imagePercent),assessmentPercent(entry.ratio),
-          assessmentNumber(entry.lab.L),assessmentNumber(entry.lab.C),entry.role])row.append(assessmentElement('td',value));
+          assessmentNumber(entry.lab.L),assessmentNumber(entry.lab.C),entry.academy.tone+' · '+entry.academy.character,entry.role])row.append(assessmentElement('td',value));
         const chip=assessmentElement('i');
         chip.className='color-analysis-chip';
         chip.style.backgroundColor=entry.hex;
@@ -172,11 +270,11 @@
       const rows=result.entries.map(entry=>'<tr>'+[
         entry.hex,assessmentPercent(entry.imagePercent),assessmentPercent(entry.ratio),
         [entry.rgb.r,entry.rgb.g,entry.rgb.b].join(', '),assessmentNumber(entry.lab.L),assessmentNumber(entry.lab.a),assessmentNumber(entry.lab.b),
-        assessmentNumber(entry.lab.C),entry.role
+        assessmentNumber(entry.lab.C),entry.academy.tone+' · '+entry.academy.character,entry.role
       ].map(value=>'<td>'+escapeColorReportText(value)+'</td>').join('')+'</tr>').join('');
       const scope=result.scope?measurementScopeText(result.scope)+' · Ước tính theo điểm ảnh':'Chưa có số đo xác nhận.';
       const measured=result.measured.map(color=>color.hex+' '+assessmentPercent(color.percent)).join(' · ');
-      const headings=['Mã HEX','Đo từ ảnh','Tỷ lệ phối','RGB','L*','a*','b*','C*','Vai trò'];
+      const headings=['Mã HEX','Đo từ ảnh','Tỷ lệ phối','RGB','L*','a*','b*','C*','Sắc độ tham chiếu','Vai trò'];
       const source=state.currentImageDataUrl;
       const preview=typeof source==='string' && /^data:image\/(?:png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(source)
         ? '<img alt="Ảnh nguồn" src="'+source+'">' : '';
@@ -187,7 +285,11 @@
         '<h2>Bản phối hiện tại</h2><p>Tổng đã nhập '+assessmentPercent(result.total)+'. Tỷ lệ phối được quy về 100% khi có phân bổ.</p>'+
         '<table><thead><tr>'+headings.map(label=>'<th>'+label+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table>'+
         '<h2>Đánh giá sắc độ</h2><p>L* '+assessmentNumber(result.averageLightness)+' · C* '+assessmentNumber(result.averageChroma)+
-        ' · ΔL* '+assessmentNumber(result.difference)+'</p><p>'+escapeColorReportText(result.summary)+'</p><p>'+escapeColorReportText(result.advice)+'</p>';
+        ' · ΔL* '+assessmentNumber(result.difference)+'</p><p>'+escapeColorReportText(result.summary)+'</p><p>'+escapeColorReportText(result.advice)+'</p>'+
+        '<h2>Màu thay thế</h2><ul>'+result.entries.map(entry=>'<li>'+escapeColorReportText(entry.hex)+' · '+
+          escapeColorReportText(entry.academy.suggestions.filter(item=>item.hex)
+            .map(item=>item.goal+': '+item.name+' '+item.hex).join(' · '))+'</li>').join('')+
+        '</ul><p><a href="'+academySource+'">Thư viện 192 màu · Học Viện Hoa Kim Flora</a></p>';
       downloadFile('kim_flora_color_profile.html',html,'text/html');
     }
 

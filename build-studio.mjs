@@ -28,7 +28,7 @@ const script = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!script) throw Error('Missing Studio application');
 const colorAssessmentMarker = '    // Color assessment renderer';
 if (!script[1].includes(colorAssessmentMarker)) throw Error('Missing color assessment renderer');
-script[1] = script[1].replace(colorAssessmentMarker, () => read('studio-color-assessment.js'));
+script[1] = script[1].replace(colorAssessmentMarker, () => read('studio-academy-colors.js') + read('studio-color-assessment.js'));
 const floralProofMarker = '    // Floral product proof renderer';
 if (!script[1].includes(floralProofMarker)) throw Error('Missing floral proof renderer');
 script[1] = script[1].replace(floralProofMarker, () => read('studio-floral-proof.js'));

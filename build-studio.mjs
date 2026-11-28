@@ -26,6 +26,9 @@ html = html.replace(/<\/body>(?=\s*<\/html>\s*$)/, `
 </dialog></body>`);
 const script = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!script) throw Error('Missing Studio application');
+const floralProofMarker = '    // Floral product proof renderer';
+if (!script[1].includes(floralProofMarker)) throw Error('Missing floral proof renderer');
+script[1] = script[1].replace(floralProofMarker, () => read('studio-floral-proof.js'));
 const archiveStart = script[1].indexOf('// ==================== MODULE 6: PROJECT ARCHIVE');
 const archiveEnd = script[1].indexOf('// ==================== MODULE 2B:', archiveStart);
 if (archiveStart < 0 || archiveEnd < 0) throw Error('Missing project archive');

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="/project-library.css">
+  <link rel="stylesheet" href="/floral-proof.css">
   <title>KIM FLORA – Floral Design & Creative Lab</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -374,25 +375,35 @@
           </div>
 
           <!-- Floral Product Mockup Simulator -->
-          <div class="panel-card p-4 space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <h3 class="text-sm font-semibold flex items-center gap-2">
-                <i data-lucide="flower-2" class="w-4 h-4 text-[#A65A42]"></i> 5. Mô phỏng Bảng màu trên Sản phẩm Hoa
-              </h3>
-              <div class="flex flex-wrap gap-1" id="mockupTypeButtons">
-                <button data-mockup="bouquet" class="mockup-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1A2621] text-white">Bó hoa cưới</button>
-                <button data-mockup="centerpiece" class="mockup-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F7F4EF] text-[#1A2621] border border-[#E4DFD5]">Bình bàn tiệc</button>
-                <button data-mockup="arch" class="mockup-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F7F4EF] text-[#1A2621] border border-[#E4DFD5]">Cổng hoa</button>
-                <button data-mockup="giftbox" class="mockup-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F7F4EF] text-[#1A2621] border border-[#E4DFD5]">Hộp hoa</button>
+          <section class="floral-proof" aria-labelledby="floralProofTitle">
+            <header class="floral-proof-header">
+              <h3 id="floralProofTitle" class="font-editorial">5. Mô phỏng bảng màu</h3>
+              <div id="mockupTypeButtons" aria-label="Mẫu sản phẩm" role="group">
+                <button type="button" data-mockup="bouquet" aria-pressed="true">Bó hoa cưới</button>
+                <button type="button" data-mockup="centerpiece" aria-pressed="false">Bình bàn tiệc</button>
+                <button type="button" data-mockup="arch" aria-pressed="false">Cổng hoa</button>
+                <button type="button" data-mockup="giftbox" aria-pressed="false">Hộp hoa</button>
+              </div>
+            </header>
+            <div class="floral-proof-layout">
+              <figure class="floral-proof-stage">
+                <canvas id="floralMockupCanvas" width="768" height="512" role="img" aria-label="Ảnh mô phỏng phối màu"></canvas>
+                <p id="floralProofStatus" role="status"></p>
+                <figcaption>
+                  <span id="floralProofName"></span>
+                  <button type="button" id="floralProofOriginal" aria-pressed="false">Xem ảnh mẫu gốc</button>
+                </figcaption>
+              </figure>
+              <div class="floral-proof-panel">
+                <div class="floral-proof-panel-heading">
+                  <h4>Vai trò màu</h4>
+                  <button type="button" id="floralProofReset">Tự động</button>
+                </div>
+                <div id="mockupRoleMapping"></div>
+                <button type="button" id="floralProofExport" disabled>Tải ảnh mô phỏng PNG</button>
               </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-              <div class="md:col-span-7 bg-[#F3EFE8] rounded-xl border border-[#E4DFD5] p-2 flex items-center justify-center min-h-[280px]" id="floralMockupSvgContainer">
-                <canvas id="floralMockupCanvas" width="760" height="540" class="w-full h-auto rounded-lg"></canvas>
-              </div>
-              <div class="md:col-span-5 space-y-2.5 text-xs" id="mockupRoleMapping"></div>
-            </div>
-          </div>
+          </section>
 
           <!-- Saved Color Palettes Library right inside Floral Color Studio -->
           <div class="panel-card p-4 space-y-3" id="inlineSavedColorsSection">
@@ -1668,19 +1679,6 @@
       });
     });
 
-    // Mockup type buttons
-    document.querySelectorAll('#mockupTypeButtons .mockup-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.mockupType = btn.dataset.mockup;
-        document.querySelectorAll('#mockupTypeButtons .mockup-btn').forEach(b => {
-          b.className = 'mockup-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F7F4EF] text-[#1A2621] border border-[#E4DFD5]';
-        });
-        btn.className = 'mockup-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1A2621] text-white';
-        renderFloralMockup();
-        persist();
-      });
-    });
-
     function renderColorStudio() {
       document.getElementById('paletteCountBadge').textContent = `${state.palette.length} màu`;
       const list = document.getElementById('swatchList');
@@ -1955,267 +1953,7 @@
       renderFloralMockup();
     }
 
-    // High-Craft Botanical Floral Mockup Renderer on Canvas
-    function shadeHex(hex, amt) {
-      const { r, g, b } = hexToRgb(hex);
-      return rgbToHex(clamp(r + amt, 0, 255), clamp(g + amt, 0, 255), clamp(b + amt, 0, 255));
-    }
-
-    function drawBotanicalLeaf(ctx, x, y, len, wid, angle, color) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle);
-      const grad = ctx.createLinearGradient(0, -wid, len, wid);
-      grad.addColorStop(0, shadeHex(color, -18));
-      grad.addColorStop(0.5, color);
-      grad.addColorStop(1, shadeHex(color, 18));
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(len * 0.45, -wid, len, 0);
-      ctx.quadraticCurveTo(len * 0.45, wid, 0, 0);
-      ctx.fill();
-      ctx.strokeStyle = shadeHex(color, -32);
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(len * 0.85, 0); ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawGardenRose(ctx, x, y, radius, baseHex) {
-      ctx.save();
-      ctx.translate(x, y);
-      // Soft drop shadow
-      ctx.shadowColor = 'rgba(26,38,33,0.18)';
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetY = 4;
-
-      const outerColor = shadeHex(baseHex, 14);
-      const midColor = baseHex;
-      const innerColor = shadeHex(baseHex, -22);
-      const deepColor = shadeHex(baseHex, -40);
-
-      // Outer ruffled petals
-      for (let i = 0; i < 7; i++) {
-        const a = (i / 7) * Math.PI * 2 + 0.2;
-        ctx.save();
-        ctx.rotate(a);
-        ctx.fillStyle = outerColor;
-        ctx.beginPath();
-        ctx.ellipse(radius * 0.42, 0, radius * 0.56, radius * 0.46, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = shadeHex(baseHex, -12);
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        ctx.restore();
-      }
-      ctx.shadowColor = 'transparent';
-
-      // Mid petal ring
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 + 0.6;
-        ctx.save();
-        ctx.rotate(a);
-        ctx.fillStyle = midColor;
-        ctx.beginPath();
-        ctx.ellipse(radius * 0.24, 0, radius * 0.42, radius * 0.34, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = innerColor;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // Inner cupped petals + spiral center
-      ctx.fillStyle = innerColor;
-      ctx.beginPath(); ctx.arc(0, 0, radius * 0.34, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = deepColor;
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      for (let t = 0; t < 16; t++) {
-        const ang = t * 0.65;
-        const rad = (t / 16) * radius * 0.28;
-        const px = Math.cos(ang) * rad, py = Math.sin(ang) * rad;
-        if (t === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      }
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawFillerCluster(ctx, x, y, hex, count = 5) {
-      for (let i = 0; i < count; i++) {
-        const a = (i / count) * Math.PI * 2;
-        const d = 10 + (i % 2) * 6;
-        const fx = x + Math.cos(a) * d, fy = y + Math.sin(a) * d;
-        ctx.fillStyle = shadeHex(hex, (i % 2 === 0) ? 12 : -8);
-        ctx.beginPath(); ctx.arc(fx, fy, 6.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = shadeHex(hex, -30);
-        ctx.beginPath(); ctx.arc(fx, fy, 1.8, 0, Math.PI * 2); ctx.fill();
-      }
-    }
-
-    function renderFloralMockup() {
-      const sorted = [...state.palette].sort((a, b) => b.ratio - a.ratio);
-      const greenSwatch = sorted.find(s => {
-        const rgb = hexToRgb(s.hex); const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-        return hsl.h >= 75 && hsl.h <= 165 && hsl.s >= 12;
-      });
-      const nonGreens = sorted.filter(s => s !== greenSwatch);
-      const c1 = nonGreens[0]?.hex || sorted[0]?.hex || '#D8B79E';
-      const c2 = nonGreens[1]?.hex || sorted[1]?.hex || '#B86443';
-      const c3 = nonGreens[2]?.hex || sorted[2]?.hex || '#EDE2D3';
-      const c4 = greenSwatch?.hex || sorted[3]?.hex || '#5D7466';
-      const c5 = nonGreens[3]?.hex || sorted[4]?.hex || '#7C4330';
-
-      const canvas = document.getElementById('floralMockupCanvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      const W = canvas.width, H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
-
-      // Soft Studio Backdrop Gradient
-      const bgGrad = ctx.createRadialGradient(W * 0.5, H * 0.4, 40, W * 0.5, H * 0.5, W * 0.65);
-      bgGrad.addColorStop(0, '#FAF8F4');
-      bgGrad.addColorStop(1, '#E8E2D7');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, W, H);
-
-      const type = state.mockupType || 'bouquet';
-      if (type === 'bouquet') {
-        // Stems
-        for (let i = -5; i <= 5; i++) {
-          ctx.strokeStyle = shadeHex(c4, -18 + (i % 2) * 8);
-          ctx.lineWidth = 6;
-          ctx.beginPath();
-          ctx.moveTo(380 + i * 5, 320);
-          ctx.lineTo(380 + i * 11, 490);
-          ctx.stroke();
-        }
-        // Silk ribbon wrap & trailing tails
-        ctx.fillStyle = c5;
-        ctx.fillRect(352, 345, 56, 46);
-        ctx.fillStyle = shadeHex(c2, -10);
-        ctx.beginPath();
-        ctx.moveTo(366, 390); ctx.quadraticCurveTo(335, 455, 275, 502);
-        ctx.lineTo(298, 512); ctx.quadraticCurveTo(354, 458, 384, 390); ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(390, 390); ctx.quadraticCurveTo(405, 452, 435, 496);
-        ctx.lineTo(416, 504); ctx.quadraticCurveTo(392, 454, 378, 390); ctx.fill();
-
-        // Eucalyptus Foliage Frame
-        [
-          [240, 260, 88, 22, -2.5], [210, 200, 80, 20, -2.8], [285, 145, 76, 19, -2.1],
-          [520, 255, 90, 22, -0.5], [545, 205, 78, 19, -0.2], [485, 142, 74, 18, -0.9],
-          [265, 315, 72, 18, 2.7], [495, 312, 74, 18, 0.4]
-        ].forEach(l => drawBotanicalLeaf(ctx, l[0], l[1], l[2], l[3], l[4], c4));
-
-        // Base & Secondary Blooms
-        drawGardenRose(ctx, 290, 245, 46, c1);
-        drawGardenRose(ctx, 470, 240, 44, c1);
-        drawGardenRose(ctx, 382, 175, 45, c3);
-        drawGardenRose(ctx, 322, 178, 38, c3);
-        drawGardenRose(ctx, 440, 182, 39, c1);
-        drawGardenRose(ctx, 385, 298, 46, c1);
-
-        // Focal Blooms
-        drawGardenRose(ctx, 342, 258, 52, c2);
-        drawGardenRose(ctx, 428, 262, 46, c2);
-        drawGardenRose(ctx, 375, 222, 40, c3);
-
-        // Fillers
-        drawFillerCluster(ctx, 248, 220, c3, 6);
-        drawFillerCluster(ctx, 515, 215, c3, 6);
-        drawFillerCluster(ctx, 325, 305, c5, 5);
-        drawFillerCluster(ctx, 450, 308, c5, 5);
-      } else if (type === 'centerpiece') {
-        // Stone table surface
-        ctx.fillStyle = '#DED7CB';
-        ctx.fillRect(0, 425, W, 115);
-        // Trailing Foliage
-        [
-          [245, 325, 95, 20, 2.7], [190, 360, 82, 18, 2.9], [515, 328, 95, 20, 0.4],
-          [570, 365, 84, 18, 0.25], [270, 230, 82, 19, -2.3], [495, 242, 82, 19, -0.8]
-        ].forEach(l => drawBotanicalLeaf(ctx, l[0], l[1], l[2], l[3], l[4], c4));
-
-        // Ceramic Bowl with Shading
-        const bowlGrad = ctx.createLinearGradient(280, 330, 480, 430);
-        bowlGrad.addColorStop(0, shadeHex(c5, 16));
-        bowlGrad.addColorStop(0.6, c5);
-        bowlGrad.addColorStop(1, shadeHex(c5, -26));
-        ctx.fillStyle = bowlGrad;
-        ctx.beginPath();
-        ctx.moveTo(275, 335);
-        ctx.quadraticCurveTo(285, 430, 380, 430);
-        ctx.quadraticCurveTo(475, 430, 485, 335);
-        ctx.closePath();
-        ctx.fill();
-
-        // Asymmetric S-Curve Arrangement
-        drawGardenRose(ctx, 295, 270, 44, c1);
-        drawGardenRose(ctx, 465, 285, 42, c1);
-        drawGardenRose(ctx, 345, 225, 40, c3);
-        drawGardenRose(ctx, 335, 302, 48, c2);
-        drawGardenRose(ctx, 418, 298, 46, c2);
-        drawGardenRose(ctx, 382, 268, 38, c3);
-        drawFillerCluster(ctx, 240, 295, c3, 5);
-        drawFillerCluster(ctx, 515, 295, c3, 5);
-      } else if (type === 'arch') {
-        // Wooden/Metal Arch Frame
-        ctx.strokeStyle = '#7A6B5D';
-        ctx.lineWidth = 12;
-        ctx.beginPath();
-        ctx.moveTo(190, 495); ctx.lineTo(190, 220);
-        ctx.arc(380, 220, 190, Math.PI, 0, false);
-        ctx.lineTo(570, 495);
-        ctx.stroke();
-
-        // Left & Top Floral Cloud
-        [
-          [175, 175, 95, 22, -2.3], [225, 105, 92, 22, -1.8], [305, 65, 86, 20, -1.3],
-          [555, 220, 88, 20, 0.7], [575, 295, 84, 20, 1.1]
-        ].forEach(l => drawBotanicalLeaf(ctx, l[0], l[1], l[2], l[3], l[4], c4));
-
-        drawGardenRose(ctx, 215, 175, 44, c1);
-        drawGardenRose(ctx, 265, 125, 42, c1);
-        drawGardenRose(ctx, 240, 150, 46, c2);
-        drawGardenRose(ctx, 315, 95, 36, c3);
-        drawGardenRose(ctx, 195, 235, 36, c3);
-        drawGardenRose(ctx, 558, 245, 42, c1);
-        drawGardenRose(ctx, 566, 295, 40, c2);
-        drawFillerCluster(ctx, 295, 148, c3, 5);
-        drawFillerCluster(ctx, 535, 270, c3, 5);
-      } else {
-        // Luxury Hatbox
-        ctx.fillStyle = shadeHex(c5, -8);
-        ctx.fillRect(265, 285, 230, 190);
-        ctx.fillStyle = c5;
-        ctx.fillRect(255, 268, 250, 26);
-        ctx.fillStyle = c2;
-        ctx.fillRect(365, 268, 30, 207);
-
-        [
-          [255, 240, 75, 18, -2.5], [505, 240, 75, 18, -0.5],
-          [300, 195, 70, 16, -2.0], [460, 195, 70, 16, -1.1]
-        ].forEach(l => drawBotanicalLeaf(ctx, l[0], l[1], l[2], l[3], l[4], c4));
-
-        drawGardenRose(ctx, 315, 225, 44, c1);
-        drawGardenRose(ctx, 445, 225, 44, c1);
-        drawGardenRose(ctx, 380, 212, 48, c2);
-        drawGardenRose(ctx, 345, 172, 36, c3);
-        drawGardenRose(ctx, 418, 174, 36, c3);
-        drawFillerCluster(ctx, 275, 235, c3, 5);
-        drawFillerCluster(ctx, 485, 235, c3, 5);
-      }
-
-      document.getElementById('mockupRoleMapping').innerHTML = `
-        <div class="font-semibold text-[#1A2621]">Phân bổ màu trên mẫu thực tế:</div>
-        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded border border-black/15" style="background:${c1}"></span> <strong>Hoa chủ đạo / Nền:</strong> <span class="mono-num">${c1}</span></div>
-        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded border border-black/15" style="background:${c2}"></span> <strong>Hoa trọng tâm (Focal):</strong> <span class="mono-num">${c2}</span></div>
-        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded border border-black/15" style="background:${c3}"></span> <strong>Hoa phụ / Chuyển sắc:</strong> <span class="mono-num">${c3}</span></div>
-        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded border border-black/15" style="background:${c4}"></span> <strong>Lá &amp; Cành tạo khung:</strong> <span class="mono-num">${c4}</span></div>
-        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded border border-black/15" style="background:${c5}"></span> <strong>Bình / Hộp / Ruy băng:</strong> <span class="mono-num">${c5}</span></div>
-      `;
-    }
-
+    // Floral product proof renderer
     // Save & Export Color Recipe
     document.getElementById('btnSaveColorRecipe').onclick = () => {
       showModal({

@@ -1,0 +1,24 @@
+.floral-proof { border:1px solid #dfd8cb; background:#fbfaf7; border-radius:16px; padding:clamp(.85rem,2vw,1.4rem); }
+.floral-proof-header { display:flex; flex-direction:column; gap:.75rem; margin-bottom:1rem; }
+.floral-proof-header h3 { color:#23362d; font-size:clamp(1.35rem,2.3vw,1.85rem); font-weight:600; line-height:1.15; }
+#mockupTypeButtons { display:flex; flex-wrap:wrap; gap:.35rem; }
+.floral-proof button { border:1px solid #ded7ca; border-radius:7px; padding:.5rem .7rem; color:#283b31; background:#fff; font-size:.85rem; }
+.floral-proof button:hover { background:#ede8de; }
+.floral-proof button[aria-pressed=true], #floralProofExport { color:#fff; background:#293d32; border-color:#293d32; }
+.floral-proof button:disabled { opacity:.55; }
+.floral-proof :focus-visible { outline:2px solid #a65a42; outline-offset:2px; }
+.floral-proof-layout { display:grid; grid-template-columns:minmax(0,1.8fr) minmax(190px,1fr); gap:.9rem; align-items:start; }
+.floral-proof-stage { position:relative; overflow:hidden; border:1px solid #d9d0c3; border-radius:11px; background:#e9e2d7; }
+#floralMockupCanvas { display:block; width:100%; height:auto; aspect-ratio:3/2; background:#e9e2d7; }
+.floral-proof-stage figcaption { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.45rem; padding:.55rem .7rem; background:#fffdf9; font-size:.85rem; color:#405147; }
+#floralProofStatus { position:absolute; inset:0 0 auto; padding:.6rem .8rem; background:#fffdf9; color:#4b574e; font-size:.85rem; }
+#floralProofStatus:empty { display:none; }
+.floral-proof-panel { padding:.75rem; border:1px solid #e2dbd0; border-radius:11px; background:#f4f0e8; }
+.floral-proof-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.45rem; }
+.floral-proof-panel-heading h4 { font-size:1rem; font-weight:650; }
+.floral-proof-role { display:grid; grid-template-columns:1.65rem minmax(0,1fr); align-items:center; gap:.55rem; padding:.5rem 0; border-top:1px solid #e3ddd2; }
+.floral-proof-role label { display:block; color:#263a30; font-size:.83rem; font-weight:600; }
+.floral-proof-role select { display:block; width:100%; margin-top:.15rem; padding:.25rem; border:1px solid #dcd4c7; border-radius:6px; background:#fff; color:#34463b; font-size:.82rem; }
+.floral-proof-swatch { width:1.65rem; height:1.65rem; border:1px solid #0002; border-radius:6px; }
+#floralProofExport { width:100%; margin-top:.65rem; }
+@media(max-width:720px) { .floral-proof-layout {grid-template-columns:1fr;} }
